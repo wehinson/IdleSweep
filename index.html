@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mine Cabinet</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <main class="cabinet" aria-label="Mine Cabinet arcade minesweeper">
+        <section class="marquee" aria-label="Game title">
+          <span class="marquee__spark">★</span>
+          <h1>Mine Cabinet</h1>
+          <span class="marquee__spark">★</span>
+        </section>
+
+        <section class="screen" aria-live="polite">
+          <div class="hud">
+            <div class="meter">
+              <span class="meter__label">Mines</span>
+              <span id="mine-count" class="meter__value">06</span>
+            </div>
+            <button id="reset" class="reset" type="button" aria-label="Reset board">
+              READY
+            </button>
+            <div class="meter meter--right">
+              <span class="meter__label">Moves</span>
+              <span id="move-count" class="meter__value">00</span>
+            </div>
+          </div>
+
+          <p id="status" class="status">Sweep the grid. Right-click or long-press to flag.</p>
+
+          <div
+            id="board"
+            class="board"
+            role="grid"
+            aria-label="5 by 7 minesweeper board"
+          ></div>
+        </section>
+
+        <section class="controls" aria-label="Arcade controls">
+          <div class="joystick" aria-hidden="true"></div>
+          <div class="buttons" aria-hidden="true">
+            <span></span>
+            <span></span>
+          </div>
+        </section>
+      </main>
+
+      <aside class="quartermaster-panel" aria-label="Quartermaster inventory and store">
+        <div class="panel-header">
+          <span class="panel-header__eyebrow">Supply Deck</span>
+          <h2>Quartermaster's</h2>
+        </div>
+
+        <div class="coin-display" aria-label="Coins">
+          <span class="coin-display__label">Purse</span>
+          <span id="coin-count" class="coin-display__value">$100</span>
+        </div>
+
+        <div class="resource-grid" aria-label="Current resources">
+          <div class="resource-card resource-card--shovel" id="shovel-resource" tabindex="0">
+            <span class="resource-card__icon" aria-hidden="true">⛏</span>
+            <span class="resource-card__label">Shovels</span>
+            <strong id="shovel-count" class="resource-card__value">02</strong>
+            <span id="shovel-uses" class="resource-card__detail">80 digs</span>
+          </div>
+          <div class="resource-card">
+            <span class="resource-card__icon" aria-hidden="true">⚑</span>
+            <span class="resource-card__label">Flags</span>
+            <strong id="flag-stock" class="resource-card__value">15</strong>
+            <span class="resource-card__detail">in stock</span>
+          </div>
+          <div class="resource-card">
+            <span class="resource-card__icon" aria-hidden="true">✹</span>
+            <span class="resource-card__label">Mines</span>
+            <strong id="active-mine-count" class="resource-card__value">00</strong>
+            <span class="resource-card__detail">collected</span>
+          </div>
+        </div>
+
+        <p id="shovel-tooltip" class="resource-tooltip" role="status">Wooden shovel: 40 tiles before it breaks.</p>
+
+        <section class="store" aria-labelledby="store-title">
+          <div class="store__header">
+            <span class="store__eyebrow">Outfitter</span>
+            <h3 id="store-title">Store</h3>
+          </div>
+          <button id="buy-shovel" class="store-item" type="button">
+            <span class="store-item__copy">
+              <strong>Buy shovel</strong>
+              <small>+1 fresh shovel</small>
+            </span>
+            <span id="buy-shovel-cost" class="store-item__cost">$25</span>
+          </button>
+          <button id="buy-flags" class="store-item" type="button">
+            <span class="store-item__copy">
+              <strong>Buy flags</strong>
+              <small>+5 flags</small>
+            </span>
+            <span id="buy-flags-cost" class="store-item__cost">$10</span>
+          </button>
+          <button id="improve-shovel" class="store-item store-item--upgrade" type="button">
+            <span class="store-item__copy">
+              <strong id="upgrade-title">Improve shovel</strong>
+              <small id="upgrade-detail">Wooden → Copper</small>
+            </span>
+            <span id="upgrade-cost" class="store-item__cost">$60</span>
+          </button>
+          <p id="store-note" class="store-note">Find treasure while you dig to fill the purse.</p>
+        </section>
+      </aside>
+
+      <aside class="settings-panel" aria-label="Game settings">
+        <div class="settings-panel__header">
+          <span class="settings-panel__eyebrow">Operator Panel</span>
+          <h2>Settings</h2>
+        </div>
+
+        <fieldset class="setting-group">
+          <legend>Grid Size</legend>
+          <div class="setting-row setting-row--split">
+            <label for="cols-input">Columns</label>
+            <input id="cols-input" type="number" min="3" max="12" step="1" value="5" />
+          </div>
+          <div class="setting-row setting-row--split">
+            <label for="rows-input">Rows</label>
+            <input id="rows-input" type="number" min="3" max="12" step="1" value="7" />
+          </div>
+        </fieldset>
+
+        <fieldset class="setting-group">
+          <legend>Starting Safety</legend>
+          <div class="safety-options">
+            <label class="safety-option">
+              <input type="radio" name="safety" value="safe-cell" checked />
+              <span>No mine</span>
+            </label>
+            <label class="safety-option">
+              <input type="radio" name="safety" value="zero" />
+              <span>Guaranteed 0</span>
+            </label>
+            <label class="safety-option">
+              <input type="radio" name="safety" value="safe-5x5" />
+              <span>5x5 safe area</span>
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="setting-group">
+          <legend>Mines</legend>
+          <div class="setting-row setting-row--split">
+            <label for="mines-input">Spawn Count</label>
+            <input id="mines-input" type="number" min="0" max="34" step="1" value="6" />
+          </div>
+          <input id="mines-range" class="mine-slider" type="range" min="0" max="34" value="6" />
+          <p id="settings-note" class="settings-note">6 mines, placed after the first click.</p>
+        </fieldset>
+
+        <section class="progress-reset" aria-label="Progress reset">
+          <div>
+            <strong>Progress</strong>
+            <span>Return to starting purse, tools, and upgrades.</span>
+          </div>
+          <button id="reset-progress" class="progress-reset__button" type="button">
+            Reset
+          </button>
+        </section>
+      </aside>
+    </div>
+
+    <script src="game.js"></script>
+  </body>
+</html>
