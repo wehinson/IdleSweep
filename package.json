@@ -1,0 +1,10 @@
+{
+  "name": "idle-sweep",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "serve": "node scripts/serve.js",
+    "test": "node --test"
+  }
+}

@@ -3,21 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mine Cabinet</title>
+    <title>Sweeper Inc.</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:wght@400;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=districts-1" />
   </head>
   <body>
     <div class="app-shell">
-      <main class="cabinet" aria-label="Mine Cabinet arcade minesweeper">
+      <main class="cabinet" aria-label="Sweeper Inc. arcade minesweeper">
         <section class="marquee" aria-label="Game title">
           <span class="marquee__spark">★</span>
-          <h1>Mine Cabinet</h1>
+          <h1>Sweeper Inc.</h1>
           <span class="marquee__spark">★</span>
         </section>
 
@@ -25,7 +25,7 @@
           <div class="hud">
             <div class="meter">
               <span class="meter__label">Mines</span>
-              <span id="mine-count" class="meter__value">06</span>
+              <span id="mine-count" class="meter__value">01</span>
             </div>
             <button id="reset" class="reset" type="button" aria-label="Reset board">
               READY
@@ -37,25 +37,40 @@
           </div>
 
           <p id="status" class="status">Sweep the grid. Right-click or long-press to flag.</p>
+          <p id="field-value" class="field-value">Field value: $0</p>
 
           <div
             id="board"
             class="board"
             role="grid"
-            aria-label="5 by 7 minesweeper board"
+            aria-label="3 by 3 minesweeper board"
           ></div>
         </section>
 
         <section class="controls" aria-label="Arcade controls">
-          <div class="joystick" aria-hidden="true"></div>
-          <div class="buttons" aria-hidden="true">
-            <span></span>
-            <span></span>
+          <div class="equipment-dock">
+            <button id="equipment-toggle" class="equipment-toggle" type="button" aria-expanded="false" aria-controls="equipment-inventory" title="Special equipment inventory">
+              <span aria-hidden="true">▣</span>
+              <strong id="equipment-total">0</strong>
+            </button>
+            <div id="equipment-inventory" class="equipment-inventory" hidden>
+              <div class="equipment-inventory__header">
+                <span class="store__eyebrow">Inventory</span>
+                <strong>Special Equipment</strong>
+              </div>
+              <div id="equipment-inventory-list" class="equipment-inventory__list"></div>
+            </div>
+          </div>
+          <div class="buttons" aria-label="Cabinet mode controls">
+            <button id="use-hint" class="cabinet-mode-button" type="button" title="Reveal a known safe space or mine">Use<br>Hint</button>
+            <button id="district-button" class="cabinet-mode-button" type="button">District</button>
+            <button id="auto-miners-button" class="cabinet-mode-button cabinet-mode-button--green" type="button">Auto<br>Mine</button>
           </div>
         </section>
+        <div id="worker-tooltip" class="worker-tooltip" role="tooltip" hidden></div>
       </main>
 
-      <aside class="quartermaster-panel" aria-label="Quartermaster inventory and store">
+      <aside id="quartermaster-panel" class="quartermaster-panel" aria-label="Quartermaster inventory and store">
         <div class="panel-header">
           <span class="panel-header__eyebrow">Supply Deck</span>
           <h2>Quartermaster's</h2>
@@ -67,116 +82,334 @@
         </div>
 
         <div class="resource-grid" aria-label="Current resources">
-          <div class="resource-card resource-card--shovel" id="shovel-resource" tabindex="0">
+          <div class="resource-card resource-card--shovel" id="shovel-resource" data-tooltip="Needed to dig. Upgrade for more powerful tools.">
             <span class="resource-card__icon" aria-hidden="true">⛏</span>
             <span class="resource-card__label">Shovels</span>
-            <strong id="shovel-count" class="resource-card__value">02</strong>
-            <span id="shovel-uses" class="resource-card__detail">80 digs</span>
+            <strong id="shovel-count" class="resource-card__value">10</strong>
+            <span id="shovel-uses" class="resource-card__detail">100 digs</span>
           </div>
-          <div class="resource-card">
+          <div class="resource-card" id="flag-resource" data-tooltip="Needed to mark mines. Upgrade for better mine retrieval.">
             <span class="resource-card__icon" aria-hidden="true">⚑</span>
             <span class="resource-card__label">Flags</span>
             <strong id="flag-stock" class="resource-card__value">15</strong>
-            <span class="resource-card__detail">in stock</span>
+            <span id="flag-capacity" class="resource-card__detail">15 max</span>
           </div>
-          <div class="resource-card">
+          <div class="resource-card" id="hint-resource" data-tooltip="Reveal one known safe space or mine on the active board.">
+            <span class="resource-card__icon" aria-hidden="true">?</span>
+            <span class="resource-card__label">Hints</span>
+            <strong id="hint-stock" class="resource-card__value">3</strong>
+            <span id="hint-capacity" class="resource-card__detail">10 max</span>
+          </div>
+          <div class="resource-card" id="mine-resource" data-tooltip="Purchase a Steel Shovel to unlock.">
             <span class="resource-card__icon" aria-hidden="true">✹</span>
             <span class="resource-card__label">Mines</span>
             <strong id="active-mine-count" class="resource-card__value">00</strong>
-            <span class="resource-card__detail">collected</span>
+            <span id="mine-resource-detail" class="resource-card__detail">locked</span>
           </div>
         </div>
 
-        <p id="shovel-tooltip" class="resource-tooltip" role="status">Wooden shovel: 40 tiles before it breaks.</p>
-
-        <section class="store" aria-labelledby="store-title">
+        <section class="store" aria-labelledby="supplies-title">
           <div class="store__header">
             <span class="store__eyebrow">Outfitter</span>
-            <h3 id="store-title">Store</h3>
+            <h3 id="supplies-title">Supplies</h3>
           </div>
-          <button id="buy-shovel" class="store-item" type="button">
+          <button id="buy-shovel" class="store-item" type="button" title="Supplies cannot be bought during a round.">
             <span class="store-item__copy">
-              <strong>Buy shovel</strong>
-              <small>+1 fresh shovel</small>
+              <strong>Buy shovels</strong>
+              <small id="buy-shovel-detail">+1 fresh shovel</small>
             </span>
             <span id="buy-shovel-cost" class="store-item__cost">$25</span>
           </button>
-          <button id="buy-flags" class="store-item" type="button">
+          <button id="buy-flags" class="store-item" type="button" title="Supplies cannot be bought during a round.">
             <span class="store-item__copy">
               <strong>Buy flags</strong>
               <small>+5 flags</small>
             </span>
             <span id="buy-flags-cost" class="store-item__cost">$10</span>
           </button>
-          <button id="improve-shovel" class="store-item store-item--upgrade" type="button">
-            <span class="store-item__copy">
-              <strong id="upgrade-title">Improve shovel</strong>
-              <small id="upgrade-detail">Wooden → Copper</small>
-            </span>
-            <span id="upgrade-cost" class="store-item__cost">$60</span>
+          <button id="buy-hints" class="store-item" type="button" title="Supplies cannot be bought during a round.">
+            <span class="store-item__copy"><strong>Buy hints</strong><small>+5 hints</small></span>
+            <span id="buy-hints-cost" class="store-item__cost">$1000</span>
           </button>
-          <p id="store-note" class="store-note">Find treasure while you dig to fill the purse.</p>
+          <button id="shovel-cap" class="store-item store-item--compact" type="button" hidden>
+            <span class="store-item__copy"><strong id="shovel-cap-title">Shovel Locker</strong><small id="shovel-cap-detail">Raise storage cap</small></span>
+            <span id="shovel-cap-cost" class="store-item__cost">$120</span>
+          </button>
+          <button id="flag-cap" class="store-item store-item--compact" type="button" hidden>
+            <span class="store-item__copy"><strong id="flag-cap-title">Flag Locker</strong><small id="flag-cap-detail">Raise storage cap</small></span>
+            <span id="flag-cap-cost" class="store-item__cost">$160</span>
+          </button>
+          <div id="special-equipment-store" class="special-equipment-store" hidden>
+            <div class="store__subheader">
+              <span class="store__eyebrow">Special Equipment</span>
+              <strong>Single-use recovery tools</strong>
+            </div>
+            <div id="special-equipment-list" class="store-list"></div>
+          </div>
+          <p id="store-note" class="store-note">Supplies are stocked between rounds.</p>
+        </section>
+
+        <section id="upgrades-section" class="store" aria-labelledby="upgrades-title">
+          <div class="store__header">
+            <span class="store__eyebrow">Workshop</span>
+            <h3 id="upgrades-title">Upgrades</h3>
+          </div>
+          <div class="store-list">
+            <button id="taller-grid" class="store-item" type="button" hidden>
+              <span class="store-item__copy"><strong id="taller-grid-title">Taller Grid</strong><small id="taller-grid-detail">Unlock +1 row</small></span>
+              <span id="taller-grid-cost" class="store-item__cost">$80</span>
+            </button>
+            <button id="wider-grid" class="store-item" type="button" hidden>
+              <span class="store-item__copy"><strong id="wider-grid-title">Wider Grid</strong><small id="wider-grid-detail">Unlock +1 column</small></span>
+              <span id="wider-grid-cost" class="store-item__cost">$80</span>
+            </button>
+            <button id="improve-shovel" class="store-item" type="button">
+              <span class="store-item__copy">
+                <strong id="upgrade-title">Improve shovel</strong>
+                <small id="upgrade-detail">Wooden → Copper</small>
+              </span>
+              <span id="upgrade-cost" class="store-item__cost">$60</span>
+            </button>
+            <button id="add-mine" class="store-item" type="button" hidden>
+              <span class="store-item__copy"><strong>Add mine</strong><small id="add-mine-detail">Unlock +1 mine</small></span>
+              <span id="add-mine-cost" class="store-item__cost">$90</span>
+            </button>
+            <button id="add-treasure" class="store-item" type="button" hidden>
+              <span class="store-item__copy"><strong>Add treasure</strong><small id="add-treasure-detail">Unlock +1 chest</small></span>
+              <span id="add-treasure-cost" class="store-item__cost">$80</span>
+            </button>
+            <button id="treasure-value" class="store-item" type="button" hidden>
+              <span class="store-item__copy"><strong>Richer caches</strong><small id="treasure-value-detail">Increase average value</small></span>
+              <span id="treasure-value-cost" class="store-item__cost">$100</span>
+            </button>
+            <button id="better-flags" class="store-item" type="button" hidden>
+              <span class="store-item__copy"><strong>Better Flags</strong><small id="better-flags-detail">Improve mine recovery</small></span>
+              <span id="better-flags-cost" class="store-item__cost">$150</span>
+            </button>
+            <button id="mine-yield" class="store-item" type="button" hidden>
+              <span class="store-item__copy"><strong>Mine yield</strong><small id="mine-yield-detail">+1% per extra mine</small></span>
+              <span id="mine-yield-cost" class="store-item__cost">$180</span>
+            </button>
+          </div>
+        </section>
+
+        <section id="abilities-section" class="store" aria-labelledby="abilities-title">
+          <div class="store__header">
+            <span class="store__eyebrow">Abilities</span>
+            <h3 id="abilities-title">Abilities</h3>
+          </div>
+          <div class="store-list">
+            <button id="safety-radius" class="store-item" type="button">
+              <span class="store-item__copy"><strong>Safety Radius</strong><small id="safety-radius-detail">No mine near first click</small></span>
+              <span id="safety-radius-cost" class="store-item__cost">$40</span>
+            </button>
+            <button id="chording" class="store-item" type="button" hidden>
+              <span class="store-item__copy"><strong id="chording-title">Chording</strong><small id="chording-detail">Unlock regular Minesweeper chording</small></span>
+              <span id="chording-cost" class="store-item__cost">3 mines</span>
+            </button>
+          </div>
+        </section>
+
+        <section id="specialists-panel" class="specialists-panel" aria-label="Auto Miner workers" hidden>
+          <div class="panel-header">
+            <span class="panel-header__eyebrow">Auto Mine</span>
+            <h2>District Crew</h2>
+          </div>
+
+          <div class="auto-mine-status">
+            <span class="auto-mine-status__label">Active Parcels</span>
+            <strong id="auto-mine-field" class="auto-mine-status__value">0</strong>
+          </div>
+
+          <div class="worker-group">
+            <div class="store__subheader"><span class="store__eyebrow">Automation</span><strong>Board assistance</strong></div>
+            <div id="automation-mode-list" class="specialist-list" aria-label="Automation mode"></div>
+          </div>
+
+          <div class="worker-group">
+            <div class="store__subheader"><span class="store__eyebrow">District Crew</span><strong>Surveyor</strong></div>
+            <div id="surveyor-card" class="specialist-list"></div>
+          </div>
+
+          <div class="worker-group">
+            <div class="store__subheader"><span class="store__eyebrow">Initiative</span></div>
+          </div>
+
+          <div class="worker-group">
+            <div class="store__subheader"><strong>Agents</strong></div>
+            <div id="agent-list" class="specialist-list" aria-label="Agent initiative"></div>
+          </div>
+
+          <div class="worker-group">
+            <div class="store__subheader"><strong>Specialists</strong></div>
+            <div id="specialist-list" class="specialist-list" aria-label="Specialist initiative"></div>
+          </div>
+          <p id="specialist-note" class="store-note">Surveyors investigate Unknown Parcels after the District is unlocked.</p>
         </section>
       </aside>
 
-      <aside class="settings-panel" aria-label="Game settings">
+      <aside class="contracts-panel message-board-panel" aria-label="Message Board">
+        <div class="panel-header">
+          <span class="panel-header__eyebrow">Claims Desk</span>
+          <h2>Message Board</h2>
+        </div>
+
+        <div id="message-board-list" class="message-board-list" aria-live="polite"></div>
+      </aside>
+
+      <aside class="curio-panel" aria-label="Mine Curio collected items">
+        <div class="panel-header">
+          <span class="panel-header__eyebrow">Mine Curio</span>
+          <h2>Finds</h2>
+        </div>
+
+        <div class="curio-status">
+          <span class="curio-status__label">Next chance</span>
+          <strong id="curio-chance" class="curio-status__value">0.1%</strong>
+        </div>
+
+        <div id="curio-grid" class="curio-grid" aria-label="Collected curio treasures"></div>
+
+        <p id="curio-note" class="curio-note">Curios occupy their own hidden safe tiles.</p>
+      </aside>
+
+      <aside class="settings-panel" aria-label="Game settings and statistics">
         <div class="settings-panel__header">
           <span class="settings-panel__eyebrow">Operator Panel</span>
           <h2>Settings</h2>
         </div>
 
         <fieldset class="setting-group">
-          <legend>Grid Size</legend>
+          <legend>Board Choice</legend>
           <div class="setting-row setting-row--split">
             <label for="cols-input">Columns</label>
-            <input id="cols-input" type="number" min="3" max="12" step="1" value="5" />
+            <select id="cols-input"></select>
           </div>
           <div class="setting-row setting-row--split">
             <label for="rows-input">Rows</label>
-            <input id="rows-input" type="number" min="3" max="12" step="1" value="7" />
+            <select id="rows-input"></select>
           </div>
-        </fieldset>
-
-        <fieldset class="setting-group">
-          <legend>Starting Safety</legend>
-          <div class="safety-options">
-            <label class="safety-option">
-              <input type="radio" name="safety" value="safe-cell" checked />
-              <span>No mine</span>
-            </label>
-            <label class="safety-option">
-              <input type="radio" name="safety" value="zero" />
-              <span>Guaranteed 0</span>
-            </label>
-            <label class="safety-option">
-              <input type="radio" name="safety" value="safe-5x5" />
-              <span>5x5 safe area</span>
-            </label>
-          </div>
-        </fieldset>
-
-        <fieldset class="setting-group">
-          <legend>Mines</legend>
           <div class="setting-row setting-row--split">
-            <label for="mines-input">Spawn Count</label>
-            <input id="mines-input" type="number" min="0" max="34" step="1" value="6" />
+            <label for="mines-input">Mines</label>
+            <select id="mines-input"></select>
           </div>
-          <input id="mines-range" class="mine-slider" type="range" min="0" max="34" value="6" />
-          <p id="settings-note" class="settings-note">6 mines, placed after the first click.</p>
+          <p id="settings-note" class="settings-note">1 mine, placed after the first click.</p>
         </fieldset>
+
+        <fieldset class="setting-group">
+          <legend>Controls</legend>
+          <div class="setting-row setting-row--split">
+            <label for="swap-controls-input">Swap flag/dig clicks</label>
+            <input id="swap-controls-input" type="checkbox" />
+          </div>
+          <p class="settings-note">Left-click flags and right-click/long-press digs.</p>
+        </fieldset>
+
+        <fieldset class="setting-group message-board-controls">
+          <legend>Message Board</legend>
+          <div class="message-board-status">
+            <span class="message-board-status__label">Next contract</span>
+            <strong id="contract-countdown" class="message-board-status__value">10 boards</strong>
+          </div>
+          <div class="message-board-status">
+            <span class="message-board-status__label">Next challenge</span>
+            <strong id="challenge-countdown" class="message-board-status__value">5:00</strong>
+          </div>
+          <div class="message-board-status">
+            <span class="message-board-status__label">Next survey</span>
+            <strong id="surveyor-countdown" class="message-board-status__value">locked</strong>
+          </div>
+          <div class="dev-buttons" aria-label="Developer message board controls">
+            <button id="generate-contract" class="dev-button" type="button">Generate Contract</button>
+            <button id="generate-challenge" class="dev-button" type="button">Generate Challenge</button>
+            <button id="survey-now" class="dev-button" type="button">Camp Parcel in 5 Boards</button>
+          </div>
+        </fieldset>
+
+        <details class="stats-section">
+          <summary>
+            <span class="store__eyebrow">Ledger</span>
+            <h3 id="stats-title">Statistics</h3>
+          </summary>
+          <dl id="stats-grid" class="stats-grid"></dl>
+          <div class="stats-subsection">
+            <span class="stats-label">Developer telemetry · per board run</span>
+            <dl id="developer-stats-grid" class="stats-grid"></dl>
+            <p id="developer-stats-note" class="settings-note"></p>
+          </div>
+          <div class="fastest-section">
+            <span class="stats-label">Fastest clears by configuration</span>
+            <ul id="fastest-configs" class="fastest-list"></ul>
+          </div>
+        </details>
 
         <section class="progress-reset" aria-label="Progress reset">
           <div>
             <strong>Progress</strong>
-            <span>Return to starting purse, tools, and upgrades.</span>
+            <span>Return to the starting purse, tools, abilities, and ledger.</span>
           </div>
           <button id="reset-progress" class="progress-reset__button" type="button">
             Reset
           </button>
         </section>
+
+        <section class="save-management" aria-labelledby="save-management-title">
+          <div>
+            <span class="settings-panel__eyebrow">Save Data</span>
+            <h3 id="save-management-title">Backup</h3>
+            <span id="save-status" aria-live="polite">Progress saves automatically in this browser.</span>
+          </div>
+          <div class="save-management__actions">
+            <button id="export-save" class="dev-button" type="button">Export Save</button>
+            <button id="import-save" class="dev-button" type="button">Import Save</button>
+            <input id="import-save-input" type="file" accept="application/json,.json" hidden>
+          </div>
+        </section>
       </aside>
     </div>
 
-    <script src="game.js"></script>
+    <div id="contract-modal" class="contract-modal" hidden>
+      <section class="contract-modal__window" role="dialog" aria-modal="true" aria-labelledby="contract-modal-title">
+        <span id="contract-modal-label" class="store__eyebrow">Contract</span>
+        <h2 id="contract-modal-title">Contract ready</h2>
+        <p id="contract-modal-description"></p>
+        <dl class="contract-modal__specs">
+          <div>
+            <dt>Field</dt>
+            <dd id="contract-modal-field"></dd>
+          </div>
+          <div>
+            <dt>Mines</dt>
+            <dd id="contract-modal-mines"></dd>
+          </div>
+          <div>
+            <dt>Reward</dt>
+            <dd id="contract-modal-reward"></dd>
+          </div>
+          <div>
+            <dt>Dig capacity</dt>
+            <dd id="contract-modal-digs"></dd>
+          </div>
+          <div>
+            <dt>Recommended flags</dt>
+            <dd id="contract-modal-flags"></dd>
+          </div>
+        </dl>
+        <button id="contract-modal-start" class="contract-button contract-button--large" type="button">
+          Begin sweep
+        </button>
+      </section>
+    </div>
+
+    <div id="field-clear-modal" class="contract-modal" hidden>
+      <section class="contract-modal__window" role="dialog" aria-modal="true" aria-labelledby="field-clear-modal-title">
+        <span class="store__eyebrow">Auto Miners</span>
+        <h2 id="field-clear-modal-title">Field Cleared</h2>
+        <p id="field-clear-modal-description"></p>
+        <button id="field-clear-modal-dismiss" class="contract-button contract-button--large" type="button">Clear</button>
+      </section>
+    </div>
+
+    <script type="module" src="src/main.js"></script>
   </body>
 </html>
