@@ -1,7 +1,7 @@
 import GAME_CONFIG from "./config.js";
 import { createGame } from "./src/engine/game-engine.js";
 import { createBoardCells, getNeighbors, hasClearedBoard, updateBoardAdjacency } from "./src/engine/board.js";
-import { availableProofs, refreshProofMetadata, scoreProofCascade } from "./src/engine/proofs.js";
+import { availableFlagSatisfiedSafeProofs, availableProofs, refreshProofMetadata, scoreProofCascade } from "./src/engine/proofs.js";
 import { performPurchase } from "./src/engine/purchaseables.js";
 import {
   GAME_MODES,
@@ -100,8 +100,10 @@ import {
 import {
   clearStoredSaves,
   loadStoredSave,
+  loadSwapControlsPreference,
   readLegacyMessageBoard,
   storeSave,
+  storeSwapControlsPreference,
 } from "./src/persistence/storage.js";
 import { decodeModeState, encodeModeState } from "./src/persistence/runtime-codec.js";
 import { bindSaveControls } from "./src/ui/save-controls.js";
@@ -121,6 +123,8 @@ const DISTRICT_CONFIG = GAME_CONFIG.district;
 const WORKER_ROUND_MS = 10000;
 const VISIBLE_BOARD_TARGET = "__VISIBLE_BOARD__";
 const WORKER_SCAN_STEP_MS = 1000;
+const WORKER_OPEN_SCAN_STEP_MS = WORKER_SCAN_STEP_MS / 2;
+const WORKER_TIMER_TOLERANCE_MS = 25;
 const DEFAULT_SETTINGS = {
   rows: GRID_LIMITS.min,
   cols: GRID_LIMITS.min,
@@ -139,12 +143,14 @@ function formatCopy(template, values = {}) {
 const boardElement = document.querySelector("#board");
 const mineCountElement = document.querySelector("#mine-count");
 const moveCountElement = document.querySelector("#move-count");
+const fieldValueElement = document.querySelector("#field-value");
 const statusElement = document.querySelector("#status");
 const resetButton = document.querySelector("#reset");
 const rowsInput = document.querySelector("#rows-input");
 const colsInput = document.querySelector("#cols-input");
 const minesInput = document.querySelector("#mines-input");
 const settingsNote = document.querySelector("#settings-note");
+const swapControlsInput = document.querySelector("#swap-controls-input");
 const coinCountElement = document.querySelector("#coin-count");
 const shovelCountElement = document.querySelector("#shovel-count");
 const shovelUsesElement = document.querySelector("#shovel-uses");
@@ -210,8 +216,13 @@ const surveyorCardElement = document.querySelector("#surveyor-card");
 const agentListElement = document.querySelector("#agent-list");
 const specialistListElement = document.querySelector("#specialist-list");
 const specialistNoteElement = document.querySelector("#specialist-note");
-const workerProofElement = document.querySelector("#worker-proof");
-const boardInputController = createCellInputController();
+const workerTooltipElement = document.querySelector("#worker-tooltip");
+const boardInputController = createCellInputController({ swapped: loadSwapControlsPreference() });
+swapControlsInput.checked = loadSwapControlsPreference();
+swapControlsInput.addEventListener("change", () => {
+  boardInputController.setSwapped(swapControlsInput.checked);
+  storeSwapControlsPreference(swapControlsInput.checked);
+});
 
 const upgradeElements = {
   tallerGrid: document.querySelector("#taller-grid"),
@@ -271,8 +282,29 @@ let flagsPlaced = 0;
 let minesPlaced = false;
 let isRevealing = false;
 let revealToken = 0;
+// Multiple cascades can be in flight at once (one per click that started a
+// reveal). A token is "active" as long as it's in this set; clearing the set
+// cancels every in-flight cascade at once (game reset, mode switch, loss).
+const activeRevealTokens = new Set();
+
+function beginReveal() {
+  const token = ++revealToken;
+  activeRevealTokens.add(token);
+  isRevealing = true;
+  return token;
+}
+
+function endReveal(token) {
+  activeRevealTokens.delete(token);
+  isRevealing = activeRevealTokens.size > 0;
+}
 let recentlyRevealed = new Set();
 let treasurePopups = new Map();
+let boardButtons = [];
+let renderedBoardRef = null;
+let renderedGridKey = "";
+let workerTooltipState = null;
+const workerMarkerData = new WeakMap();
 let emergencyHandoutNotice = false;
 let emergencyHandoutStatus = "";
 let roundTreasureValue = 0;
@@ -401,6 +433,7 @@ function loadModeState(state) {
   flagsPlaced = state.flagsPlaced;
   minesPlaced = state.minesPlaced;
   isRevealing = false;
+  activeRevealTokens.clear();
   revealToken = state.revealToken;
   recentlyRevealed = new Set(state.recentlyRevealed);
   treasurePopups = new Map(state.treasurePopups);
@@ -468,13 +501,27 @@ function primaryBoardSession() {
     .sort((left, right) => right.createdOrdinal - left.createdOrdinal)[0] || null;
 }
 
+function returnToHomeBoard() {
+  const target = primaryBoardSession() || Object.values(boardSessions).find((session) => session.modeState);
+  if (target) {
+    switchToBoardSession(target.id);
+    return;
+  }
+  saveCurrentModeState();
+  currentBoardId = `board-${nextBoardOrdinal}`;
+  startGame();
+}
+
 function handleRoundControl() {
   if (currentView === "district") {
-    const target = primaryBoardSession() || Object.values(boardSessions).find((session) => session.modeState);
-    if (target) switchToBoardSession(target.id);
+    returnToHomeBoard();
     return;
   }
   const session = currentBoardSession();
+  if (!roundStarted && !gameOver && session?.owner?.type === "contract") {
+    returnToHomeBoard();
+    return;
+  }
   if (!roundStarted && !gameOver && session?.owner?.type !== "main") {
     saveCurrentModeState();
     openDistrictMap();
@@ -483,6 +530,10 @@ function handleRoundControl() {
   if (roundStarted && !gameOver) {
     statusElement.textContent = "This board is committed. Finish it or switch to another worksite.";
     render();
+    return;
+  }
+  if (gameOver && session?.owner?.type === "contract") {
+    returnToHomeBoard();
     return;
   }
   if (gameOver && session?.owner?.type !== "main") {
@@ -638,7 +689,7 @@ function replaceGameState(savedState) {
   }
 
   isRevealing = false;
-  revealToken += 1;
+  activeRevealTokens.clear();
   boardInputController.cancel();
   lastChallengeTickTime = now;
   contractModalElement.hidden = true;
@@ -726,7 +777,7 @@ function loadSavedMessageBoard(fallback) {
     if (!saved || !Array.isArray(saved.challenges)) return fallback;
 
     const challenges = saved.challenges
-      .filter((challenge) => challenge && typeof challenge.id === "string" && Number.isFinite(challenge.expiresInMs) && challenge.expiresInMs > 0)
+      .filter((challenge) => challenge && typeof challenge.id === "string" && Number.isFinite(challenge.expiresInMs) && (challenge.claimable || challenge.expiresInMs > 0))
       .slice(0, CHALLENGE_CONFIG.maxActive);
     const nextChallengeId = Number.isInteger(saved.nextChallengeId) && saved.nextChallengeId > 0
       ? saved.nextChallengeId
@@ -786,10 +837,7 @@ function placeTreasures(mineTarget, rng = Math.random) {
       ? CAMP_CONFIG.contract.treasureCount
       : 1 + player.treasureLevel + (contractType?.bonusTreasures || 0));
   const treasureTarget = Math.min(requestedTreasureCount, mineTarget, treasureCandidates.length);
-  const minimum = BALANCE_CONFIG.treasure.startingMinimumCoins
-    + player.treasureValueLevel * BALANCE_CONFIG.treasure.minimumGrowth;
-  const maximum = BALANCE_CONFIG.treasure.startingMaximumCoins
-    + player.treasureValueLevel * BALANCE_CONFIG.treasure.maximumGrowth;
+  const range = treasureValueRange();
 
   chooseTreasureIndexes(treasureCandidates, treasureTarget, contractType, rng).forEach((index) => {
     treasureIndexes.add(index);
@@ -797,7 +845,7 @@ function placeTreasures(mineTarget, rng = Math.random) {
 
   treasureIndexes.forEach((index) => {
     board[index].treasure = true;
-    board[index].treasureValue = minimum + Math.floor(rng() * (maximum - minimum + 1));
+    board[index].treasureValue = range.minimum + Math.floor(rng() * (range.maximum - range.minimum + 1));
   });
 }
 
@@ -886,13 +934,18 @@ function maxMineCount(radius = currentSafetyRadius()) {
 }
 
 function currentSafetyRadius() {
+  if (settings.rows <= GRID_LIMITS.min && settings.cols <= GRID_LIMITS.min) return 0;
   const surveyorLevel = workerState?.workerTypes?.surveyor?.level || 0;
+  let surveyorRadius = 0;
   if (campProgression.phase !== CAMP_PHASES.districtUnlocked && surveyorLevel > 0) {
-    if (surveyorLevel >= 20) return 2;
-    if (surveyorLevel >= 10) return 1;
-    return 0;
+    if (surveyorLevel >= 20) surveyorRadius = 2;
+    else if (surveyorLevel >= 10) surveyorRadius = 1;
   }
-  return player.safetyRadius;
+  return Math.max(player.safetyRadius, surveyorRadius);
+}
+
+function safetySizeLabel(level) {
+  return level >= 2 ? "5x5" : level === 1 ? "3x3" : "1x1";
 }
 
 function maxUnlockedMineCount() {
@@ -949,7 +1002,7 @@ function startGame({ preserveSettings = false, preserveSession = false } = {}) {
   flagsPlaced = 0;
   minesPlaced = false;
   isRevealing = false;
-  revealToken += 1;
+  activeRevealTokens.clear();
   recentlyRevealed.clear();
   treasurePopups.clear();
   emergencyHandoutNotice = false;
@@ -1001,8 +1054,10 @@ function renderDistrictMap() {
   boardElement.setAttribute("role", "region");
   useHintButton.disabled = true;
   equipmentToggleButton.disabled = true;
+  resetButton.disabled = false;
   mineCountElement.textContent = "--";
   moveCountElement.textContent = "--";
+  fieldValueElement.textContent = "";
   resetButton.textContent = "BACK";
   districtButton.classList.add("is-active");
 
@@ -1190,97 +1245,156 @@ function render() {
   resetButton.disabled = roundStarted && !gameOver;
   if (resetButton.disabled) resetButton.textContent = "LOCKED";
   else if (!roundStarted && !gameOver && currentBoardSession()?.owner?.type !== "main") resetButton.textContent = "BACK";
-  useHintButton.disabled = gameOver || isRevealing || !roundStarted || player.hints <= 0 || availableProofs(board, settings).length === 0;
-  boardElement.innerHTML = "";
+  useHintButton.disabled = gameOver || isRevealing || !roundStarted || player.hints <= 0 || !hasKnownHint();
   updateSurveyorUI();
-  renderWorkerProof();
   boardElement.classList.toggle("is-revealing", isRevealing);
   boardElement.style.aspectRatio = `${settings.cols} / ${settings.rows}`;
   boardElement.style.gridTemplateColumns = `repeat(${settings.cols}, minmax(0, 1fr))`;
   boardElement.style.gridTemplateRows = `repeat(${settings.rows}, minmax(0, 1fr))`;
   boardElement.setAttribute("aria-label", `${settings.cols} by ${settings.rows} minesweeper board`);
 
+  // Rebuilding every button on every tick of a cascade fill (see revealGradually)
+  // restarted CSS animations (tile-reveal, treasure-float) on cells that weren't
+  // even changing, which read as flicker. Reuse existing buttons whenever the
+  // board identity and grid shape haven't changed, and only rebuild from scratch
+  // when they have.
+  const gridKey = `${settings.cols}x${settings.rows}`;
+  const structureStale = renderedBoardRef !== board || renderedGridKey !== gridKey || boardElement.children.length !== board.length;
+  if (structureStale) {
+    boardElement.innerHTML = "";
+    boardButtons = new Array(board.length);
+    renderedBoardRef = board;
+    renderedGridKey = gridKey;
+  }
+
+  const treasureRange = treasureValueRange();
+
+  let visibleWorkerTooltipSource = false;
   board.forEach((cell) => {
-    const button = document.createElement("button");
-    button.className = "cell";
-    button.type = "button";
-    button.setAttribute("role", "gridcell");
+    let button = boardButtons[cell.index];
+    const isNewButton = !button;
+    if (isNewButton) {
+      button = document.createElement("button");
+      button.type = "button";
+      button.setAttribute("role", "gridcell");
+      button.dataset.index = String(cell.index);
+      const label = document.createElement("span");
+      label.className = "cell-label";
+      button.append(label);
+boardInputController.bind(button, {
+        enableLongPress: !selectedEquipmentId,
+        onActivate: () => dispatchGameAction("board/activate", { index: cell.index }),
+        onFlag: () => dispatchGameAction("board/flag", { index: cell.index }),
+      });
+      boardButtons[cell.index] = button;
+      boardElement.append(button);
+    }
+
+    const classes = ["cell"];
     button.setAttribute("aria-label", labelForCell(cell));
-    button.dataset.index = String(cell.index);
+    button.title = "";
+    delete button.dataset.adjacent;
+
     const entrance = currentBoardSession()?.entrances?.find((item) => item.indexes.includes(cell.index));
     if (entrance) {
-      button.classList.add("has-entrance", `entrance-${entrance.edge}`);
-      if (entrance.revealMode === "visible" || cell.open) button.classList.add("is-entrance-revealed");
+      classes.push("has-entrance", `entrance-${entrance.edge}`);
+      if (entrance.revealMode === "visible" || cell.open) classes.push("is-entrance-revealed");
     }
     const hint = revealedHints.find((entry) => entry.clueIndex === cell.index || entry.targetIndexes.includes(cell.index));
     if (hint) {
-      button.classList.add("is-hinted");
-      button.title = `Hint: ${hint.type}`;
+      classes.push("is-hinted");
+      button.title = hint.type === "safe" ? "Hint: safe to dig" : "Hint: this is a mine";
     }
 
+    const label = button.querySelector(".cell-label");
+    let text = "";
+    let popupValue = null;
+    let popupTier = "gold";
+
     if (cell.open) {
-      button.classList.add("is-open");
-      if (recentlyRevealed.has(cell.index)) button.classList.add("is-newly-open");
+      classes.push("is-open");
+      if (recentlyRevealed.has(cell.index)) classes.push("is-newly-open");
       if (cell.mine) {
-        button.classList.add("is-mine");
-        button.textContent = "✹";
+        classes.push("is-mine");
+        text = "✹";
       } else if (cell.curio) {
-        button.classList.add("is-curio");
+        classes.push("is-curio");
         button.title = `Mine Curio ${cell.curioItem}`;
-        button.textContent = cell.adjacent > 0 ? String(cell.adjacent) : "◆";
+        text = cell.adjacent > 0 ? String(cell.adjacent) : "◆";
       } else if (cell.treasure) {
-        button.classList.add("is-treasure");
-        button.title = `Treasure cache: +${formatCurrency(cell.treasureValue)} at round end`;
-        button.textContent = cell.adjacent > 0 ? String(cell.adjacent) : "✦";
-        if (treasurePopups.has(cell.index)) {
-          const popup = document.createElement("span");
-          popup.className = "treasure-popup";
-          popup.textContent = `+${formatCurrency(treasurePopups.get(cell.index))}`;
-          popup.setAttribute("aria-hidden", "true");
-          button.append(popup);
-        }
+        const tier = treasureTierFor(cell.treasureValue, treasureRange);
+        popupTier = tier;
+        classes.push("is-treasure", `is-treasure-${tier}`);
+        button.title = `${tier[0].toUpperCase()}${tier.slice(1)} treasure cache: +${formatCurrency(cell.treasureValue)} at round end`;
+        text = cell.adjacent > 0 ? String(cell.adjacent) : "✦";
+        if (treasurePopups.has(cell.index)) popupValue = treasurePopups.get(cell.index);
       } else if (cell.adjacent > 0) {
         button.dataset.adjacent = String(cell.adjacent);
-        button.textContent = String(cell.adjacent);
+        text = String(cell.adjacent);
       }
 
       if (player.chordingUnlocked && cell.adjacent > 0 && !cell.mine) {
-        button.classList.add("is-chordable");
+        classes.push("is-chordable");
         button.title = formatMessage("chordingReady");
       }
     } else if (cell.flagged) {
-      button.classList.add("is-flagged");
-      button.textContent = "⚑";
+      classes.push("is-flagged");
+      text = "⚑";
     } else if (selectedEquipmentId && equipmentTargetsHiddenCell(selectedEquipmentId)) {
-      button.classList.add("is-equipment-target");
+      classes.push("is-equipment-target");
     }
 
-    workerMarkersForCell(cell.index).forEach((worker) => {
-      button.classList.add("is-worker-cursor");
-      const marker = document.createElement("span");
-      marker.className = `worker-cursor worker-cursor--${worker.id}`;
-      marker.textContent = workerTypeForId(worker.id) === "excavator" ? "E" : "F";
-      marker.title = `${worker.name}: ${workerTaskLabel(worker.task)}`;
-      marker.setAttribute("aria-hidden", "true");
-      button.append(marker);
-    });
+    label.textContent = text;
+    button.className = classes.join(" ");
 
-    boardInputController.bind(button, {
-    enableLongPress: !selectedEquipmentId,
-      onActivate: () => dispatchGameAction("board/activate", { index: cell.index }),
-      onFlag: () => dispatchGameAction("board/flag", { index: cell.index }),
-    });
+    // Leave an already-rendered popup for this value alone so its float-and-fade
+    // animation isn't restarted on every reveal tick; only add/remove on change.
+    const existingPopup = button.querySelector(".treasure-popup");
+    if (popupValue == null) {
+      if (existingPopup) existingPopup.remove();
+    } else if (!existingPopup || existingPopup.dataset.value !== String(popupValue)) {
+      if (existingPopup) existingPopup.remove();
+      const popup = document.createElement("span");
+      popup.className = `treasure-popup treasure-popup--${popupTier}`;
+      popup.dataset.value = String(popupValue);
+      popup.textContent = `+${formatCurrency(popupValue)}`;
+      popup.setAttribute("aria-hidden", "true");
+      button.append(popup);
+    }
 
-    boardElement.append(button);
+    // Keep an already-rendered marker so its pending ring keeps filling instead of
+    // restarting on every tick; only add/remove when the cell's workers change.
+    const cellWorkers = workerMarkersForCell(cell.index);
+    const existingMarkers = new Map();
+    button.querySelectorAll(".worker-cursor").forEach((marker) => {
+      if (cellWorkers.some((worker) => worker.id === marker.dataset.workerId)) existingMarkers.set(marker.dataset.workerId, marker);
+      else marker.remove();
+    });
+    button.classList.toggle("is-worker-cursor", cellWorkers.length > 0);
+    cellWorkers.forEach((worker) => {
+      const workerType = workerTypeForId(worker.id);
+      const marker = existingMarkers.get(worker.id) || createWorkerMarker(button, worker, workerType);
+      syncWorkerMarker(marker, worker, workerType);
+      if (worker.task.phase !== "scanning" && workerTooltipState?.workerId === worker.id && !workerTooltipState.pinned) {
+        visibleWorkerTooltipSource = true;
+        updateWorkerTooltip(worker, workerType);
+      }
+    });
   });
+
+  if (workerTooltipState && !workerTooltipState.pinned && !visibleWorkerTooltipSource) {
+    workerTooltipState.pinned = true;
+    showWorkerCompletionTooltip();
+  }
 
   mineCountElement.textContent = String(Math.max(currentMineCount() - flagsPlaced, 0)).padStart(2, "0");
   moveCountElement.textContent = String(moves).padStart(2, "0");
+  fieldValueElement.textContent = `Field value: ${formatCurrency(roundTreasureValue)}`;
   settingsNote.textContent = formatMessage("settingsNote", {
       mines: settings.mines,
       plural: settings.mines === 1 ? "" : "s",
       safety: currentSafetyRadius() > 0
-        ? formatMessage("safetyNote", { radius: currentSafetyRadius() })
+        ? formatMessage("safetyNote", { size: safetySizeLabel(currentSafetyRadius()) })
         : formatMessage("firstTileSafe"),
     });
   syncSettingsControls();
@@ -1296,31 +1410,49 @@ function render() {
 function labelForCell(cell) {
   if (cell.open && cell.mine) return `Row ${cell.row + 1}, column ${cell.col + 1}, mine`;
   if (cell.open && cell.curio) return `Row ${cell.row + 1}, column ${cell.col + 1}, Mine Curio ${cell.curioItem}`;
-  if (cell.open && cell.treasure) return `Row ${cell.row + 1}, column ${cell.col + 1}, treasure worth ${formatCurrency(cell.treasureValue)} at round end`;
+  if (cell.open && cell.treasure) return `Row ${cell.row + 1}, column ${cell.col + 1}, ${treasureTierFor(cell.treasureValue, treasureValueRange())} treasure worth ${formatCurrency(cell.treasureValue)} at round end`;
   if (cell.open && cell.adjacent > 0) return `Row ${cell.row + 1}, column ${cell.col + 1}, ${cell.adjacent} nearby mines`;
   if (cell.open) return `Row ${cell.row + 1}, column ${cell.col + 1}, clear`;
   if (cell.flagged) return `Row ${cell.row + 1}, column ${cell.col + 1}, flagged`;
   return `Row ${cell.row + 1}, column ${cell.col + 1}, hidden`;
 }
 
+function findKnownHintCandidates() {
+  const seen = new Set();
+  const safe = [];
+  const mine = [];
+  board.forEach((cell) => {
+    if (!cell.open && !cell.flagged) return;
+    neighbors(cell).forEach((candidate) => {
+      if (candidate.open || candidate.flagged || seen.has(candidate.index)) return;
+      seen.add(candidate.index);
+      (candidate.mine ? mine : safe).push(candidate);
+    });
+  });
+  return { safe, mine };
+}
+
+function hasKnownHint() {
+  const { safe, mine } = findKnownHintCandidates();
+  return safe.length > 0 || mine.length > 0;
+}
+
 function useHint() {
   if (gameOver || isRevealing || !roundStarted || player.hints <= 0) return false;
-  refreshProofMetadata(board, settings);
-  const proofs = availableProofs(board, settings);
-  if (!proofs.length) {
-    statusElement.textContent = "No calculated proof is available yet.";
+  const { safe, mine } = findKnownHintCandidates();
+  const pool = safe.length ? safe : mine;
+  if (!pool.length) {
+    statusElement.textContent = "No hint available right now.";
     render();
     return false;
   }
-  const scored = proofs.map((proof) => ({
-    ...proof,
-    score: scoreProofCascade(board, settings, proof),
-  })).sort((left, right) => right.score - left.score || left.clueIndex - right.clueIndex);
-  const candidates = scored.slice(0, 5);
-  const hint = candidates[Math.floor(Math.random() * candidates.length)];
+  const type = safe.length ? "safe" : "mine";
+  const target = pool[Math.floor(Math.random() * pool.length)];
   player.hints -= 1;
-  revealedHints.push({ type: hint.type, clueIndex: hint.clueIndex, targetIndexes: hint.targetIndexes });
-  statusElement.textContent = `Hint: ${hint.type} near row ${board[hint.clueIndex].row + 1}, column ${board[hint.clueIndex].col + 1}.`;
+  revealedHints.push({ type, clueIndex: null, targetIndexes: [target.index] });
+  statusElement.textContent = type === "safe"
+    ? `Hint: row ${target.row + 1}, column ${target.col + 1} is safe to dig.`
+    : `Hint: row ${target.row + 1}, column ${target.col + 1} is a mine.`;
   render();
   return true;
 }
@@ -1361,7 +1493,7 @@ function recordBoardAction({ actor = "player", specialistId = null, actionType, 
 
 function openCell(index) {
   const cell = board[index];
-  if (gameOver || isRevealing || cell.open || cell.flagged) return;
+  if (gameOver || cell.open || cell.flagged) return;
   if (!canDig()) {
     if (!maybeGrantEmergencyShovel()) {
       emergencyHandoutNotice = false;
@@ -1401,12 +1533,10 @@ function openCell(index) {
   // cascade reveals. Chording passes consumeDurability: false below, so it
   // never adds a cost for any of its revealed tiles.
   consumeShovel();
-  isRevealing = true;
-  const currentRevealToken = ++revealToken;
+  const currentRevealToken = beginReveal();
   revealGradually(cell, currentRevealToken, { consumeDurability: false }).then((revealCompleted) => {
-    if (currentRevealToken !== revealToken) return;
-
-    isRevealing = false;
+    if (!activeRevealTokens.has(currentRevealToken)) return;
+    endReveal(currentRevealToken);
     const shouldPreserveHandout = emergencyHandoutNotice;
     if (hasWon()) {
       winGame();
@@ -1431,7 +1561,7 @@ function revealGradually(startCell, token, { consumeDurability = false } = {}) {
   return (async () => {
     for (const wave of waves) {
       for (const cell of wave) {
-        if (token !== revealToken || gameOver) return false;
+        if (!activeRevealTokens.has(token) || gameOver) return false;
         if (cell.open || cell.flagged || cell.mine) continue;
         if (consumeDurability && !consumeShovel()) return false;
 
@@ -1458,7 +1588,7 @@ function revealWavesFrom(startCell) {
 
 async function chordCell(index) {
   const cell = board[index];
-  if (gameOver || isRevealing || !cell.open || cell.mine || cell.adjacent <= 0) return;
+  if (gameOver || !cell.open || cell.mine || cell.adjacent <= 0) return;
 
   const chord = evaluateChord(board, settings, index);
   if (!chord.allowed) {
@@ -1482,36 +1612,35 @@ async function chordCell(index) {
     },
   });
   recordDeveloperEvent(developerTelemetry, { type: "chord" });
-  isRevealing = true;
-  const token = ++revealToken;
+  const token = beginReveal();
   const safeCandidates = candidates.filter((candidate) => !candidate.mine);
   for (const candidate of safeCandidates) {
-    if (token !== revealToken || gameOver) return;
+    if (!activeRevealTokens.has(token) || gameOver) return;
     const revealCompleted = await revealGradually(candidate, token, { consumeDurability: false });
     if (!revealCompleted) {
-      isRevealing = false;
+      endReveal(token);
       render();
       return;
     }
   }
 
-  if (token !== revealToken || gameOver) return;
+  if (!activeRevealTokens.has(token) || gameOver) return;
   const mineCandidate = candidates.find((candidate) => candidate.mine);
   if (mineCandidate) {
     recordDeveloperEvent(developerTelemetry, { type: "mineHit" });
     player.stats.minesTriggered += 1;
     if (absorbExplosionWithBombBot(mineCandidate)) {
-      isRevealing = false;
+      endReveal(token);
       return;
     }
     breakShovel();
     mineCandidate.open = true;
-    isRevealing = false;
+    endReveal(token);
     loseGame();
     return;
   }
 
-  isRevealing = false;
+  endReveal(token);
   if (hasWon()) winGame();
   else statusElement.textContent = formatMessage("chordingComplete");
   render();
@@ -1538,7 +1667,7 @@ function collectTreasure(cell) {
     if (treasurePopups.get(cell.index) !== cell.treasureValue) return;
     treasurePopups.delete(cell.index);
     render();
-  }, 900);
+  }, 1800);
   if (!emergencyHandoutNotice) {
     statusElement.textContent = formatMessage("treasureFound", { value: formatCurrency(cell.treasureValue) });
   }
@@ -1556,7 +1685,7 @@ function collectCurio(cell) {
 
 function toggleFlag(index) {
   const cell = board[index];
-  if (gameOver || isRevealing || cell.open) return;
+  if (gameOver || cell.open) return;
   if (!roundStarted || !minesPlaced) {
     statusElement.textContent = "The first action must uncover a guaranteed-safe tile.";
     render();
@@ -1571,6 +1700,13 @@ function toggleFlag(index) {
   if (!cell.flagged && player.flags <= 0) {
     emergencyHandoutNotice = false;
     statusElement.textContent = formatMessage("flagPouchEmpty");
+    render();
+    return;
+  }
+
+  if (!cell.flagged && flagsPlaced >= currentMineCount()) {
+    emergencyHandoutNotice = false;
+    statusElement.textContent = formatMessage("flagLimitReached", { count: currentMineCount() });
     render();
     return;
   }
@@ -1675,6 +1811,7 @@ function controlledBlast(centerCell) {
   const colStart = Math.max(0, centerCell.col - 1);
   const colEnd = Math.min(settings.cols - 1, centerCell.col + 1);
 
+  const openedCells = [];
   for (let row = rowStart; row <= rowEnd; row += 1) {
     for (let col = colStart; col <= colEnd; col += 1) {
       const cell = board[row * settings.cols + col];
@@ -1692,11 +1829,32 @@ function controlledBlast(centerCell) {
         recordDeveloperEvent(developerTelemetry, { type: "reveal" });
         player.stats.safeTilesDug += 1;
         collectCellFinds(cell);
+        openedCells.push(cell);
       }
     }
   }
 
   updateAdjacency();
+
+  // Destroying mines can leave a blast-opened tile with zero adjacent mines.
+  // Same as a normal dig, that tile needs to keep cascading outward — otherwise
+  // it ends up bordering a still-hidden tile, which breaks the minesweeper
+  // invariant that a "0" tile always has every neighbor revealed.
+  const queue = openedCells.filter((cell) => cell.adjacent === 0);
+  const queued = new Set(queue.map((cell) => cell.index));
+  while (queue.length > 0) {
+    const cell = queue.shift();
+    neighbors(cell).forEach((neighbor) => {
+      if (queued.has(neighbor.index) || neighbor.open || neighbor.flagged || neighbor.mine) return;
+      queued.add(neighbor.index);
+      neighbor.open = true;
+      recordDeveloperEvent(developerTelemetry, { type: "reveal" });
+      player.stats.safeTilesDug += 1;
+      collectCellFinds(neighbor);
+      if (neighbor.adjacent === 0) queue.push(neighbor);
+    });
+  }
+
   return destroyed;
 }
 
@@ -1881,7 +2039,7 @@ function winGame() {
   });
   resolveDeveloperRun(developerTelemetry, contractType ? "contract_completed" : "cleared", elapsed);
   if (!contractType && currentBoardSession()?.category === BOARD_CATEGORIES.standard) advanceContractSchedule();
-  resetButton.textContent = "AGAIN";
+  resetButton.textContent = contractType ? "BACK" : "AGAIN";
   board.forEach((cell) => {
     if (cell.mine && !cell.flagged) {
       cell.flagged = true;
@@ -2167,14 +2325,22 @@ function purchaseAbility(id) {
   let abilityMessage = formatMessage("abilityInstalled");
 
   if (id === "safetyRadius") {
-    if (player.safetyRadius >= 5) return false;
-    if (maxMineCount(player.safetyRadius + 1) < 1) return false;
-    const cost = BALANCE_CONFIG.abilities.safetyRadiusCosts[player.safetyRadius];
-    if (player.coins < cost) return false;
-    player.coins -= cost;
+    if (player.safetyRadius >= 2) return false;
+    if (player.safetyRadius === 0) {
+      const cost = BALANCE_CONFIG.abilities.safetyRadiusCosts[0];
+      if (player.coins < cost) return false;
+      player.coins -= cost;
+    } else {
+      const maxRowsUnlocked = GRID_LIMITS.min + player.tallerGridLevel;
+      const maxColsUnlocked = GRID_LIMITS.min + player.widerGridLevel;
+      if (maxRowsUnlocked < 4 || maxColsUnlocked < 4) return false;
+      const mineCost = BALANCE_CONFIG.abilities.safetyRadiusMineCost;
+      if (player.mines < mineCost) return false;
+      player.mines -= mineCost;
+    }
     player.safetyRadius += 1;
     settings.mines = Math.min(settings.mines, Math.min(maxMineCount(), maxUnlockedMineCount()));
-    abilityMessage = formatMessage("safetyInstalled", { value: player.safetyRadius });
+    abilityMessage = formatMessage("safetyInstalled", { value: safetySizeLabel(player.safetyRadius) });
   } else if (id === "chording") {
     if (player.chordingUnlocked || player.shovelTier < 3 || player.mines < BALANCE_CONFIG.abilities.chordingMineCost) return false;
     player.mines -= BALANCE_CONFIG.abilities.chordingMineCost;
@@ -2274,7 +2440,7 @@ function tickAutoMiners() {
   const now = performance.now();
   let changed = false;
 
-  if (autoMinersState.automationMode !== "manual" && now - autoMinersState.lastWorkerTickAt >= 1000) {
+  if (autoMinersState.automationMode !== "manual") {
     autoMinersState.lastWorkerTickAt = now;
     changed = runWorkerInitiative("agents", now) || changed;
     // Analyze intentionally has the same active roster as Assist for now.
@@ -2377,6 +2543,10 @@ function advanceWorkerTurn(id, now) {
   let resolved = false;
 
   if (task.phase === "scanning") {
+    if (task.nextScanAt && now + WORKER_TIMER_TOLERANCE_MS < task.nextScanAt) {
+      restoreVisibleBoard();
+      return false;
+    }
     const cell = board[task.cursorIndex];
     if (!cell) {
       autoMinersState.workerTargets[id] = nextWorkerTarget(task.targetId);
@@ -2400,15 +2570,19 @@ function advanceWorkerTurn(id, now) {
     } else {
       task.stepsScanned += 1;
       task.cursorIndex = task.scanOrder[(task.startOffset + task.stepsScanned) % task.scanOrder.length];
+      task.nextScanAt = now + workerScanDurationMs(cell);
     }
   } else if (now - task.phaseStartedAt >= workerRoundDurationMs(id)) {
     const target = board[task.cursorIndex];
     performWorkerAction(id, target);
     if (autoMinersState.workerPolicies?.[workerTypeForId(id)] === "jump") {
       autoMinersState.workerTargets[id] = nextWorkerTarget(task.targetId);
+      delete autoMinersState.workerTasks[id];
+    } else {
+      continueWorkerScan(task, target, now);
     }
-    delete autoMinersState.workerTasks[id];
     resolved = hasWon();
+    if (resolved) delete autoMinersState.workerTasks[id];
   }
 
   if (resolved) {
@@ -2444,6 +2618,7 @@ function beginWorkerTurn(id, now) {
     scanOrder: order,
     startOffset,
     stepsScanned: 0,
+    nextScanAt: now,
     startedAt: now,
   };
   return true;
@@ -2476,14 +2651,30 @@ function scanOrderForSettings(id, fieldSettings) {
 
 function workerProofForCell(id, cell) {
   if (cell.open || cell.flagged) return null;
-  const types = workerTypeForId(id) === "excavator"
-    ? ["satisfiedClueSafe"]
-    : ["provenMine", "completeTheCountMine"];
-  return availableProofs(board, settings).find((proof) => types.includes(proof.type) && proof.targetIndexes.includes(cell.index)) || null;
+  if (workerTypeForId(id) === "excavator") {
+    return availableFlagSatisfiedSafeProofs(board, settings).find((proof) => proof.targetIndexes.includes(cell.index)) || null;
+  }
+  return availableProofs(board, settings).find((proof) => ["provenMine", "completeTheCountMine"].includes(proof.type) && proof.targetIndexes.includes(cell.index)) || null;
 }
 
 function workerRoundDurationMs(id) {
   return Math.round(WORKER_ROUND_MS / Math.max(1, specialistLevel(workerTypeForId(id))));
+}
+
+function workerScanDurationMs(cell) {
+  return cell.open || cell.flagged ? WORKER_OPEN_SCAN_STEP_MS : WORKER_SCAN_STEP_MS;
+}
+
+function continueWorkerScan(task, cell, now) {
+  const currentOffset = task.scanOrder.indexOf(cell.index);
+  const nextOffset = (currentOffset + 1) % task.scanOrder.length;
+  task.phase = "scanning";
+  task.cursorIndex = task.scanOrder[nextOffset];
+  task.startOffset = nextOffset;
+  task.stepsScanned = 0;
+  task.nextScanAt = now + workerScanDurationMs(cell);
+  delete task.phaseStartedAt;
+  delete task.proof;
 }
 
 function performWorkerAction(id, target) {
@@ -2525,8 +2716,10 @@ function encodeWorkerTasks(tasks = {}, now) {
     const encoded = {
       ...task,
       phaseElapsedMs: task.phaseStartedAt ? Math.max(0, now - task.phaseStartedAt) : 0,
+      scanRemainingMs: task.nextScanAt ? Math.max(0, task.nextScanAt - now) : 0,
     };
     delete encoded.phaseStartedAt;
+    delete encoded.nextScanAt;
     delete encoded.startedAt;
     return [id, encoded];
   }));
@@ -2536,7 +2729,9 @@ function decodeWorkerTasks(tasks = {}, now) {
   return Object.fromEntries(Object.entries(tasks || {}).map(([id, task]) => {
     const decoded = { ...task };
     if (decoded.phase !== "scanning") decoded.phaseStartedAt = now - (decoded.phaseElapsedMs || 0);
+    if (decoded.phase === "scanning") decoded.nextScanAt = now + (decoded.scanRemainingMs || 0);
     delete decoded.phaseElapsedMs;
+    delete decoded.scanRemainingMs;
     return [id, decoded];
   }));
 }
@@ -2560,37 +2755,118 @@ function workerTaskLabel(task) {
   return workerTypeForId(task.id) === "excavator" ? "Excavating Safe Tile" : "Flagging Mine";
 }
 
-function renderWorkerProof() {
-  if (!workerProofElement) return;
-  if (!autoMineMenuOpen) {
-    workerProofElement.hidden = true;
-    workerProofElement.innerHTML = "";
+function createWorkerMarker(button, worker, workerType) {
+  const marker = document.createElement("span");
+  marker.className = `worker-cursor worker-cursor--${workerType}`;
+  marker.dataset.workerId = worker.id;
+  marker.setAttribute("aria-hidden", "true");
+
+  const ring = document.createElement("span");
+  ring.className = "worker-cursor__ring";
+  const label = document.createElement("span");
+  label.className = "worker-cursor__label";
+  label.textContent = workerType === "excavator" ? "E" : "F";
+  marker.append(ring, label);
+
+  marker.addEventListener("pointerenter", (event) => {
+    const current = workerMarkerData.get(marker);
+    if (!current || current.worker.task.phase === "scanning") return;
+    showWorkerTooltip(current.worker, current.workerType, event);
+  });
+  marker.addEventListener("pointerleave", hideWorkerTooltip);
+  button.append(marker);
+  return marker;
+}
+
+function syncWorkerMarker(marker, worker, workerType) {
+  const { task } = worker;
+  workerMarkerData.set(marker, { worker, workerType });
+
+  const pending = task.phase !== "scanning";
+  marker.classList.toggle("is-pending", pending);
+  // The rich tooltip replaces the native one while an action is pending.
+  marker.title = pending ? "" : `${worker.name}: ${workerTaskLabel(task)}`;
+
+  const ring = marker.querySelector(".worker-cursor__ring");
+  const phaseKey = pending ? String(task.phaseStartedAt) : "";
+  if (ring.dataset.phaseKey === phaseKey) return;
+  ring.dataset.phaseKey = phaseKey;
+  if (!pending) {
+    ring.style.animationDuration = "";
+    ring.style.animationDelay = "";
     return;
   }
-  const active = Object.entries(autoMinersState?.workerTasks || {})
-    .map(([id, task]) => ({ id, task }))
-    .find(({ task }) => task.targetId === VISIBLE_BOARD_TARGET && task.phase !== "scanning");
-  if (!active) {
-    workerProofElement.hidden = true;
-    workerProofElement.innerHTML = "";
-    return;
-  }
-  const { id, task } = active;
-  const worker = SPECIALISTS.find((item) => item.id === workerTypeForId(id));
-  if (workerTaskStage({ ...task, id }) === "Analyzing") {
-    workerProofElement.hidden = false;
-    workerProofElement.innerHTML = `<strong>${worker.name}: ANALYZING</strong><span>Checking the current clue.</span>`;
-    return;
+  // A negative delay starts the ring at the elapsed part of the round, so a marker
+  // built mid-round (or restored from a save) picks the fill up where it stands.
+  ring.style.animationDuration = `${workerRoundDurationMs(task.id)}ms`;
+  ring.style.animationDelay = `${Math.min(0, task.phaseStartedAt - performance.now())}ms`;
+}
+
+function workerTooltipMarkup(worker, workerType) {
+  const { task } = worker;
+  const remainingSeconds = Math.max(0, Math.ceil((workerRoundDurationMs(task.id) - (performance.now() - task.phaseStartedAt)) / 1000));
+  const countdown = `<span class="worker-tooltip__countdown">${remainingSeconds}s</span>`;
+  if (workerTaskStage(task) === "Analyzing") {
+    return `<strong>${worker.name}: ANALYZING</strong><span>Checking the current clue.</span>${countdown}`;
   }
   const proof = task.proof;
   const clue = board[proof?.clueIndex];
-  if (!proof || !clue) return;
-  workerProofElement.hidden = false;
-  workerProofElement.innerHTML = `
-    <strong>${worker.name}: ${task.typeId === "excavator" ? "EXCAVATING SAFE TILE" : "FLAGGING MINE"}</strong>
-    <span>${proof.type === "satisfiedClueSafe" ? "All required mines are accounted for." : "The remaining hidden tiles complete this clue."}</span>
+  if (!proof || !clue) return null;
+  return `
+    <strong>${worker.name}: ${workerType === "excavator" ? "EXCAVATING SAFE TILE" : "FLAGGING MINE"}</strong>
+    <span>${proof.type === "flagSatisfiedClueSafe" ? "Placed flags satisfy this clue." : "The remaining hidden tiles complete this clue."}</span>
+    ${countdown}
     <div class="proof-diagram" aria-label="Proof centered on row ${clue.row + 1}, column ${clue.col + 1}">${renderProofCells(clue, task, proof)}</div>
   `;
+}
+
+function showWorkerTooltip(worker, workerType, event) {
+  if (!workerTooltipElement) return;
+  workerTooltipState = { workerId: worker.id, worker, workerType, pinned: false, x: event.clientX, y: event.clientY };
+  updateWorkerTooltip(worker, workerType);
+}
+
+function updateWorkerTooltip(worker, workerType) {
+  if (!workerTooltipElement || !workerTooltipState) return;
+  const markup = workerTooltipMarkup(worker, workerType);
+  if (!markup) return;
+  workerTooltipState.worker = worker;
+  workerTooltipState.workerType = workerType;
+  workerTooltipElement.innerHTML = markup;
+  workerTooltipElement.hidden = false;
+  positionWorkerTooltip(workerTooltipState.x, workerTooltipState.y);
+}
+
+function positionWorkerTooltip(x, y) {
+  if (!workerTooltipElement) return;
+  workerTooltipElement.style.left = "0px";
+  workerTooltipElement.style.top = "0px";
+  const { width, height } = workerTooltipElement.getBoundingClientRect();
+  const edgePadding = 8;
+  const left = Math.max(edgePadding, Math.min(x + 14, window.innerWidth - width - edgePadding));
+  const below = y + 18;
+  const top = below + height <= window.innerHeight - edgePadding
+    ? below
+    : Math.max(edgePadding, y - height - 14);
+  workerTooltipElement.style.left = `${left}px`;
+  workerTooltipElement.style.top = `${top}px`;
+}
+
+function hideWorkerTooltip() {
+  if (!workerTooltipElement) return;
+  workerTooltipState = null;
+  workerTooltipElement.hidden = true;
+  workerTooltipElement.innerHTML = "";
+}
+
+function showWorkerCompletionTooltip() {
+  if (!workerTooltipElement || !workerTooltipState) return;
+  workerTooltipElement.innerHTML = `
+    <strong>${workerTooltipState.worker.name}: COMPLETE</strong>
+    <span>Action complete.</span>
+  `;
+  workerTooltipElement.hidden = false;
+  positionWorkerTooltip(workerTooltipState.x, workerTooltipState.y);
 }
 
 function renderProofCells(clue, task, proof) {
@@ -2653,11 +2929,11 @@ function surveyorIntervalMs() {
 }
 
 function updateModeUI() {
-  districtButton.classList.toggle("is-active", !autoMineMenuOpen);
+  districtButton.classList.toggle("is-active", currentView === "district");
   autoMinersButton.classList.toggle("is-active", autoMineMenuOpen);
   quartermasterPanelElement.setAttribute("aria-label", autoMineMenuOpen ? "Auto Mine shop and worker settings" : "Quartermaster inventory and store");
   specialistsPanelElement.hidden = !autoMineMenuOpen;
-  document.body.classList.remove("is-auto-miners");
+  document.body.classList.toggle("is-auto-miners", autoMineMenuOpen);
   if (!autoMineMenuOpen) return;
 
   autoMineFieldElement.textContent = String(activeParcels(district).length);
@@ -2816,7 +3092,7 @@ function updateQuartermaster() {
   mineResourceElement.dataset.tooltip = mineTooltip;
   shovelResourceElement.setAttribute("aria-label", `Shovels: ${player.shovels} in stock. ${COPY_CONFIG.tooltips.shovel}.`);
   flagResourceElement.setAttribute("aria-label", `Flags: ${player.flags} in stock. ${COPY_CONFIG.tooltips.flags}.`);
-  hintResourceElement.setAttribute("aria-label", `Hints: ${player.hints} in stock. Reveal one calculated proof.`);
+  hintResourceElement.setAttribute("aria-label", `Hints: ${player.hints} in stock. Reveal one known safe space or mine.`);
   mineResourceElement.setAttribute("aria-label", mineTooltip);
 
   buyShovelCostElement.textContent = formatCurrency(shovelCost);
@@ -2998,19 +3274,31 @@ function updateProgressionUI() {
   upgradeElements.flagCapCost.textContent = nextFlagCap ? formatCurrency(flagCapCost) : "MAX";
   upgradeElements.flagCapDetail.textContent = nextFlagCap ? `${flagCap} → ${nextFlagCap} flags` : "500 flag maximum reached";
 
-  const safetyCost = BALANCE_CONFIG.abilities.safetyRadiusCosts[player.safetyRadius];
-  const safetyFitsCurrentBoard = maxMineCount(player.safetyRadius + 1) >= 1;
+  const safetyMaxed = player.safetyRadius >= 2;
+  const safetyNextCostsMines = player.safetyRadius === 1;
+  const maxRowsUnlocked = GRID_LIMITS.min + player.tallerGridLevel;
+  const maxColsUnlocked = GRID_LIMITS.min + player.widerGridLevel;
+  const fourByFourUnlocked = maxRowsUnlocked >= 4 && maxColsUnlocked >= 4;
+  const safetyLocked = safetyNextCostsMines && !fourByFourUnlocked;
+  const safetyCost = safetyNextCostsMines
+    ? BALANCE_CONFIG.abilities.safetyRadiusMineCost
+    : BALANCE_CONFIG.abilities.safetyRadiusCosts[0];
+  const safetyAffordable = safetyNextCostsMines ? player.mines >= safetyCost : player.coins >= safetyCost;
   showProgression(
     abilityElements.safetyRadius,
     true,
-    progressionLocked || player.safetyRadius >= 5 || !safetyFitsCurrentBoard || player.coins < safetyCost,
+    progressionLocked || safetyMaxed || safetyLocked || !safetyAffordable,
   );
-  abilityElements.safetyRadiusCost.textContent = player.safetyRadius < 5 ? formatCurrency(safetyCost) : "MAX";
-  abilityElements.safetyRadiusDetail.textContent = player.safetyRadius >= 5
+  abilityElements.safetyRadiusCost.textContent = safetyMaxed
+    ? "MAX"
+    : safetyNextCostsMines
+      ? `${safetyCost} mines`
+      : formatCurrency(safetyCost);
+  abilityElements.safetyRadiusDetail.textContent = safetyMaxed
     ? formatMessage("safetyMax")
-    : !safetyFitsCurrentBoard
-      ? "Unlock: expand the board beyond 3×3."
-      : `Radius ${player.safetyRadius} → ${player.safetyRadius + 1}; no mine near first click`;
+    : safetyLocked
+      ? "Unlock: expand the board to 4×4."
+      : `${safetySizeLabel(player.safetyRadius)} → ${safetySizeLabel(player.safetyRadius + 1)}; no mine near first click`;
 
   const chordingVisible = player.shovelTier >= 3;
   showProgression(abilityElements.chording, true, progressionLocked || !chordingVisible || (!player.chordingUnlocked && player.mines < BALANCE_CONFIG.abilities.chordingMineCost));
@@ -3077,19 +3365,28 @@ function updateCurioUI() {
 }
 
 function activeChallenges() {
-  return player.messageBoard.challenges.filter((challenge) => challenge.expiresInMs > 0);
+  return player.messageBoard.challenges.filter((challenge) => challenge.claimable || challenge.expiresInMs > 0);
+}
+
+function challengeBoardRequirementsMet(challenge) {
+  const sizeMet = challenge.sizeAny || (settings.rows >= challenge.rows && settings.cols >= challenge.cols);
+  const minesMet = challenge.minesAny || currentMineCount() >= challenge.minMines;
+  return { sizeMet, minesMet };
 }
 
 function challengeProperties(challenge) {
+  const { sizeMet, minesMet } = challenge.claimable
+    ? { sizeMet: true, minesMet: true }
+    : challengeBoardRequirementsMet(challenge);
   const properties = [
-    ["Size", challenge.sizeAny ? "Any" : `${challenge.rows}×${challenge.cols}+`],
-    ["Mines", challenge.minesAny ? "Any" : `${challenge.minMines}+`],
-    ["Reward", formatCurrency(challenge.rewardCoins)],
+    ["Size", challenge.sizeAny ? "Any" : `${challenge.rows}×${challenge.cols}+`, sizeMet],
+    ["Mines", challenge.minesAny ? "Any" : `${challenge.minMines}+`, minesMet],
+    ["Reward", formatCurrency(challenge.rewardCoins), challenge.claimable],
   ];
 
-  if (challenge.type === "flagLimit") properties.splice(2, 0, ["Challenge", `No more than ${challenge.flagLimit} flag${challenge.flagLimit === 1 ? "" : "s"}`]);
-  if (challenge.type === "noChording") properties.splice(2, 0, ["Challenge", "No chording"]);
-  if (challenge.type === "speedClear") properties.splice(2, 0, ["Challenge", `${challenge.seconds}s or less`]);
+  if (challenge.type === "flagLimit") properties.splice(2, 0, ["Challenge", `No more than ${challenge.flagLimit} flag${challenge.flagLimit === 1 ? "" : "s"}`, challenge.claimable]);
+  if (challenge.type === "noChording") properties.splice(2, 0, ["Challenge", "No chording", challenge.claimable]);
+  if (challenge.type === "speedClear") properties.splice(2, 0, ["Challenge", `${challenge.seconds}s or less`, challenge.claimable]);
   return properties;
 }
 
@@ -3098,26 +3395,41 @@ function challengeMatchesClear(challenge, result) {
 }
 
 function completeMatchingChallenges(result) {
-  const completed = [];
-  player.messageBoard.challenges = activeChallenges().filter((challenge) => {
-    if (!challengeMatchesClear(challenge, result)) return true;
-    completed.push(challenge);
-    return false;
+  const newlyClaimable = [];
+  player.messageBoard.challenges = activeChallenges().map((challenge) => {
+    if (challenge.claimable || !challengeMatchesClear(challenge, result)) return challenge;
+    const claimableChallenge = { ...challenge, claimable: true };
+    newlyClaimable.push(claimableChallenge);
+    return claimableChallenge;
   });
 
-  if (completed.length === 0) return "";
+  if (newlyClaimable.length === 0) return "";
 
-  const coins = completed.reduce((total, challenge) => total + challenge.rewardCoins, 0);
+  saveMessageBoard();
+  return newlyClaimable.map((challenge) => formatMessage("challengeClaimable", {
+    name: challenge.name,
+  })).join("");
+}
+
+function claimChallengeReward(challengeId) {
+  const challenges = activeChallenges();
+  const challenge = challenges.find((entry) => String(entry.id) === String(challengeId));
+  if (!challenge || !challenge.claimable) return;
+
+  player.messageBoard.challenges = challenges.filter((entry) => entry !== challenge);
+
+  const coins = challenge.rewardCoins;
   player.coins += coins;
   recordDeveloperEvent(developerTelemetry, { type: "coinsEarned", count: coins });
   player.stats.coinsEarned += coins;
-  player.stats.challengesCompleted += completed.length;
-  player.stats.challengesWon += completed.length;
+  player.stats.challengesCompleted += 1;
+  player.stats.challengesWon += 1;
   saveMessageBoard();
-  return completed.map((challenge) => formatMessage("challengeWon", {
+  statusElement.textContent = formatMessage("challengeWon", {
     name: challenge.name,
-    coins: formatCurrency(challenge.rewardCoins),
-  })).join("");
+    coins: formatCurrency(coins),
+  });
+  render();
 }
 
 function updateChallengeUI() {
@@ -3136,7 +3448,10 @@ function updateContractUI() {
   const active = activeContractType();
   const offered = offeredContractTypes();
 
-  document.body.classList.remove("is-contract-running");
+  document.body.classList.toggle(
+    "is-contract-running",
+    Boolean(active) && !contracts.active?.briefingOpen,
+  );
 
   if (active) {
     contractCountdownElement.textContent = "in field";
@@ -3214,23 +3529,28 @@ function renderChallengeTile(challenge) {
   const properties = challengeProperties(challenge)
     .map(renderMessageTileProperty)
     .join("");
+  const statusText = challenge.claimable ? "Ready to claim" : formatClock(challenge.expiresInMs);
+  const action = challenge.claimable
+    ? `<button class="contract-button message-tile__button js-claim-challenge" type="button" data-challenge-id="${challenge.id}">Claim Reward</button>`
+    : "";
 
   return `
-    <article class="message-tile message-tile--challenge">
+    <article class="message-tile message-tile--challenge${challenge.claimable ? " is-claimable" : ""}">
       <div class="message-tile__topline">
         <div>
           <span class="message-tile__kind">Challenge</span>
           <strong>${challenge.name}</strong>
         </div>
-        <span>${formatClock(challenge.expiresInMs)}</span>
+        <span>${statusText}</span>
       </div>
       <div class="message-tile__properties">${properties}</div>
+      ${action}
     </article>
   `;
 }
 
-function renderMessageTileProperty([label, value]) {
-  return `<span><strong>${label}</strong>${value}</span>`;
+function renderMessageTileProperty([label, value, met]) {
+  return `<span${met ? ' class="is-met"' : ""}><strong>${label}</strong>${value}</span>`;
 }
 
 function updateContractModal(contractType) {
@@ -3711,9 +4031,23 @@ function mineYieldPercent() {
   return 0.01 + player.mineYieldLevel * BALANCE_CONFIG.upgrades.mineYieldPercentPerLevel;
 }
 
-function treasureAverage() {
+function treasureValueRange() {
   const minimum = BALANCE_CONFIG.treasure.startingMinimumCoins + player.treasureValueLevel * BALANCE_CONFIG.treasure.minimumGrowth;
   const maximum = BALANCE_CONFIG.treasure.startingMaximumCoins + player.treasureValueLevel * BALANCE_CONFIG.treasure.maximumGrowth;
+  return { minimum, maximum };
+}
+
+function treasureTierFor(value, { minimum, maximum }) {
+  if (maximum <= minimum) return "gold";
+  const bronzeMax = minimum + Math.floor((maximum - minimum) * 0.4);
+  const silverMax = minimum + Math.floor((maximum - minimum) * 0.8);
+  if (value <= bronzeMax) return "bronze";
+  if (value <= silverMax) return "silver";
+  return "gold";
+}
+
+function treasureAverage() {
+  const { minimum, maximum } = treasureValueRange();
   return Math.round((minimum + maximum) / 2);
 }
 
@@ -3821,7 +4155,14 @@ const GAME_ACTION_HANDLERS = {
   "contracts/generate": generateContractOffer,
   "contracts/closeBriefing": closeContractBriefing,
   "challenges/generate": generateChallengeOffer,
-  "autoMiners/showQueue": openDistrictMap,
+  "challenges/claim": ({ id }) => claimChallengeReward(id),
+  "autoMiners/showQueue": () => {
+    if (currentView === "district") {
+      returnToHomeBoard();
+      return;
+    }
+    openDistrictMap();
+  },
   "autoMiners/showField": switchToAutoMiners,
   "autoMiners/survey": surveyNow,
   "autoMiners/hire": ({ id }) => buyWorker(id),
@@ -3878,6 +4219,8 @@ messageBoardListElement.addEventListener("click", (event) => {
   if (button) dispatchGameAction("contracts/accept", { id: button.dataset.contractId });
   const resume = event.target.closest(".js-resume-contract");
   if (resume) dispatchGameAction("contracts/resume", { instanceId: resume.dataset.instanceId });
+  const claim = event.target.closest(".js-claim-challenge");
+  if (claim) dispatchGameAction("challenges/claim", { id: claim.dataset.challengeId });
 });
 districtButton.addEventListener("click", () => dispatchGameAction("autoMiners/showQueue"));
 autoMinersButton.addEventListener("click", () => dispatchGameAction("autoMiners/showField"));
@@ -3887,6 +4230,11 @@ surveyNowButton.addEventListener("click", () => dispatchGameAction("autoMiners/s
 contractModalStartButton.addEventListener("click", () => dispatchGameAction("contracts/closeBriefing"));
 fieldClearModalDismissButton.addEventListener("click", () => dispatchGameAction("autoMiners/dismissClear"));
 resetButton.addEventListener("click", () => dispatchGameAction("round/reset"));
+document.addEventListener("pointermove", () => {
+  // A completed tooltip stays visible while the pointer is still, then clears
+  // as soon as the player moves it again.
+  if (workerTooltipState?.pinned) hideWorkerTooltip();
+});
 boardElement.addEventListener("click", (event) => {
   if (currentView !== "district") return;
   const parcelButton = event.target.closest("[data-parcel-id]");
@@ -3952,7 +4300,7 @@ function initializeApplication() {
     if (document.visibilityState === "hidden") saveNow();
   });
   window.addEventListener("beforeunload", saveNow);
-  window.setInterval(() => dispatchGameAction("timers/tick", { deltaMs: 1000 }), 1000);
+  window.setInterval(() => dispatchGameAction("timers/tick", { deltaMs: 500 }), 500);
 }
 
 initializeApplication();

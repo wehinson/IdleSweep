@@ -2,7 +2,16 @@ import { hydrateSave, serializeSave, validateSave } from "./save-schema.js";
 
 export const SAVE_STORAGE_KEY = "idle-sweeper.save.v1";
 export const LEGACY_MESSAGE_BOARD_KEY = "idle-sweeper.message-board.v1";
+export const SWAP_CONTROLS_STORAGE_KEY = "idle-sweeper.swap-controls.v1";
 export const SAVE_WARNING_BYTES = 4 * 1024 * 1024;
+
+export function loadSwapControlsPreference(storage = window.localStorage) {
+  return storage.getItem(SWAP_CONTROLS_STORAGE_KEY) === "1";
+}
+
+export function storeSwapControlsPreference(enabled, storage = window.localStorage) {
+  storage.setItem(SWAP_CONTROLS_STORAGE_KEY, enabled ? "1" : "0");
+}
 
 export function loadStoredSave(storage = window.localStorage) {
   const raw = storage.getItem(SAVE_STORAGE_KEY);

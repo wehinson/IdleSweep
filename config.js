@@ -58,7 +58,8 @@ const SWEEPER_INC_CONFIG = {
   },
 
   abilities: {
-    safetyRadiusCosts: [40, 120, 320, 900, 2500],
+    safetyRadiusCosts: [40],
+    safetyRadiusMineCost: 10,
     chordingMineCost: 3,
   },
 
@@ -262,6 +263,7 @@ const SWEEPER_INC_CONFIG = {
     shovelsSpent: "Shovels spent. Restock between rounds to keep sweeping.",
     finishRound: "Finish this round before changing the board choice.",
     flagPouchEmpty: "Flag pouch empty. Buy five more between rounds.",
+    flagLimitReached: "No more flags than mines in the field ({count} max).",
     flagPlanted: "Flag planted.",
     flagCleared: "Flag cleared.",
     chordNeedsFlags: "Chording needs {required} nearby flags; {actual} planted.",
@@ -280,7 +282,7 @@ const SWEEPER_INC_CONFIG = {
     storageExpanded: "{kind} storage expanded.",
     tallerUnlocked: "Taller Grid unlocked: {value} rows available.",
     widerUnlocked: "Wider Grid unlocked: {value} columns available.",
-    safetyInstalled: "Safety Radius {value} installed.",
+    safetyInstalled: "Safety area {value} installed.",
     chordingUnlocked: "Chording unlocked. Click an open numbered tile.",
     abilityInstalled: "Ability installed.",
     progressReset: "Progress reset. Fresh purse, fresh tools, fresh ledger.",
@@ -288,12 +290,12 @@ const SWEEPER_INC_CONFIG = {
     suppliesReady: "Supplies available. {name} shovels last {durability} digs.",
     suppliesLocked: "Supplies are locked until this round ends.",
     finalShovel: "{name} is the final shovel tier.",
-    safetyMax: "Radius 5 is the current cap",
+    safetyMax: "5x5 is the current cap",
     chordingReady: "Click a numbered tile",
     chordingDescription: "Regular Minesweeper chording",
     noCompletedBoards: "No completed boards yet.",
     settingsNote: "{mines} mine{plural}, placed after the first click. {safety}",
-    safetyNote: "Radius {radius} safety.",
+    safetyNote: "{size} safety.",
     firstTileSafe: "First tile is safe.",
     contractReady: "Contract ready: {name}. Check the Message Board.",
     contractStarted: "Contract started: {name}. Clear it to claim the reward.",
@@ -301,7 +303,8 @@ const SWEEPER_INC_CONFIG = {
     contractWon: "Contract complete: {name}. +{coins} and +{mines} mine{plural}.",
     contractLost: "Contract failed: {name}. That contract type is unavailable for {count} games.",
     challengeReady: "Challenge posted: {name}.",
-    challengeWon: " Challenge complete: {name}. +{coins}.",
+    challengeClaimable: " Challenge complete: {name}. Claim your reward!",
+    challengeWon: "Challenge reward claimed: {name}. +{coins}.",
   },
 };
 

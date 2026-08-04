@@ -71,7 +71,7 @@ button {
     inset 0 0 0 5px rgba(255, 255, 255, 0.05);
   flex: 0 0 min(100%, 410px);
   max-width: 410px;
-  padding: 16px 16px 20px;
+  padding: 10px 16px 12px;
   position: relative;
   width: min(100%, 410px);
 }
@@ -106,16 +106,16 @@ button {
   display: flex;
   gap: 12px;
   justify-content: center;
-  margin: 0 12px 14px;
-  min-height: 62px;
-  padding: 10px;
+  margin: 0 12px 10px;
+  min-height: 44px;
+  padding: 7px;
   position: relative;
   z-index: 1;
 }
 
 .marquee h1 {
   font-family: "Press Start 2P", system-ui, sans-serif;
-  font-size: clamp(1rem, 5vw, 1.8rem);
+  font-size: clamp(0.85rem, 4vw, 1.3rem);
   letter-spacing: 0;
   line-height: 1.2;
   margin: 0;
@@ -151,7 +151,7 @@ button {
   display: grid;
   gap: 10px;
   grid-template-columns: 1fr auto 1fr;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
 }
 
 .meter {
@@ -208,9 +208,19 @@ button {
   color: rgba(247, 255, 247, 0.78);
   font-size: 0.88rem;
   line-height: 1.35;
-  margin: 0 0 14px;
+  margin: 0 0 6px;
   min-height: 2.4em;
   text-align: center;
+}
+
+.field-value {
+  color: var(--yellow);
+  font-family: "Press Start 2P", system-ui, sans-serif;
+  font-size: 0.58rem;
+  line-height: 1.35;
+  margin: -4px 0 8px;
+  text-align: center;
+  text-shadow: 0 0 6px rgba(255, 209, 102, 0.4);
 }
 
 .board {
@@ -223,10 +233,6 @@ button {
   max-height: min(42vh, 360px);
   max-width: min(100%, 340px);
   width: 100%;
-}
-
-.board.is-revealing {
-  cursor: wait;
 }
 
 .cell {
@@ -312,12 +318,17 @@ button {
 }
 
 .district-view {
-  min-height: 420px;
+  aspect-ratio: 5 / 7;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(210px, 0.42fr);
   grid-template-rows: auto 1fr;
-  gap: 12px;
+  gap: 8px;
+  max-height: min(42vh, 360px);
+  max-width: min(100%, 340px);
+  min-height: 0;
   padding: 12px;
+  overflow: hidden;
+  width: 100%;
   color: #2b2117;
   background:
     radial-gradient(circle at 25% 30%, rgba(92, 65, 35, 0.09) 0 2px, transparent 3px),
@@ -364,6 +375,7 @@ button {
 .parcel-action:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .district-map {
+  min-height: 0;
   min-width: 0;
   display: grid;
   grid-template-columns: repeat(var(--district-cols), minmax(48px, 1fr));
@@ -406,6 +418,7 @@ button {
 .passage-mark.is-west { width: 8px; height: 7px; top: calc(50% - 3px); left: -8px; }
 
 .parcel-inspector {
+  min-height: 0;
   min-width: 0;
   padding: 12px;
   overflow: auto;
@@ -434,10 +447,7 @@ button {
 
 .worker-cursor {
   align-items: center;
-  background: var(--yellow);
-  border: 2px solid #6f5710;
   border-radius: 50%;
-  color: #211807;
   display: flex;
   font-family: "Press Start 2P", system-ui, sans-serif;
   font-size: 0.44rem;
@@ -450,40 +460,95 @@ button {
   z-index: 2;
 }
 
-.worker-cursor--flagbearer {
-  background: #2ec4b6;
-  border-color: #0f635c;
+.worker-cursor--excavator {
+  --worker-ring: #6fbd63;
+  background: #6fbd63;
+  border: 2px solid #235b32;
+  color: #102b18;
 }
 
-.cell .worker-cursor + .worker-cursor {
+.worker-cursor--flagbearer {
+  --worker-ring: #df625d;
+  background: #df625d;
+  border: 2px solid #7d2524;
+  color: #350d0d;
+}
+
+.cell .worker-cursor ~ .worker-cursor {
   right: 9px;
 }
 
-.worker-proof {
+.worker-cursor__label {
+  position: relative;
+  z-index: 1;
+}
+
+/* Stamina-wheel ring: fills clockwise around the marker over one worker round. */
+@property --worker-ring-sweep {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.worker-cursor__ring {
+  border-radius: 50%;
+  display: none;
+  inset: -5px;
+  pointer-events: none;
+  position: absolute;
+}
+
+.worker-cursor.is-pending .worker-cursor__ring {
+  animation: worker-ring-fill linear forwards;
+  background: conic-gradient(var(--worker-ring, #6fbd63) var(--worker-ring-sweep), rgba(8, 13, 19, 0.55) 0);
+  box-shadow: 0 0 6px rgba(8, 13, 19, 0.5);
+  display: block;
+  mask: radial-gradient(closest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  -webkit-mask: radial-gradient(closest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+}
+
+@keyframes worker-ring-fill {
+  from { --worker-ring-sweep: 0deg; }
+  to { --worker-ring-sweep: 360deg; }
+}
+
+.worker-tooltip {
   align-items: center;
-  background: rgba(8, 13, 19, 0.92);
-  border: 2px solid rgba(46, 196, 182, 0.58);
+  background: rgba(8, 13, 19, 0.96);
+  border: 2px solid #6fbd63;
   border-radius: 5px;
   color: var(--screen-glow);
   display: grid;
   gap: 6px;
-  margin: -6px auto 10px;
-  max-width: min(100%, 340px);
+  max-height: calc(100vh - 16px);
+  min-width: 130px;
+  max-width: calc(100vw - 16px);
+  overflow-y: auto;
   padding: 8px;
+  pointer-events: none;
+  position: fixed;
   text-align: center;
+  width: max-content;
+  z-index: 100;
 }
 
-.worker-proof strong {
+.worker-tooltip strong {
   color: var(--yellow);
   font-family: "Press Start 2P", system-ui, sans-serif;
   font-size: 0.48rem;
   line-height: 1.45;
 }
 
-.worker-proof > span {
+.worker-tooltip > span {
   color: rgba(247, 255, 247, 0.7);
   font-size: 0.62rem;
   line-height: 1.3;
+}
+
+.worker-tooltip__countdown {
+  color: #6fbd63 !important;
+  font-family: "Press Start 2P", system-ui, sans-serif;
+  font-size: 0.52rem !important;
 }
 
 .proof-diagram {
@@ -523,15 +588,36 @@ button {
   }
 }
 
-.cell.is-treasure {
+.cell.is-open.is-treasure {
   background: #d9bb63;
   border-bottom-color: #9b7920;
   color: #4f3510;
   text-shadow: 1px 1px 0 rgba(255, 246, 182, 0.6);
 }
 
+.cell.is-open.is-treasure-bronze {
+  background: #b8763f;
+  border-bottom-color: #6e451f;
+  color: #2c1806;
+  text-shadow: 1px 1px 0 rgba(255, 214, 170, 0.5);
+}
+
+.cell.is-open.is-treasure-silver {
+  background: #c9d1d9;
+  border-bottom-color: #838d96;
+  color: #262b30;
+  text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.cell.is-open.is-treasure-gold {
+  background: #ffd166;
+  border-bottom-color: #b8860b;
+  color: #4f3510;
+  text-shadow: 1px 1px 0 rgba(255, 246, 182, 0.6);
+}
+
 .treasure-popup {
-  animation: treasure-float 900ms ease-out both;
+  animation: treasure-float 1800ms ease-out both;
   background: var(--yellow);
   border: 2px solid #8e7115;
   border-radius: 4px;
@@ -546,6 +632,24 @@ button {
   transform: translate(-50%, -50%);
   white-space: nowrap;
   z-index: 3;
+}
+
+.treasure-popup--bronze {
+  background: #cd8a4f;
+  border-color: #6e451f;
+  color: #2c1806;
+}
+
+.treasure-popup--silver {
+  background: #dbe2e8;
+  border-color: #838d96;
+  color: #262b30;
+}
+
+.treasure-popup--gold {
+  background: var(--yellow);
+  border-color: #8e7115;
+  color: #3d2b0b;
 }
 
 @keyframes treasure-float {
@@ -602,7 +706,7 @@ button {
   align-items: end;
   display: flex;
   justify-content: space-between;
-  padding: 20px 42px 0;
+  padding: 5px 42px 0;
   position: relative;
   z-index: 1;
 }
@@ -809,7 +913,7 @@ button {
 
 .buttons {
   display: flex;
-  gap: 10px;
+  gap: 7px;
   padding-bottom: 6px;
 }
 
@@ -824,10 +928,10 @@ button {
   font-family: "Press Start 2P", system-ui, sans-serif;
   font-size: 0.46rem;
   line-height: 1.25;
-  min-height: 42px;
-  padding: 6px 8px;
+  min-height: 38px;
+  padding: 5px 4px;
   text-transform: uppercase;
-  width: 92px;
+  width: 64px;
 }
 
 .cabinet-mode-button--green {
@@ -960,6 +1064,16 @@ button {
   border-color: rgba(46, 196, 182, 0.42);
 }
 
+.message-tile--challenge.is-claimable {
+  background: rgba(255, 209, 102, 0.08);
+  border-color: var(--yellow);
+  box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.22), 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.message-tile--challenge.is-claimable .message-tile__topline > span {
+  color: var(--yellow);
+}
+
 .message-tile p {
   color: rgba(247, 255, 247, 0.72);
   font-size: 0.68rem;
@@ -1050,6 +1164,17 @@ button {
   font-size: 0.48rem;
   line-height: 1.25;
   text-transform: uppercase;
+}
+
+.message-tile__properties span.is-met {
+  background: rgba(255, 209, 102, 0.16);
+  border-color: var(--yellow);
+  box-shadow: 0 0 6px rgba(255, 209, 102, 0.35);
+  color: var(--yellow);
+}
+
+.message-tile__properties span.is-met strong {
+  color: var(--yellow);
 }
 
 .message-tile__button {
@@ -1144,11 +1269,38 @@ body.is-contract-running .settings-panel {
   pointer-events: none;
 }
 
+body.is-contract-running::before {
+  background: rgba(8, 11, 16, 0.78);
+  backdrop-filter: blur(6px);
+  content: "";
+  inset: 0;
+  position: fixed;
+  z-index: 15;
+}
+
 body.is-contract-running .cabinet {
   box-shadow:
     0 0 0 5px rgba(255, 209, 102, 0.34),
-    0 28px 50px rgba(0, 0, 0, 0.45),
+    0 28px 70px rgba(0, 0, 0, 0.6),
     inset 0 0 0 5px rgba(255, 255, 255, 0.05);
+  left: 50%;
+  max-height: 92vh;
+  max-width: min(94vw, 760px);
+  overflow-y: auto;
+  position: fixed;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(94vw, 760px);
+  z-index: 20;
+}
+
+body.is-contract-running .screen {
+  padding: 18px;
+}
+
+body.is-contract-running .board {
+  max-height: min(70vh, 640px);
+  max-width: min(80vw, 640px);
 }
 
 .curio-status {
@@ -1730,7 +1882,14 @@ body.is-auto-miners .quartermaster-panel > :not(#specialists-panel) {
   width: 82px;
 }
 
+.setting-row input[type="checkbox"] {
+  accent-color: var(--screen-glow);
+  height: 20px;
+  width: 20px;
+}
+
 .setting-row input[type="number"]:focus,
+.setting-row input[type="checkbox"]:focus-visible,
 .mine-slider:focus-visible,
 .safety-option:focus-within,
 .dev-button:focus-visible {
@@ -1958,7 +2117,7 @@ body.is-auto-miners .quartermaster-panel > :not(#specialists-panel) {
   }
 
   .cabinet {
-    padding: 14px 12px 18px;
+    padding: 10px 12px 12px;
   }
 
   .marquee {
@@ -2005,7 +2164,7 @@ body.is-auto-miners .quartermaster-panel > :not(#specialists-panel) {
   }
 
   .controls {
-    padding-inline: 28px;
+    padding: 5px 28px 0;
   }
 }
 
@@ -2044,8 +2203,6 @@ select:disabled {
 
 .cell.is-chordable {
   cursor: pointer;
-  outline: 2px dashed rgba(46, 196, 182, 0.7);
-  outline-offset: -4px;
 }
 
 .stats-section {
@@ -2143,10 +2300,8 @@ select:disabled {
 }
 
 .cabinet {
-  max-height: calc(100vh - 40px);
-  overflow-x: hidden;
-  overflow-y: auto;
-  scrollbar-color: var(--cyan) #080d13;
+  max-height: none;
+  overflow: visible;
 }
 
 .quartermaster-panel {
