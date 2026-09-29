@@ -49,7 +49,13 @@ test("save state round-trips as plain JSON", () => {
   const text = serializeSave(gameState(), () => new Date("2026-01-01T00:00:00.000Z"));
   const parsed = JSON.parse(text);
   validateSave(parsed);
-  assert.deepEqual(hydrateSave(parsed), gameState());
+  const hydrated = hydrateSave(parsed);
+  assert.equal(parsed.schemaVersion, 4);
+  assert.deepEqual(Object.keys(parsed.state).sort(), ["preferences", "profile", "run"]);
+  assert.equal(hydrated.player.coins, 25);
+  assert.equal(hydrated.profile.hints, 0);
+  assert.equal(hydrated.runMeta.ordinal, 1);
+  assert.deepEqual(hydrated.fieldQueue.settings, gameState().fieldQueue.settings);
 });
 
 test("v1 migration preserves the visible board and converts workers and contracts while deleting the queue", () => {
@@ -75,18 +81,72 @@ test("v1 migration preserves the visible board and converts workers and contract
   assert.equal("queue" in migrated.autoMiners, false);
   assert.deepEqual(migrated.autoMiners.workerTasks, {});
   assert.equal(Object.values(migrated.autoMiners.workerTargets).every((target) => target === null), true);
-  assert.equal(migrated.workerState.workerTypes.surveyor.level, 7);
-  assert.equal(migrated.workerState.workerTypes.excavator.level, 3);
-  assert.equal(Object.values(migrated.workerState.workersById).filter((worker) => worker.typeId === "surveyor").length, 1);
+  assert.equal(migrated.workerState.workerTypes.surveyor.level, 0);
+  assert.equal(migrated.workerState.workerTypes.excavator.level, 0);
+  assert.equal(Object.keys(migrated.workerState.workersById).length, 0);
   assert.equal(Object.values(migrated.contractInstances)[0].typeId, "abandonedYard");
-  assert.match(migrated.schemaMigrationNotice, /Districts replaced Field Queue/);
+  assert.match(migrated.schemaMigrationNotice, /Workers and High Score started fresh/);
+  assert.equal(migrated.runMeta.currentHighScore, null);
+});
+
+test("v3 migration preserves free automatic flags and blocks over-capacity placement", () => {
+  const original = gameState();
+  original.player.flagCapacityLevel = 0;
+  original.player.flags = 9;
+  original.boardSessions = {
+    retained: {
+      id: "retained",
+      category: "STANDARD",
+      owner: { type: "main", id: "main" },
+      seed: "legacy-flags",
+      settings: { rows: 4, cols: 4, mines: 1 },
+      status: "COMMITTED",
+      initialMineCount: 1,
+      modeState: modeState(4, 4),
+      automation: { interactionMode: "assist", mutationRevision: 0, reservations: {}, findings: [], stalled: false, stallStartedAt: null, speculativeGuessCount: 0 },
+      entrances: [],
+      campDiscovery: false,
+      contractInstanceId: null,
+      parcelId: null,
+      digBudget: null,
+      createdOrdinal: 1,
+    },
+  };
+  original.boardSessions.retained.modeState.board.forEach((cell) => Object.assign(cell, { flagged: true, flaggedByWorker: true }));
+  const v3 = JSON.parse(serializeSave(original));
+  v3.schemaVersion = 3;
+  delete v3.state.run.flagPool;
+  const migrated = hydrateSave(v3);
+  assert.equal(migrated.flagPool.maximumFlags, 15);
+  assert.equal(migrated.flagPool.availableFlags, 0);
+  assert.equal(migrated.flagPool.missingFlags, 0);
+  assert.equal(migrated.flagPool.migrationOverCapacity, true);
+  assert.match(migrated.schemaMigrationNotice, /temporarily over capacity/);
+});
+
+test("v2 migration preserves inventory and resets workers, blueprints, telemetry detail, and High Score", () => {
+  const state = gameState();
+  state.player.hints = 7;
+  state.player.curios = [2, 0, 0];
+  state.player.stats = { boardsCompleted: 12, currentWinStreak: 4 };
+  state.player.specialists = { surveyor: 6 };
+  state.developerTelemetry.currentAttempt.actions = [{ actionType: "dig" }];
+  const migrated = hydrateSave({ format: "idle-sweep-save", schemaVersion: 2, exportedAt: "2026-01-01T00:00:00.000Z", state });
+  assert.equal(migrated.player.coins, 25);
+  assert.equal(migrated.player.hints, 7);
+  assert.deepEqual(migrated.player.curios, [2, 0, 0]);
+  assert.equal(migrated.player.stats.currentWinStreak, 4);
+  assert.equal(Object.keys(migrated.workerState.workersById).length, 0);
+  assert.deepEqual(migrated.profile.blueprintLibrary.ownedIds, []);
+  assert.equal(migrated.profile.allTimeHighScore, null);
+  assert.equal("actions" in migrated.developerTelemetry.currentAttempt, false);
 });
 
 test("save validation rejects malformed boards and future versions", () => {
   const parsed = JSON.parse(serializeSave(gameState()));
-  parsed.state.fieldQueue.board.pop();
+  parsed.state.run.fieldQueue.board.pop();
   assert.throws(() => validateSave(parsed), /board size/);
-  parsed.state.fieldQueue = modeState();
+  parsed.state.run.fieldQueue = modeState();
   parsed.schemaVersion = 99;
   assert.throws(() => validateSave(parsed), /newer game version/);
 });
@@ -103,7 +163,7 @@ test("import rejects corrupted JSON without producing replacement state", () => 
 
 test("save validation rejects unknown catalog identifiers", () => {
   const parsed = JSON.parse(serializeSave(gameState()));
-  parsed.state.player.specialEquipment.unknownTool = 1;
+  parsed.state.profile.specialEquipment.unknownTool = 1;
   assert.throws(() => validateSave(parsed), /Unknown special equipment id/);
 });
 
@@ -111,6 +171,6 @@ test("save validation rejects a corrupted District coordinate index", () => {
   const state = gameState();
   state.district = createDistrict(config.district, { seed: "corrupt-index" });
   const parsed = JSON.parse(serializeSave(state));
-  parsed.state.district.parcelCoordinateIndex["4,8"] = "missing-parcel";
+  parsed.state.run.district.parcelCoordinateIndex["4,8"] = "missing-parcel";
   assert.throws(() => validateSave(parsed), /Duplicate or invalid Parcel coordinate/);
 });

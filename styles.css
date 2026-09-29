@@ -223,6 +223,144 @@ button {
   text-shadow: 0 0 6px rgba(255, 209, 102, 0.4);
 }
 
+.record-controls {
+  align-items: stretch;
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 8;
+}
+
+.record-strip {
+  align-items: center;
+  background: #080d13;
+  border: 2px solid rgba(216, 255, 232, 0.2);
+  border-radius: 4px;
+  color: rgba(216, 255, 232, 0.7);
+  display: flex;
+  flex: 1 1 auto;
+  font-size: 0.58rem;
+  gap: 12px;
+  justify-content: space-around;
+  line-height: 1.35;
+  min-width: 0;
+  padding: 6px 8px;
+  text-transform: uppercase;
+}
+
+.record-strip strong {
+  color: var(--screen-glow);
+  display: block;
+  font-family: "Press Start 2P", system-ui, sans-serif;
+  font-size: 0.6rem;
+  margin-top: 3px;
+  text-align: center;
+}
+
+.field-specification-toggle {
+  background: linear-gradient(#ffd166, #d49c27);
+  border: 2px solid #7b5411;
+  border-bottom-width: 4px;
+  border-radius: 5px;
+  color: #211706;
+  cursor: pointer;
+  flex: 0 0 72px;
+  font-family: "Press Start 2P", system-ui, sans-serif;
+  font-size: 0.46rem;
+  line-height: 1.35;
+  padding: 5px;
+  text-transform: uppercase;
+}
+
+.field-specification-toggle:active,
+.field-specification-toggle[aria-expanded="true"] {
+  border-bottom-width: 2px;
+  transform: translateY(2px);
+}
+
+.field-specification-toggle:focus-visible,
+.field-specification-menu select:focus-visible,
+.field-specification-switch:focus-within {
+  outline: 3px solid var(--yellow);
+  outline-offset: 2px;
+}
+
+.field-specification-menu {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06), transparent 18px),
+    linear-gradient(180deg, #202a32, #080d13);
+  border: 4px solid #080b10;
+  border-radius: 8px;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.58);
+  color: var(--white);
+  padding: 12px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  width: min(82vw, 285px);
+  z-index: 12;
+}
+
+.field-specification-menu__header {
+  border-bottom: 1px solid rgba(216, 255, 232, 0.18);
+  display: grid;
+  gap: 3px;
+  margin-bottom: 7px;
+  padding-bottom: 9px;
+}
+
+.field-specification-menu__header strong {
+  color: var(--yellow);
+  font-family: "Press Start 2P", system-ui, sans-serif;
+  font-size: 0.62rem;
+  line-height: 1.4;
+}
+
+.field-specification-row,
+.field-specification-switch {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.field-specification-row {
+  margin-top: 7px;
+}
+
+.field-specification-row label,
+.field-specification-switch span {
+  color: rgba(247, 255, 247, 0.82);
+  font-size: 0.76rem;
+}
+
+.field-specification-row select {
+  min-height: 34px;
+  min-width: 92px;
+}
+
+.field-specification-switch {
+  border-top: 1px solid rgba(216, 255, 232, 0.16);
+  cursor: pointer;
+  margin-top: 10px;
+  padding-top: 10px;
+}
+
+.field-specification-switch input {
+  accent-color: var(--cyan);
+  height: 20px;
+  margin: 0;
+  width: 20px;
+}
+
+.field-specification-note {
+  color: rgba(216, 255, 232, 0.68);
+  font-size: 0.68rem;
+  line-height: 1.4;
+  margin: 10px 0 0;
+}
+
 .board {
   aspect-ratio: 5 / 7;
   display: grid;
@@ -233,6 +371,23 @@ button {
   max-height: min(42vh, 360px);
   max-width: min(100%, 340px);
   width: 100%;
+}
+
+.board.is-virtual {
+  width: 100%;
+  max-height: min(72vh, 760px);
+  overflow: auto;
+  align-content: start;
+  justify-content: start;
+  aspect-ratio: auto;
+  scrollbar-gutter: stable;
+}
+
+.board.is-virtual .cell {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  min-height: 34px;
 }
 
 .cell {
@@ -1560,6 +1715,10 @@ body.is-contract-running .board {
   white-space: nowrap;
 }
 
+#flag-resource .resource-card__detail {
+  white-space: normal;
+}
+
 .store-note {
   color: rgba(216, 255, 232, 0.72);
   font-size: 0.72rem;
@@ -2351,6 +2510,31 @@ select:disabled {
 .quartermaster-panel .store-item__cost,
 .quartermaster-panel .resource-card__detail {
   overflow-wrap: anywhere;
+}
+
+/* Quartermaster tooltips use a fixed viewport layer so panel scrolling cannot clip them. */
+.quartermaster-panel .resource-card::before,
+.quartermaster-panel .resource-card::after,
+.quartermaster-panel .equipment-inventory__item::before,
+.quartermaster-panel .equipment-inventory__item::after {
+  display: none;
+}
+
+.quartermaster-tooltip {
+  background: #101821;
+  border: 2px solid rgba(255, 209, 102, 0.72);
+  border-radius: 5px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.34);
+  color: rgba(247, 255, 247, 0.9);
+  font-size: 0.62rem;
+  line-height: 1.35;
+  max-width: calc(100vw - 16px);
+  padding: 8px 9px;
+  pointer-events: none;
+  position: fixed;
+  text-align: left;
+  width: max-content;
+  z-index: 110;
 }
 
 .store-item--compact {

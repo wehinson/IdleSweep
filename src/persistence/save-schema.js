@@ -3,16 +3,22 @@ import { SPECIAL_EQUIPMENT, SPECIALISTS } from "../engine/catalogs.js";
 import { createCampProgression } from "../engine/camp-progression.js";
 import { validateDistrict } from "../engine/district.js";
 import { createWorkerState } from "../engine/workers.js";
+import { createAutoMinerState } from "../engine/auto-miners.js";
+import { createAutomationState } from "../engine/automation.js";
+import { createProfile, createRun } from "../engine/runs.js";
+import { countDeployedFlags, migrateLegacyFlagPool, validateFlagPool } from "../engine/flag-pool.js";
 
 export const SAVE_FORMAT = "idle-sweep-save";
-export const SAVE_SCHEMA_VERSION = 2;
+export const SAVE_SCHEMA_VERSION = 4;
 
 export function serializeSave(state, now = () => new Date()) {
+  assertJsonValue(state, "state");
+  const exportedAt = now().toISOString();
   const document = {
     format: SAVE_FORMAT,
     schemaVersion: SAVE_SCHEMA_VERSION,
-    exportedAt: now().toISOString(),
-    state,
+    exportedAt,
+    state: packRuntimeState(state, exportedAt),
   };
   validateSave(document);
   return JSON.stringify(document, null, 2);
@@ -24,20 +30,26 @@ export function migrateSave(document) {
   }
   if (document.format !== SAVE_FORMAT) throw new Error("This is not an Idle Sweep save file.");
   if (document.schemaVersion > SAVE_SCHEMA_VERSION) throw new Error("This save was created by a newer game version.");
-  if (document.schemaVersion === 1) return migrateVersionOne(document);
+  if (document.schemaVersion === 1) return migrateVersionThree(migrateVersionTwo(migrateVersionOne(document)));
+  if (document.schemaVersion === 2) return migrateVersionThree(migrateVersionTwo(document));
+  if (document.schemaVersion === 3) return migrateVersionThree(document);
   if (document.schemaVersion !== SAVE_SCHEMA_VERSION) throw new Error("This save version is not supported.");
   return document;
 }
 
 export function validateSave(input) {
   const document = migrateSave(input);
-  const { state } = document;
+  const state = unpackVersionThreeState(document.state);
+  assertPlainObject(document.state.profile, "state.profile");
+  assertPlainObject(document.state.run, "state.run");
+  assertPlainObject(document.state.preferences, "state.preferences");
   assertPlainObject(state, "state");
   assertPlainObject(state.player, "state.player");
   assertPlainObject(state.settings, "state.settings");
   assertPlainObject(state.messageBoard, "state.messageBoard");
   assertPlainObject(state.timers, "state.timers");
   if (state.developerTelemetry !== undefined) validateDeveloperTelemetry(state.developerTelemetry);
+  validateFlagPoolState(state.flagPool, state.boardSessions || {}, state.player);
   if (!new Set(["board", "district"]).has(state.currentMode)) throw new Error("The save contains an invalid game mode.");
   validateSettings(state.settings, "state.settings");
   if (state.fieldQueue !== null) validateModeState(state.fieldQueue, "state.fieldQueue");
@@ -58,12 +70,124 @@ export function validateSave(input) {
 function validateDeveloperTelemetry(telemetry) {
   assertPlainObject(telemetry, "state.developerTelemetry");
   if (telemetry.schemaVersion !== 1) throw new Error("The developer telemetry version is invalid.");
-  assertFiniteNonNegative(telemetry.nextRunNumber, "developer telemetry run number");
-  if (!Array.isArray(telemetry.completedRuns)) throw new Error("The developer telemetry run list is invalid.");
-  if (telemetry.actions !== undefined && !Array.isArray(telemetry.actions)) throw new Error("The developer telemetry action list is invalid.");
-  telemetry.completedRuns.forEach((run, index) => validateDeveloperRun(run, `state.developerTelemetry.completedRuns[${index}]`));
-  if (telemetry.currentRun !== null) validateDeveloperRun(telemetry.currentRun, "state.developerTelemetry.currentRun");
-  (telemetry.actions || []).forEach((action, index) => validateDeveloperAction(action, `state.developerTelemetry.actions[${index}]`));
+  assertFiniteNonNegative(telemetry.nextAttemptNumber, "developer telemetry attempt number");
+  if (!Array.isArray(telemetry.completedAttempts)) throw new Error("The developer telemetry attempt list is invalid.");
+  telemetry.completedAttempts.forEach((attempt, index) => validateDeveloperRun(attempt, `state.developerTelemetry.completedAttempts[${index}]`));
+  if (telemetry.currentAttempt !== null) validateDeveloperRun(telemetry.currentAttempt, "state.developerTelemetry.currentAttempt");
+}
+
+function migrateVersionThree(document) {
+  const state = structuredCloneSafe(document.state);
+  const run = state.run;
+  const level = Math.max(0, Math.floor(Number(run.player?.flagCapacityLevel) || 0));
+  const maximumFlags = config.capacity.flags[level] ?? config.capacity.flags[0];
+  const deployedFlags = countDeployedFlags(run.boardSessions || {});
+  run.flagPool = migrateLegacyFlagPool({
+    maximumFlags,
+    oldAvailableFlags: run.player?.flags,
+    deployedFlags,
+    manualFlagReserve: state.preferences?.manualFlagReserve || 0,
+    regenIntervalMs: config.flags.regenerationIntervalMs,
+  });
+  if (run.developerTelemetry) {
+    run.developerTelemetry.currentAttempt = withReusableFlagTelemetry(run.developerTelemetry.currentAttempt);
+    run.developerTelemetry.completedAttempts = (run.developerTelemetry.completedAttempts || []).map(withReusableFlagTelemetry);
+  }
+  state.preferences ||= {};
+  state.preferences.manualFlagReserve = run.flagPool.manualFlagReserve;
+  const migrationText = run.flagPool.migrationOverCapacity
+    ? " Reusable flags are temporarily over capacity because old automatic flags were preserved. New placement is blocked until deployment falls below the Flag Locker maximum."
+    : " Reusable company flags were initialized from the old stock and all retained Board flags.";
+  run.schemaMigrationNotice = `${run.schemaMigrationNotice || "Save upgraded to Sweeper Inc. reusable flags."}${migrationText}`;
+  return { ...document, schemaVersion: 4, state };
+}
+
+function validateFlagPoolState(pool, boardSessions, player) {
+  assertPlainObject(pool, "state.flagPool");
+  for (const key of ["maximumFlags", "availableFlags", "missingFlags", "manualFlagReserve", "flagRegenRemainingMs"]) {
+    assertFiniteNonNegative(pool[key], `state.flagPool.${key}`);
+  }
+  const deployed = countDeployedFlags(boardSessions);
+  const level = Math.max(0, Math.floor(Number(player?.flagCapacityLevel) || 0));
+  const configuredMaximum = config.capacity.flags[level] ?? config.capacity.flags[0];
+  if (pool.maximumFlags !== configuredMaximum) throw new Error("The reusable flag maximum does not match the Flag Locker level.");
+  const normalized = validateFlagPool(pool, deployed);
+  if (pool.maximumFlags !== normalized.maximumFlags
+    || pool.availableFlags !== normalized.availableFlags
+    || pool.missingFlags !== normalized.missingFlags
+    || Boolean(pool.migrationOverCapacity) !== normalized.migrationOverCapacity) {
+    throw new Error("The reusable flag pool does not match retained Board deployments.");
+  }
+}
+
+function migrateVersionTwo(document) {
+  const state = structuredCloneSafe(document.state);
+  const now = document.exportedAt || new Date().toISOString();
+  state.workerState = createWorkerState(SPECIALISTS, {});
+  state.player.specialists = Object.fromEntries(SPECIALISTS.map((item) => [item.id, 0]));
+  state.autoMiners = createAutoMinerState(SPECIALISTS, 0);
+  state.autoMiners.surveyElapsedMs = 0;
+  state.autoMiners.workerElapsedMs = 1000;
+  delete state.autoMiners.lastSurveyAt;
+  delete state.autoMiners.lastWorkerTickAt;
+  state.autoMiners.notice = { code: "literal", args: { text: "Workers were reset for the individual-level worker system." } };
+  delete state.autoMiners.statusText;
+  for (const session of Object.values(state.boardSessions || {})) {
+    session.initialMineCount = session.modeState?.minesPlaced ? session.settings.mines : null;
+    session.automation = createAutomationState(session.category === "DISTRICT_PARCEL" ? "assist" : "manual");
+  }
+  state.developerTelemetry = migrateDeveloperTelemetry(state.developerTelemetry);
+  state.schemaMigrationNotice = "Save upgraded to Sweeper Inc. 0.2.5. Workers and High Score started fresh.";
+  const runtime = {
+    ...state,
+    profile: createProfile({
+      hints: state.player.hints || 0,
+      specialEquipment: state.player.specialEquipment || {},
+      curios: state.player.curios || [],
+      lifetimeStats: state.player.stats || {},
+    }),
+    runMeta: createRun({ ordinal: 1, seed: `migrated:${now}`, startedAt: now }),
+    preferences: { lastBoardSelection: state.settings, speculationEnabled: false, riskThreshold: config.automation.defaultRiskThreshold },
+  };
+  return { ...document, schemaVersion: 3, state: packRuntimeState(runtime, now) };
+}
+
+function migrateDeveloperTelemetry(value) {
+  const telemetry = value || {};
+  const migrateAttempt = (attempt) => {
+    if (!attempt) return null;
+    const migrated = { ...attempt, attemptNumber: attempt.attemptNumber ?? attempt.runNumber ?? 1 };
+    delete migrated.actions;
+    return withReusableFlagTelemetry(migrated);
+  };
+  return {
+    schemaVersion: 1,
+    nextAttemptNumber: Math.max(1, telemetry.nextAttemptNumber ?? telemetry.nextRunNumber ?? 1),
+    currentAttempt: migrateAttempt(telemetry.currentAttempt || telemetry.currentRun),
+    completedAttempts: (telemetry.completedAttempts || telemetry.completedRuns || []).map(migrateAttempt),
+  };
+}
+
+function withReusableFlagTelemetry(attempt) {
+  if (!attempt) return null;
+  return {
+    manualFlagPlacements: 0,
+    automaticFlagPlacements: 0,
+    flagsReturnedAfterVictory: 0,
+    flagsExposed: 0,
+    flagsRecoveredAfterFailure: 0,
+    flagsLostAfterFailure: 0,
+    flagsRegenerated: 0,
+    flagsReplaced: 0,
+    flagLockerRefills: 0,
+    missingFlagTimeMs: 0,
+    flagbearerNoFlagsTimeMs: 0,
+    manualReserveBlocks: 0,
+    preRiskFlagRemovals: 0,
+    flagPoolAtStart: { available: 0, deployed: 0, missing: 0 },
+    flagPoolAtEnd: null,
+    ...attempt,
+  };
 }
 
 function migrateVersionOne(document) {
@@ -150,6 +274,7 @@ function validateWorkerState(workerState) {
     assertPlainObject(worker, `state.workerState.workersById.${id}`);
     if (!specialistIds.has(worker.typeId)) throw new Error(`Unknown worker type: ${worker.typeId}`);
     if (!new Set(["AVAILABLE", "ASSIGNED"]).has(worker.status)) throw new Error(`Invalid worker status: ${worker.status}`);
+    assertFiniteNonNegative(worker.level, `state.workerState.workersById.${id}.level`);
   }
 }
 
@@ -165,6 +290,8 @@ function validateBoardSessions(boardSessions) {
     assertPlainObject(session.owner, `state.boardSessions.${id}.owner`);
     validateSettings(session.settings, `state.boardSessions.${id}.settings`);
     if (session.modeState !== null) validateModeState(session.modeState, `state.boardSessions.${id}.modeState`);
+    if (session.initialMineCount !== null) assertFiniteNonNegative(session.initialMineCount, `state.boardSessions.${id}.initialMineCount`);
+    assertPlainObject(session.automation, `state.boardSessions.${id}.automation`);
   }
 }
 
@@ -206,7 +333,7 @@ function validateDeveloperRun(run, path) {
   assertPlainObject(run.board, `${path}.board`);
   assertPlainObject(run.equipmentUses, `${path}.equipmentUses`);
   assertPlainObject(run.purchases, `${path}.purchases`);
-  for (const key of ["runNumber", "startedAtEpochMs", "digActions", "revealCount", "flagPlacements", "flagRemovals", "chordUses", "mineHits", "shovelDurabilityConsumed", "shovelsConsumed", "coinsEarned", "recoveredMinesEarned"]) {
+  for (const key of ["attemptNumber", "startedAtEpochMs", "digActions", "revealCount", "flagPlacements", "manualFlagPlacements", "automaticFlagPlacements", "flagRemovals", "flagsReturnedAfterVictory", "flagsExposed", "flagsRecoveredAfterFailure", "flagsLostAfterFailure", "flagsRegenerated", "flagsReplaced", "flagLockerRefills", "missingFlagTimeMs", "flagbearerNoFlagsTimeMs", "manualReserveBlocks", "preRiskFlagRemovals", "chordUses", "mineHits", "shovelDurabilityConsumed", "shovelsConsumed", "coinsEarned", "recoveredMinesEarned"]) {
     assertFiniteNonNegative(run[key], `${path}.${key}`);
   }
   for (const key of ["rows", "cols", "mines"]) assertFiniteNonNegative(run.board[key], `${path}.board.${key}`);
@@ -253,7 +380,71 @@ function validateMessageBoard(messageBoard) {
 
 export function hydrateSave(input) {
   const document = validateSave(migrateSave(input));
-  return structuredCloneSafe(document.state);
+  return structuredCloneSafe(unpackVersionThreeState(document.state));
+}
+
+function packRuntimeState(runtimeState, exportedAt) {
+  if (runtimeState?.run?.player && runtimeState?.profile && runtimeState?.preferences) {
+    const packed = structuredCloneSafe(runtimeState);
+    ensureFlagPool(packed.run, packed.preferences);
+    return packed;
+  }
+  const runtime = structuredCloneSafe(runtimeState);
+  const player = runtime.player || {};
+  const existingProfile = runtime.profile || {};
+  const profile = createProfile({
+    ...existingProfile,
+    hints: player.hints ?? existingProfile.hints ?? 0,
+    specialEquipment: player.specialEquipment || existingProfile.specialEquipment || {},
+    curios: player.curios || existingProfile.curios || [],
+    lifetimeStats: player.stats || existingProfile.lifetimeStats || {},
+  });
+  const run = runtime;
+  delete run.profile;
+  const runMeta = run.runMeta || createRun({ ordinal: 1, startedAt: exportedAt });
+  delete run.runMeta;
+  const preferences = run.preferences || {
+    lastBoardSelection: run.settings,
+    speculationEnabled: Boolean(run.autoMiners?.speculationEnabled),
+    riskThreshold: run.autoMiners?.riskThreshold ?? config.automation.defaultRiskThreshold,
+  };
+  delete run.preferences;
+  run.meta = runMeta;
+  ensureFlagPool(run, preferences);
+  if (run.player) {
+    delete run.player.hints;
+    delete run.player.specialEquipment;
+    delete run.player.curios;
+    delete run.player.stats;
+  }
+  return { profile, run, preferences };
+}
+
+function ensureFlagPool(run, preferences) {
+  if (run.flagPool) return;
+  const level = Math.max(0, Math.floor(Number(run.player?.flagCapacityLevel) || 0));
+  const maximumFlags = config.capacity.flags[level] ?? config.capacity.flags[0];
+  run.flagPool = migrateLegacyFlagPool({
+    maximumFlags,
+    oldAvailableFlags: run.player?.flags,
+    deployedFlags: countDeployedFlags(run.boardSessions || {}),
+    manualFlagReserve: preferences?.manualFlagReserve || 0,
+    regenIntervalMs: config.flags.regenerationIntervalMs,
+  });
+}
+
+function unpackVersionThreeState(state) {
+  const run = structuredCloneSafe(state.run);
+  const meta = run.meta;
+  delete run.meta;
+  run.player = {
+    ...run.player,
+    hints: state.profile.hints,
+    specialEquipment: structuredCloneSafe(state.profile.specialEquipment),
+    curios: [...state.profile.curios],
+    stats: structuredCloneSafe(state.profile.lifetimeStats),
+  };
+  return { ...run, profile: structuredCloneSafe(state.profile), runMeta: meta, preferences: structuredCloneSafe(state.preferences) };
 }
 
 function validateAutoMiners(autoMiners) {
@@ -290,12 +481,20 @@ function validateAutoMiners(autoMiners) {
 function validateModeState(mode, path) {
   assertPlainObject(mode, path);
   validateSettings(mode.settings, `${path}.settings`);
-  if (!Array.isArray(mode.board) || mode.board.length !== mode.settings.rows * mode.settings.cols) {
+  if (mode.boardEncoding === 2) {
+    assertPlainObject(mode.board, `${path}.board`);
+    if (mode.board.length !== mode.settings.rows * mode.settings.cols || typeof mode.board.cells !== "string") {
+      throw new Error(`${path} has an invalid board size.`);
+    }
+    for (const key of ["treasures", "curios", "blueprints"]) {
+      if (!Array.isArray(mode.board[key])) throw new Error(`${path}.board.${key} is invalid.`);
+    }
+  } else if (!Array.isArray(mode.board) || mode.board.length !== mode.settings.rows * mode.settings.cols) {
     throw new Error(`${path} has an invalid board size.`);
   }
-  mode.board.forEach((cell, index) => {
+  if (Array.isArray(mode.board)) mode.board.forEach((cell, index) => {
     if (mode.boardEncoding === 1) {
-      if (!Array.isArray(cell) || cell.length !== 4 || cell.some((value) => !Number.isFinite(value))) {
+      if (!Array.isArray(cell) || ![4, 6].includes(cell.length) || cell.some((value) => !Number.isFinite(value))) {
         throw new Error(`${path} has invalid compact cell data at ${index}.`);
       }
       return;
@@ -316,6 +515,9 @@ function validateModeState(mode, path) {
 function validateSettings(settings, path) {
   for (const key of ["rows", "cols", "mines"]) {
     if (!Number.isInteger(settings[key]) || settings[key] < 0) throw new Error(`${path}.${key} is invalid.`);
+  }
+  if (settings.treasures !== undefined && (!Number.isInteger(settings.treasures) || settings.treasures < 0)) {
+    throw new Error(`${path}.treasures is invalid.`);
   }
   if (settings.rows < 1 || settings.cols < 1 || settings.mines > settings.rows * settings.cols) {
     throw new Error(`${path} contains impossible board dimensions.`);

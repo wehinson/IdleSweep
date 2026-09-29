@@ -1,0 +1,4 @@
+
+# Local files that must not go to GitHub (Dewey, RULES.md G1)
+tmp/
+output/

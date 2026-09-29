@@ -1,10 +1,6 @@
 export function createAutoMinerState(specialists, now = 0) {
   return {
-    automationMode: "manual",
     workerTargets: Object.fromEntries(specialists.map((worker) => [worker.id, null])),
-    workerPolicies: Object.fromEntries(specialists
-      .filter((worker) => worker.group === "agents")
-      .map((worker) => [worker.id, "focus"])),
     initiative: {
       agents: ["excavator", "flagbearer"],
       specialists: specialists.filter((worker) => worker.group === "specialists").map((worker) => worker.id),
@@ -12,6 +8,10 @@ export function createAutoMinerState(specialists, now = 0) {
     workerTasks: {},
     lastSurveyAt: now,
     lastWorkerTickAt: 0,
+    speculationEnabled: false,
+    speculationInitialized: false,
+    riskThreshold: 0.15,
+    interventionSnoozes: {},
     statusText: "Workers can assist the visible board and Active Parcels.",
   };
 }

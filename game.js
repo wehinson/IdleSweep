@@ -1,6 +1,6 @@
 import GAME_CONFIG from "./config.js";
 import { createGame } from "./src/engine/game-engine.js";
-import { createBoardCells, getNeighbors, hasClearedBoard, updateBoardAdjacency } from "./src/engine/board.js";
+import { createBoardCells, createBoardCellsFrom, getNeighbors, hasClearedBoard, updateBoardAdjacency } from "./src/engine/board.js";
 import { availableFlagSatisfiedSafeProofs, availableProofs, refreshProofMetadata, scoreProofCascade } from "./src/engine/proofs.js";
 import { performPurchase } from "./src/engine/purchaseables.js";
 import {
@@ -56,6 +56,7 @@ import {
   releaseContractDigs,
   reserveContractDigs,
   resolveBoardSession,
+  materializeBoardSession,
 } from "./src/engine/board-sessions.js";
 import {
   JOB_STATES,
@@ -82,6 +83,9 @@ import {
   hireWorker,
   nextWorkerHireCost,
   releaseWorkers,
+  upgradeWorker,
+  workerUpgradeCost,
+  assignBlueprints,
 } from "./src/engine/workers.js";
 import {
   createStartingSpecialEquipment as createEquipmentInventory,
@@ -109,6 +113,26 @@ import { decodeModeState, encodeModeState } from "./src/persistence/runtime-code
 import { bindSaveControls } from "./src/ui/save-controls.js";
 import { createCellInputController } from "./src/ui/board-input.js";
 import { renderCurioLedger, renderStatsLedger } from "./src/ui/ledger-view.js";
+import { calculateCrossCost } from "./src/engine/cross-costs.js";
+import { BLUEPRINTS, discoverBlueprint, matchBlueprint, releaseBlueprintReservation, selectBlueprintPlacement } from "./src/engine/blueprints.js";
+import { INTERACTION_MODES, deriveInterventionQueue, estimateSpeculativeTargets, speculationCost, mutateAutomation, reserveTarget, snoozeIntervention } from "./src/engine/automation.js";
+import { createBoardSummary, createProfile, createRun, evaluateHighScore, restructureState } from "./src/engine/runs.js";
+import { visibleGridRange, visibleIndexes } from "./src/ui/virtual-grid.js";
+import { integerOptions, selectionAfterCapacityUpgrade } from "./src/engine/field-specifications.js";
+import {
+  countBoardFlags,
+  countDeployedFlags,
+  createFlagPool,
+  refillFlagPool,
+  repairMissingFlags,
+  resolveFlagLoss,
+  returnDeployedFlags,
+  setManualFlagReserve,
+  tickFlagRegeneration,
+  tryDeployFlag,
+  validateFlagPool,
+  workerUsableFlags,
+} from "./src/engine/flag-pool.js";
 
 const BALANCE_CONFIG = GAME_CONFIG;
 const GRID_LIMITS = GAME_CONFIG.gridLimits;
@@ -120,8 +144,8 @@ const MESSAGE_BOARD_CONFIG = GAME_CONFIG.messageBoard;
 const CHALLENGE_CONFIG = MESSAGE_BOARD_CONFIG.challenges;
 const CAMP_CONFIG = GAME_CONFIG.campDiscovery;
 const DISTRICT_CONFIG = GAME_CONFIG.district;
+const FLAG_CONFIG = GAME_CONFIG.flags;
 const WORKER_ROUND_MS = 10000;
-const VISIBLE_BOARD_TARGET = "__VISIBLE_BOARD__";
 const WORKER_SCAN_STEP_MS = 1000;
 const WORKER_OPEN_SCAN_STEP_MS = WORKER_SCAN_STEP_MS / 2;
 const WORKER_TIMER_TOLERANCE_MS = 25;
@@ -129,6 +153,7 @@ const DEFAULT_SETTINGS = {
   rows: GRID_LIMITS.min,
   cols: GRID_LIMITS.min,
   mines: 1,
+  treasures: 1,
 };
 
 function formatMessage(key, values = {}) {
@@ -149,7 +174,10 @@ const resetButton = document.querySelector("#reset");
 const rowsInput = document.querySelector("#rows-input");
 const colsInput = document.querySelector("#cols-input");
 const minesInput = document.querySelector("#mines-input");
+const treasuresInput = document.querySelector("#treasures-input");
 const settingsNote = document.querySelector("#settings-note");
+const fieldSpecificationToggleButton = document.querySelector("#field-specification-toggle");
+const fieldSpecificationMenuElement = document.querySelector("#field-specification-menu");
 const swapControlsInput = document.querySelector("#swap-controls-input");
 const coinCountElement = document.querySelector("#coin-count");
 const shovelCountElement = document.querySelector("#shovel-count");
@@ -157,6 +185,9 @@ const shovelUsesElement = document.querySelector("#shovel-uses");
 const shovelResourceElement = document.querySelector("#shovel-resource");
 const flagStockElement = document.querySelector("#flag-stock");
 const flagCapacityElement = document.querySelector("#flag-capacity");
+const flagDeployedElement = document.querySelector("#flag-deployed");
+const flagMissingElement = document.querySelector("#flag-missing");
+const flagRegenerationElement = document.querySelector("#flag-regeneration");
 const flagResourceElement = document.querySelector("#flag-resource");
 const hintResourceElement = document.querySelector("#hint-resource");
 const hintStockElement = document.querySelector("#hint-stock");
@@ -178,6 +209,16 @@ const fastestConfigsElement = document.querySelector("#fastest-configs");
 const developerStatsGridElement = document.querySelector("#developer-stats-grid");
 const developerStatsNoteElement = document.querySelector("#developer-stats-note");
 const resetProgressButton = document.querySelector("#reset-progress");
+const restructureProgressButton = document.querySelector("#restructure-progress");
+const restructureModalElement = document.querySelector("#restructure-modal");
+const restructureCancelButton = document.querySelector("#restructure-cancel");
+const restructureConfirmButton = document.querySelector("#restructure-confirm");
+const restructureRunSummaryElement = document.querySelector("#restructure-run-summary");
+const restructureLostSummaryElement = document.querySelector("#restructure-lost-summary");
+const restructureRetainedSummaryElement = document.querySelector("#restructure-retained-summary");
+const allTimeHighScoreElement = document.querySelector("#all-time-high-score");
+const runHighScoreElement = document.querySelector("#run-high-score");
+const appVersionElement = document.querySelector("#app-version");
 const curioChanceElement = document.querySelector("#curio-chance");
 const curioGridElement = document.querySelector("#curio-grid");
 const curioNoteElement = document.querySelector("#curio-note");
@@ -210,6 +251,7 @@ const equipmentInventoryListElement = document.querySelector("#equipment-invento
 const districtButton = document.querySelector("#district-button");
 const autoMinersButton = document.querySelector("#auto-miners-button");
 const quartermasterPanelElement = document.querySelector("#quartermaster-panel");
+const quartermasterTooltipElement = document.querySelector("#quartermaster-tooltip");
 const specialistsPanelElement = document.querySelector("#specialists-panel");
 const autoMineFieldElement = document.querySelector("#auto-mine-field");
 const surveyorCardElement = document.querySelector("#surveyor-card");
@@ -217,6 +259,16 @@ const agentListElement = document.querySelector("#agent-list");
 const specialistListElement = document.querySelector("#specialist-list");
 const specialistNoteElement = document.querySelector("#specialist-note");
 const workerTooltipElement = document.querySelector("#worker-tooltip");
+const blueprintLibraryElement = document.querySelector("#blueprint-library");
+const blueprintCountElement = document.querySelector("#blueprint-count");
+const interventionFeedElement = document.querySelector("#intervention-feed");
+const interventionCountElement = document.querySelector("#intervention-count");
+const speculationEnabledElement = document.querySelector("#speculation-enabled");
+const speculationThresholdElement = document.querySelector("#speculation-threshold");
+const speculationThresholdValueElement = document.querySelector("#speculation-threshold-value");
+const manualFlagReserveElement = document.querySelector("#manual-flag-reserve");
+const manualFlagReserveValueElement = document.querySelector("#manual-flag-reserve-value");
+const workerUsableFlagsElement = document.querySelector("#worker-usable-flags");
 const boardInputController = createCellInputController({ swapped: loadSwapControlsPreference() });
 swapControlsInput.checked = loadSwapControlsPreference();
 swapControlsInput.addEventListener("change", () => {
@@ -303,7 +355,10 @@ let treasurePopups = new Map();
 let boardButtons = [];
 let renderedBoardRef = null;
 let renderedGridKey = "";
+let virtualScrollFrame = 0;
+let pendingBoardFocusIndex = null;
 let workerTooltipState = null;
+let quartermasterTooltipSource = null;
 const workerMarkerData = new WeakMap();
 let emergencyHandoutNotice = false;
 let emergencyHandoutStatus = "";
@@ -311,12 +366,29 @@ let roundTreasureValue = 0;
 let roundTreasureCount = 0;
 let roundFlagPlacements = 0;
 let roundUsedChording = false;
+let lastManualFlagRemovalAt = 0;
 let roundResolved = false;
 let selectedEquipmentId = null;
 let activeEquipment = createRoundEquipmentState();
 let revealedHints = [];
 let lastChallengeTickTime = performance.now();
 let player = createStartingPlayer();
+let flagPool = createFlagPool(BALANCE_CONFIG.capacity.flags[0], {
+  regenIntervalMs: FLAG_CONFIG.regenerationIntervalMs,
+});
+let profile = createProfile({
+  hints: player.hints,
+  specialEquipment: player.specialEquipment,
+  curios: player.curios,
+  lifetimeStats: player.stats,
+});
+let runMeta = createRun({ ordinal: GAME_CONFIG.runs.startingRunOrdinal });
+let preferences = {
+  lastBoardSelection: { ...DEFAULT_SETTINGS },
+  speculationEnabled: false,
+  riskThreshold: GAME_CONFIG.automation.defaultRiskThreshold,
+  manualFlagReserve: 0,
+};
 let currentMode = GAME_MODES.board;
 let currentBoardState = null;
 let autoMinersState = createAutoMinerState(SPECIALISTS, performance.now());
@@ -343,6 +415,7 @@ const stateEngine = createGame({
 });
 let saveReady = false;
 let autosaveTimer = null;
+appVersionElement.textContent = GAME_CONFIG.version;
 
 function createStartingPlayer() {
   const durability = BALANCE_CONFIG.shovel.tiers[0].durability;
@@ -423,8 +496,8 @@ function createModeState() {
 }
 
 function loadModeState(state) {
-  board = state.board.map((cell) => ({ ...cell }));
-  settings = { ...state.settings };
+  board = createBoardCellsFrom(state.board, state.settings);
+  settings = normalizeFieldSettings(state.settings);
   gameOver = state.gameOver;
   roundStarted = state.roundStarted;
   roundStartTime = state.roundStartTime;
@@ -462,6 +535,110 @@ function currentBoardSession() {
   return currentBoardId ? boardSessions[currentBoardId] || null : null;
 }
 
+function totalDeployedFlags() {
+  return Object.values(boardSessions).reduce((total, session) => {
+    if ([BOARD_SESSION_STATUS.won, BOARD_SESSION_STATUS.lost].includes(session.status)) return total;
+    if (currentView === "board" && session.id === currentBoardId) return total + board.filter((cell) => cell.flagged).length;
+    return total + countBoardFlags(session.modeState);
+  }, 0);
+}
+
+function syncLegacyFlagStock() {
+  player.flags = flagPool.availableFlags;
+}
+
+function deployCompanyFlag({ worker = false, cell = null } = {}) {
+  const result = tryDeployFlag(flagPool, totalDeployedFlags(), { worker, cell });
+  flagPool = result.pool;
+  syncLegacyFlagStock();
+  return result;
+}
+
+function returnCompanyFlags(count, deployedAfter = Math.max(0, totalDeployedFlags() - count)) {
+  flagPool = returnDeployedFlags(flagPool, count, deployedAfter);
+  syncLegacyFlagStock();
+}
+
+function clearCompanyFlag(cell) {
+  if (!cell?.flagged) return false;
+  const deployedBefore = totalDeployedFlags();
+  cell.flagged = false;
+  cell.flaggedByPlayer = false;
+  cell.flaggedByWorker = false;
+  flagsPlaced = Math.max(0, flagsPlaced - 1);
+  returnCompanyFlags(1, Math.max(0, deployedBefore - 1));
+  return true;
+}
+
+function reconcileResolvedBoardFlags(won) {
+  const deployedBefore = totalDeployedFlags();
+  const boardFlags = board.filter((cell) => cell.flagged);
+  const deployedAfter = Math.max(0, deployedBefore - boardFlags.length);
+  let result = { exposed: boardFlags.length, recovered: boardFlags.length, lost: 0 };
+  if (won) {
+    returnCompanyFlags(boardFlags.length, deployedAfter);
+  } else {
+    const resolution = resolveFlagLoss(
+      flagPool,
+      boardFlags.length,
+      deployedAfter,
+      Math.random,
+      FLAG_CONFIG.failureRecoveryChance,
+    );
+    flagPool = resolution.pool;
+    syncLegacyFlagStock();
+    result = resolution;
+  }
+  boardFlags.forEach((cell) => {
+    cell.flagged = false;
+    cell.flaggedByPlayer = false;
+    cell.flaggedByWorker = false;
+  });
+  flagsPlaced = 0;
+  return result;
+}
+
+function markBoardMutation(boardId = currentBoardId) {
+  const session = boardSessions[boardId];
+  if (!session) return;
+  session.automation = mutateAutomation(session.automation);
+  Object.entries(autoMinersState?.workerTasks || {}).forEach(([workerId, task]) => {
+    if (task.boardId === boardId && task.phase !== "scanning") delete autoMinersState.workerTasks[workerId];
+  });
+}
+
+function setBoardStalled(boardId, reason = "no-proof") {
+  const automation = boardSessions[boardId]?.automation;
+  if (!automation || automation.stalled) return;
+  automation.stalled = true;
+  automation.stallStartedAt = Date.now();
+  automation.stallReason = reason;
+}
+
+function refreshBoardFindings(session = currentBoardSession()) {
+  if (!session?.automation || !session.modeState) return;
+  const mode = session.automation.interactionMode;
+  if (![INTERACTION_MODES.analyze, INTERACTION_MODES.assist].includes(mode)) return;
+  const stateBoard = session.id === currentBoardId ? board : session.modeState.board;
+  const stateSettings = session.id === currentBoardId ? settings : session.settings;
+  const basic = [
+    ...availableFlagSatisfiedSafeProofs(stateBoard, stateSettings).map((proof) => ({ ...proof, conclusionType: "safe", blueprintId: null })),
+    ...availableProofs(stateBoard, stateSettings)
+      .filter((proof) => ["provenMine", "completeTheCountMine"].includes(proof.type))
+      .map((proof) => ({ ...proof, conclusionType: "mine", blueprintId: null })),
+  ];
+  const advanced = (session.automation.findings || []).filter((finding) => finding.blueprintId && finding.revision === session.automation.mutationRevision);
+  session.automation.findings = [...advanced, ...basic.map((finding, index) => ({
+    id: `basic:${session.automation.mutationRevision}:${index}`,
+    revision: session.automation.mutationRevision,
+    evidenceIndexes: [finding.clueIndex].filter(Number.isInteger),
+    targetIndexes: [...finding.targetIndexes],
+    conclusionType: finding.conclusionType,
+    blueprintId: null,
+    orientation: null,
+  }))];
+}
+
 function createSessionForCurrentBoard({ category = BOARD_CATEGORIES.standard, owner = { type: "main", id: "main" }, seed, contractInstanceId = null, parcelId = null, entrances = [] } = {}) {
   const id = currentBoardId || `board-${nextBoardOrdinal}`;
   const session = createBoardSession({
@@ -489,10 +666,28 @@ function switchToBoardSession(boardId) {
   currentBoardId = boardId;
   currentView = "board";
   currentMode = GAME_MODES.board;
+  fieldSpecificationMenuElement.hidden = true;
+  fieldSpecificationToggleButton.setAttribute("aria-expanded", "false");
   loadModeState(target.modeState);
   syncLegacyActiveContract();
+  scrollToSelectedFinding(target);
   render();
   return true;
+}
+
+function scrollToSelectedFinding(session) {
+  const index = session.automation?.findings?.[0]?.targetIndexes?.[0];
+  if (!Number.isInteger(index)) {
+    boardElement.scrollTop = 0;
+    boardElement.scrollLeft = 0;
+    return;
+  }
+  const cellSize = GAME_CONFIG.automation.viewport.cellSize;
+  const row = Math.floor(index / session.settings.cols);
+  const col = index % session.settings.cols;
+  boardElement.scrollTop = Math.max(0, row * cellSize - boardElement.clientHeight / 2);
+  boardElement.scrollLeft = Math.max(0, col * cellSize - boardElement.clientWidth / 2);
+  pendingBoardFocusIndex = index;
 }
 
 function primaryBoardSession() {
@@ -508,6 +703,7 @@ function returnToHomeBoard() {
     return;
   }
   saveCurrentModeState();
+  settings = preferredFieldSettings();
   currentBoardId = `board-${nextBoardOrdinal}`;
   startGame();
 }
@@ -542,6 +738,7 @@ function handleRoundControl() {
   }
   if (gameOver && session?.owner?.type === "main") {
     saveCurrentModeState();
+    settings = preferredFieldSettings();
     currentBoardId = `board-${nextBoardOrdinal}`;
     startGame();
     return;
@@ -570,6 +767,8 @@ function createBlankSession(settingsForBoard, metadata) {
   const previousBoardId = currentBoardId;
   const previousView = currentView;
   currentBoardId = null;
+  fieldSpecificationMenuElement.hidden = true;
+  fieldSpecificationToggleButton.setAttribute("aria-expanded", "false");
   settings = { ...settingsForBoard };
   startGame({ preserveSettings: true, preserveSession: true });
   const id = `board-${nextBoardOrdinal}`;
@@ -587,6 +786,20 @@ function createBlankSession(settingsForBoard, metadata) {
 function captureGameState() {
   const now = performance.now();
   saveCurrentModeState();
+  profile = createProfile({
+    ...profile,
+    hints: player.hints,
+    specialEquipment: player.specialEquipment,
+    curios: player.curios,
+    lifetimeStats: player.stats,
+  });
+  preferences = {
+    ...preferences,
+    speculationEnabled: Boolean(autoMinersState?.speculationEnabled),
+    riskThreshold: autoMinersState?.riskThreshold ?? GAME_CONFIG.automation.defaultRiskThreshold,
+    manualFlagReserve: flagPool.manualFlagReserve,
+  };
+  syncLegacyFlagStock();
   const savedPlayer = JSON.parse(JSON.stringify(player));
   delete savedPlayer.messageBoard;
   const savedAutoMiners = autoMinersState
@@ -614,7 +827,11 @@ function captureGameState() {
   }]));
 
   return {
+    profile,
+    runMeta,
+    preferences,
     player: savedPlayer,
+    flagPool: JSON.parse(JSON.stringify(flagPool)),
     settings: { ...settings },
     currentMode: currentView === "district" ? GAME_MODES.district : GAME_MODES.board,
     currentView,
@@ -649,7 +866,21 @@ function replaceGameState(savedState) {
     stats: { ...defaults.stats, ...savedState.player.stats },
     messageBoard: JSON.parse(JSON.stringify(savedState.messageBoard)),
   };
-  settings = { ...savedState.settings };
+  profile = savedState.profile || createProfile({
+    hints: player.hints,
+    specialEquipment: player.specialEquipment,
+    curios: player.curios,
+    lifetimeStats: player.stats,
+  });
+  runMeta = savedState.runMeta || createRun({ ordinal: 1 });
+  preferences = savedState.preferences || {
+    lastBoardSelection: savedState.settings,
+    speculationEnabled: false,
+    riskThreshold: GAME_CONFIG.automation.defaultRiskThreshold,
+    manualFlagReserve: 0,
+  };
+  settings = normalizeFieldSettings(savedState.settings);
+  preferences.lastBoardSelection = normalizeFieldSettings(preferences.lastBoardSelection || settings);
   developerTelemetry = hydrateDeveloperTelemetry(savedState.developerTelemetry);
   currentView = savedState.currentView || (savedState.currentMode === GAME_MODES.district ? "district" : "board");
   currentMode = currentView === "district" ? GAME_MODES.district : GAME_MODES.board;
@@ -657,6 +888,16 @@ function replaceGameState(savedState) {
     ...session,
     modeState: session.modeState ? decodeModeState(session.modeState, now) : null,
   }]));
+  flagPool = validateFlagPool({
+    ...(savedState.flagPool || createFlagPool(flagCapacity(), {
+      availableFlags: savedState.player.flags,
+      manualFlagReserve: preferences.manualFlagReserve,
+      regenIntervalMs: FLAG_CONFIG.regenerationIntervalMs,
+    })),
+    maximumFlags: flagCapacity(),
+  }, countDeployedFlags(boardSessions));
+  preferences.manualFlagReserve = flagPool.manualFlagReserve;
+  syncLegacyFlagStock();
   currentBoardId = savedState.currentBoardId || Object.keys(boardSessions)[0] || null;
   currentBoardState = currentBoardId && boardSessions[currentBoardId]?.modeState
     ? boardSessions[currentBoardId].modeState
@@ -673,11 +914,12 @@ function replaceGameState(savedState) {
         ...savedState.autoMiners,
         workerTasks: decodeWorkerTasks(savedState.autoMiners.workerTasks, now),
         workerTargets: savedState.autoMiners.workerTargets || {},
-        automationMode: savedState.autoMiners.automationMode || "manual",
-        workerPolicies: { excavator: "focus", flagbearer: "focus", ...(savedState.autoMiners.workerPolicies || {}) },
         lastSurveyAt: now - savedState.autoMiners.surveyElapsedMs,
         lastWorkerTickAt: now - savedState.autoMiners.workerElapsedMs,
         statusText: savedState.autoMiners.notice?.args?.text || "",
+        speculationEnabled: preferences.speculationEnabled,
+        speculationInitialized: savedState.autoMiners.speculationInitialized ?? Boolean(preferences.speculationEnabled),
+        riskThreshold: preferences.riskThreshold,
       }
     : createAutoMinerState(SPECIALISTS, now);
   if (autoMinersState) {
@@ -695,15 +937,20 @@ function replaceGameState(savedState) {
   contractModalElement.hidden = true;
   fieldClearModalElement.hidden = true;
   equipmentInventoryElement.hidden = true;
+  fieldSpecificationMenuElement.hidden = true;
+  fieldSpecificationToggleButton.setAttribute("aria-expanded", "false");
   document.body.classList.remove("is-auto-miners");
 
   if (currentBoardState) {
     loadModeState(currentBoardState);
     syncLegacyActiveContract();
-    if (!developerTelemetry.currentRun) {
+    if (!developerTelemetry.currentAttempt) {
       restartDeveloperRun(developerTelemetry, {
         ...settings,
         contractId: activeContractType()?.id || null,
+        availableFlags: flagPool.availableFlags,
+        deployedFlags: totalDeployedFlags(),
+        missingFlags: flagPool.missingFlags,
       });
     }
   } else {
@@ -811,20 +1058,26 @@ function placeMines(safeIndex) {
     .filter((cell) => !safeIndexes.has(cell.index) && !cell.flagged)
     .map((cell) => cell.index);
   const mineTarget = Math.min(settings.mines, availableIndexes.length);
-  const session = currentBoardSession();
+  let session = currentBoardSession();
   const rng = createSeededRandom(`${session?.seed || Date.now()}:materialize:${safeIndex}`);
   selectMineIndexes(availableIndexes, mineTarget, rng).forEach((index) => {
     board[index].mine = true;
   });
 
   minesPlaced = true;
+  if (session) {
+    session = materializeBoardSession(session, mineTarget);
+    boardSessions[session.id] = session;
+  }
   placeTreasures(mineTarget, rng);
   placeCurios(rng);
+  placeBlueprint(rng);
   updateAdjacency();
   refreshProofMetadata(board, settings);
+  markBoardMutation();
 }
 
-function placeTreasures(mineTarget, rng = Math.random) {
+function placeTreasures(_mineTarget, rng = Math.random) {
   const treasureCandidates = board
     .filter((cell) => !cell.mine)
     .map((cell) => cell.index);
@@ -835,8 +1088,8 @@ function placeTreasures(mineTarget, rng = Math.random) {
   const requestedTreasureCount = parcel?.truth?.treasureCount
     ?? (session?.category === BOARD_CATEGORIES.campContract
       ? CAMP_CONFIG.contract.treasureCount
-      : 1 + player.treasureLevel + (contractType?.bonusTreasures || 0));
-  const treasureTarget = Math.min(requestedTreasureCount, mineTarget, treasureCandidates.length);
+      : (settings.treasures ?? maxUnlockedTreasureCount()) + (contractType?.bonusTreasures || 0));
+  const treasureTarget = Math.min(requestedTreasureCount, treasureCandidates.length);
   const range = treasureValueRange();
 
   chooseTreasureIndexes(treasureCandidates, treasureTarget, contractType, rng).forEach((index) => {
@@ -886,9 +1139,9 @@ function chooseTreasureIndexes(candidates, target, contractType, rng = Math.rand
 function placeCurios(rng) {
   const session = currentBoardSession();
   const parcel = session?.parcelId ? district?.parcelsById?.[session.parcelId] : null;
-  const requested = parcel
-    ? parcel.truth.curioCount
-    : rng() < curioChance() ? 1 : 0;
+  const rolledCurio = parcel ? null : rng() < curioChance();
+  const requested = parcel ? parcel.truth.curioCount : rolledCurio ? 1 : 0;
+  if (!parcel && !rolledCurio) player.curioMisses += 1;
   const candidates = board.filter((cell) => !cell.mine && !cell.treasure);
   for (let count = 0; count < requested && candidates.length > 0; count += 1) {
     const [cell] = candidates.splice(Math.floor(rng() * candidates.length), 1);
@@ -896,6 +1149,28 @@ function placeCurios(rng) {
     cell.curioItem = 1 + Math.floor(rng() * BALANCE_CONFIG.curio.itemCount);
     cell.curioCollected = false;
   }
+}
+
+function placeBlueprint(rng) {
+  const session = currentBoardSession();
+  if (!session || session.category !== BOARD_CATEGORIES.districtParcel) return;
+  const placement = selectBlueprintPlacement({
+    library: profile.blueprintLibrary,
+    boardId: session.id,
+    rng,
+    config: GAME_CONFIG.blueprints,
+    eligible: true,
+  });
+  profile.blueprintLibrary = placement.library;
+  if (!placement.blueprintId) return;
+  const candidates = board.filter((cell) => !cell.mine && !cell.treasure && !cell.curio && !cell.blueprintId);
+  if (!candidates.length) {
+    profile.blueprintLibrary = releaseBlueprintReservation(profile.blueprintLibrary, session.id);
+    return;
+  }
+  const cell = candidates[Math.floor(rng() * candidates.length)];
+  cell.blueprintId = placement.blueprintId;
+  cell.blueprintCollected = false;
 }
 
 function safetyIndexesFor(index) {
@@ -934,7 +1209,11 @@ function maxMineCount(radius = currentSafetyRadius()) {
 }
 
 function currentSafetyRadius() {
-  if (settings.rows <= GRID_LIMITS.min && settings.cols <= GRID_LIMITS.min) return 0;
+  return safetyRadiusForSettings(settings);
+}
+
+function safetyRadiusForSettings(fieldSettings) {
+  if (fieldSettings.rows <= GRID_LIMITS.min && fieldSettings.cols <= GRID_LIMITS.min) return 0;
   const surveyorLevel = workerState?.workerTypes?.surveyor?.level || 0;
   let surveyorRadius = 0;
   if (campProgression.phase !== CAMP_PHASES.districtUnlocked && surveyorLevel > 0) {
@@ -952,6 +1231,29 @@ function maxUnlockedMineCount() {
   return 1 + player.mineLevel;
 }
 
+function maxUnlockedTreasureCount() {
+  return 1 + player.treasureLevel;
+}
+
+function normalizeFieldSettings(value = {}, fallbackTreasures = maxUnlockedTreasureCount()) {
+  return {
+    ...value,
+    rows: Number.isInteger(value.rows) ? value.rows : GRID_LIMITS.min,
+    cols: Number.isInteger(value.cols) ? value.cols : GRID_LIMITS.min,
+    mines: Number.isInteger(value.mines) ? value.mines : 1,
+    treasures: Number.isInteger(value.treasures) ? value.treasures : fallbackTreasures,
+  };
+}
+
+function preferredFieldSettings() {
+  return normalizeFieldSettings(preferences.lastBoardSelection || DEFAULT_SETTINGS);
+}
+
+function maxTreasureCountFor(fieldSettings, treasureLevel = player.treasureLevel) {
+  const safeTileCount = Math.max(1, fieldSettings.rows * fieldSettings.cols - fieldSettings.mines);
+  return Math.min(1 + treasureLevel, safeTileCount);
+}
+
 function availableRows() {
   if (isFixedBoardSession()) return [settings.rows];
   return Array.from({ length: Math.max(1, player.tallerGridLevel + 1) }, (_, index) => GRID_LIMITS.min + index);
@@ -966,6 +1268,11 @@ function availableMines() {
   if (isFixedBoardSession()) return [settings.mines];
   const maximum = Math.min(maxMineCount(), maxUnlockedMineCount());
   return maximum >= 1 ? Array.from({ length: maximum }, (_, index) => index + 1) : [];
+}
+
+function availableTreasures() {
+  if (isFixedBoardSession()) return [settings.treasures ?? maxUnlockedTreasureCount()];
+  return integerOptions(1, maxTreasureCountFor(settings));
 }
 
 function updateAdjacency(cells = board) {
@@ -987,12 +1294,16 @@ function startGame({ preserveSettings = false, preserveSession = false } = {}) {
     settings.cols = clamp(settings.cols, GRID_LIMITS.min, GRID_LIMITS.min + player.widerGridLevel);
     const legalMaximumMines = Math.min(maxMineCount(), maxUnlockedMineCount());
     if (legalMaximumMines >= 1) settings.mines = clamp(settings.mines, 1, legalMaximumMines);
+    settings.treasures = clamp(settings.treasures ?? maxUnlockedTreasureCount(), 1, maxTreasureCountFor(settings));
   }
   syncSettingsControls();
   board = createBoard();
   restartDeveloperRun(developerTelemetry, {
     ...settings,
     contractId: activeContractType()?.id || null,
+    availableFlags: flagPool.availableFlags,
+    deployedFlags: totalDeployedFlags(),
+    missingFlags: flagPool.missingFlags,
   });
   gameOver = false;
   roundStarted = false;
@@ -1043,6 +1354,8 @@ function openDistrictMap() {
   if (currentView === "board" && currentBoardSession()) saveCurrentModeState();
   currentView = "district";
   currentMode = GAME_MODES.district;
+  fieldSpecificationMenuElement.hidden = true;
+  fieldSpecificationToggleButton.setAttribute("aria-expanded", "false");
   selectedParcelId ||= district ? "camp-parcel" : null;
   resetButton.textContent = "BACK";
   render();
@@ -1155,8 +1468,7 @@ function workerLabel(worker) {
 function startParcelSurvey(parcelId) {
   const worker = availableWorkers(workerState, "surveyor")[0];
   if (!worker || !district) return;
-  const level = workerState.workerTypes.surveyor.level;
-  const duration = calculateSurveyorIntervalMs(level);
+  const duration = calculateSurveyorIntervalMs(worker.level);
   district = startSurvey(district, parcelId, worker.id, duration);
   workerState = assignWorkers(workerState, [worker.id], { type: "SURVEY", parcelId });
   render();
@@ -1188,6 +1500,15 @@ function beginParcelBoard(parcelId) {
     seed: parcel.truth.boardSeed,
     parcelId: parcel.id,
   });
+  const surveyor = availableWorkers(workerState, "surveyor")[0];
+  if (surveyor) {
+    session.openingSurvey = {
+      workerId: surveyor.id,
+      remainingMs: calculateSurveyorIntervalMs(surveyor.level),
+      safeIndex: Math.floor(session.settings.rows / 2) * session.settings.cols + Math.floor(session.settings.cols / 2),
+    };
+    workerState = assignWorkers(workerState, [surveyor.id], { type: "BOARD_OPENING", boardId: session.id, parcelId });
+  }
   district = beginExcavation(district, parcel.id, session.id);
   render();
 }
@@ -1227,6 +1548,8 @@ function tickDistrictRuntime(deltaMs = 1000) {
 
 function render() {
   refreshProofMetadata(board, settings);
+  refreshBoardFindings();
+  updateRunUI();
   if (currentView === "district") {
     boardElement.innerHTML = "";
     renderDistrictMap();
@@ -1248,9 +1571,12 @@ function render() {
   useHintButton.disabled = gameOver || isRevealing || !roundStarted || player.hints <= 0 || !hasKnownHint();
   updateSurveyorUI();
   boardElement.classList.toggle("is-revealing", isRevealing);
-  boardElement.style.aspectRatio = `${settings.cols} / ${settings.rows}`;
-  boardElement.style.gridTemplateColumns = `repeat(${settings.cols}, minmax(0, 1fr))`;
-  boardElement.style.gridTemplateRows = `repeat(${settings.rows}, minmax(0, 1fr))`;
+  const virtual = board.length > 2500;
+  const cellSize = GAME_CONFIG.automation.viewport.cellSize;
+  boardElement.classList.toggle("is-virtual", virtual);
+  boardElement.style.aspectRatio = virtual ? "auto" : `${settings.cols} / ${settings.rows}`;
+  boardElement.style.gridTemplateColumns = virtual ? `repeat(${settings.cols}, ${cellSize}px)` : `repeat(${settings.cols}, minmax(0, 1fr))`;
+  boardElement.style.gridTemplateRows = virtual ? `repeat(${settings.rows}, ${cellSize}px)` : `repeat(${settings.rows}, minmax(0, 1fr))`;
   boardElement.setAttribute("aria-label", `${settings.cols} by ${settings.rows} minesweeper board`);
 
   // Rebuilding every button on every tick of a cascade fill (see revealGradually)
@@ -1258,8 +1584,19 @@ function render() {
   // even changing, which read as flicker. Reuse existing buttons whenever the
   // board identity and grid shape haven't changed, and only rebuild from scratch
   // when they have.
-  const gridKey = `${settings.cols}x${settings.rows}`;
-  const structureStale = renderedBoardRef !== board || renderedGridKey !== gridKey || boardElement.children.length !== board.length;
+  const range = virtual ? visibleGridRange({
+    scrollLeft: boardElement.scrollLeft,
+    scrollTop: boardElement.scrollTop,
+    clientWidth: boardElement.clientWidth || 680,
+    clientHeight: boardElement.clientHeight || 680,
+    rows: settings.rows,
+    cols: settings.cols,
+    cellSize,
+    overscan: GAME_CONFIG.automation.viewport.overscan,
+  }) : null;
+  const renderIndexes = virtual ? visibleIndexes(range, settings.cols) : board.map((cell) => cell.index);
+  const gridKey = `${settings.cols}x${settings.rows}:${virtual ? `${range.firstRow}-${range.lastRow}-${range.firstCol}-${range.lastCol}` : "full"}`;
+  const structureStale = renderedBoardRef !== board || renderedGridKey !== gridKey || boardElement.children.length !== renderIndexes.length;
   if (structureStale) {
     boardElement.innerHTML = "";
     boardButtons = new Array(board.length);
@@ -1270,7 +1607,7 @@ function render() {
   const treasureRange = treasureValueRange();
 
   let visibleWorkerTooltipSource = false;
-  board.forEach((cell) => {
+  renderIndexes.map((index) => board[index]).forEach((cell) => {
     let button = boardButtons[cell.index];
     const isNewButton = !button;
     if (isNewButton) {
@@ -1288,6 +1625,13 @@ boardInputController.bind(button, {
       });
       boardButtons[cell.index] = button;
       boardElement.append(button);
+    }
+    if (virtual) {
+      button.style.gridRow = String(cell.row + 1);
+      button.style.gridColumn = String(cell.col + 1);
+    } else {
+      button.style.gridRow = "";
+      button.style.gridColumn = "";
     }
 
     const classes = ["cell"];
@@ -1390,13 +1734,10 @@ boardInputController.bind(button, {
   mineCountElement.textContent = String(Math.max(currentMineCount() - flagsPlaced, 0)).padStart(2, "0");
   moveCountElement.textContent = String(moves).padStart(2, "0");
   fieldValueElement.textContent = `Field value: ${formatCurrency(roundTreasureValue)}`;
-  settingsNote.textContent = formatMessage("settingsNote", {
-      mines: settings.mines,
-      plural: settings.mines === 1 ? "" : "s",
-      safety: currentSafetyRadius() > 0
-        ? formatMessage("safetyNote", { size: safetySizeLabel(currentSafetyRadius()) })
-        : formatMessage("firstTileSafe"),
-    });
+  const safetyNote = currentSafetyRadius() > 0
+    ? formatMessage("safetyNote", { size: safetySizeLabel(currentSafetyRadius()) })
+    : formatMessage("firstTileSafe");
+  settingsNote.textContent = `${settings.mines} mine${settings.mines === 1 ? "" : "s"} and ${settings.treasures} treasure${settings.treasures === 1 ? "" : "s"}. ${safetyNote}`;
   syncSettingsControls();
   updateQuartermaster();
   updateModeUI();
@@ -1491,9 +1832,10 @@ function recordBoardAction({ actor = "player", specialistId = null, actionType, 
   });
 }
 
-function openCell(index) {
+function openCell(index, { automaticOpening = false } = {}) {
   const cell = board[index];
   if (gameOver || cell.open || cell.flagged) return;
+  if (!automaticOpening) cancelBoardOpeningSurvey();
   if (!canDig()) {
     if (!maybeGrantEmergencyShovel()) {
       emergencyHandoutNotice = false;
@@ -1525,6 +1867,7 @@ function openCell(index) {
     if (absorbExplosionWithBombBot(cell)) return;
     breakShovel();
     cell.open = true;
+    markBoardMutation();
     loseGame();
     return;
   }
@@ -1566,6 +1909,7 @@ function revealGradually(startCell, token, { consumeDurability = false } = {}) {
         if (consumeDurability && !consumeShovel()) return false;
 
         cell.open = true;
+        markBoardMutation();
         recordDeveloperEvent(developerTelemetry, { type: "reveal" });
         player.stats.safeTilesDug += 1;
         tickBombBotUse();
@@ -1651,8 +1995,27 @@ function delay(milliseconds) {
 }
 
 function collectCellFinds(cell) {
+  collectBlueprint(cell);
   collectCurio(cell);
   collectTreasure(cell);
+}
+
+function updateRunUI() {
+  const allTime = profile.allTimeHighScore?.score || 0;
+  const current = runMeta.currentHighScore?.score || 0;
+  allTimeHighScoreElement.textContent = String(allTime);
+  runHighScoreElement.textContent = String(current);
+}
+
+function collectBlueprint(cell) {
+  if (!cell.blueprintId || cell.blueprintCollected) return;
+  cell.blueprintCollected = true;
+  const result = discoverBlueprint(profile.blueprintLibrary, currentBoardId);
+  profile.blueprintLibrary = result.library;
+  if (!result.blueprintId) return;
+  runMeta.stats.blueprintsDiscovered += 1;
+  const blueprint = BLUEPRINTS.find((item) => item.id === result.blueprintId);
+  statusElement.textContent = `Blueprint discovered: ${blueprint?.name || result.blueprintId}.`;
 }
 
 function collectTreasure(cell) {
@@ -1680,6 +2043,7 @@ function collectCurio(cell) {
   player.curios[item - 1] += 1;
   player.curioMisses = 0;
   player.stats.curiosFound += 1;
+  runMeta.stats.curiosDiscovered += 1;
   if (!emergencyHandoutNotice) statusElement.textContent = formatMessage("curioFound", { item });
 }
 
@@ -1697,7 +2061,7 @@ function toggleFlag(index) {
     return;
   }
 
-  if (!cell.flagged && player.flags <= 0) {
+  if (!cell.flagged && flagPool.availableFlags <= 0) {
     emergencyHandoutNotice = false;
     statusElement.textContent = formatMessage("flagPouchEmpty");
     render();
@@ -1713,17 +2077,31 @@ function toggleFlag(index) {
 
   emergencyHandoutNotice = false;
   const willFlag = !cell.flagged;
+  if (willFlag) {
+    const deployment = deployCompanyFlag({ cell });
+    if (!deployment.ok) {
+      statusElement.textContent = formatMessage("flagPouchEmpty");
+      render();
+      return;
+    }
+  }
   recordBoardAction({
     actionType: "flag",
     cell,
     result: { outcome: willFlag ? "flag_placed" : "flag_removed" },
   });
-  cell.flagged = !cell.flagged;
-  cell.flaggedByPlayer = cell.flagged;
-  if (cell.flagged) roundFlagPlacements += 1;
-  recordDeveloperEvent(developerTelemetry, { type: cell.flagged ? "flagPlaced" : "flagRemoved" });
-  flagsPlaced += cell.flagged ? 1 : -1;
-  player.flags += cell.flagged ? -1 : 1;
+  if (willFlag) {
+    cell.flagged = true;
+    cell.flaggedByPlayer = true;
+    cell.flaggedByWorker = false;
+    roundFlagPlacements += 1;
+    flagsPlaced += 1;
+  } else {
+    clearCompanyFlag(cell);
+    lastManualFlagRemovalAt = Date.now();
+  }
+  recordDeveloperEvent(developerTelemetry, { type: willFlag ? "flagPlaced" : "flagRemoved" });
+  markBoardMutation();
   statusElement.textContent = formatMessage(cell.flagged ? "flagPlanted" : "flagCleared");
   render();
 }
@@ -1819,12 +2197,7 @@ function controlledBlast(centerCell) {
         destroyMine(cell);
         destroyed += 1;
       } else if (!cell.open) {
-        if (cell.flagged) {
-          flagsPlaced = Math.max(0, flagsPlaced - 1);
-          if (cell.flaggedByPlayer) player.flags = Math.min(flagCapacity(), player.flags + 1);
-        }
-        cell.flagged = false;
-        cell.flaggedByPlayer = false;
+        if (cell.flagged) clearCompanyFlag(cell);
         cell.open = true;
         recordDeveloperEvent(developerTelemetry, { type: "reveal" });
         player.stats.safeTilesDug += 1;
@@ -1917,13 +2290,8 @@ function tickBombBotUse() {
 
 function destroyMine(cell) {
   if (!cell.mine) return;
-  if (cell.flagged) {
-    flagsPlaced = Math.max(0, flagsPlaced - 1);
-    if (cell.flaggedByPlayer) player.flags = Math.min(flagCapacity(), player.flags + 1);
-  }
+  if (cell.flagged) clearCompanyFlag(cell);
   cell.mine = false;
-  cell.flagged = false;
-  cell.flaggedByPlayer = false;
   cell.open = true;
   updateAdjacency();
 }
@@ -1977,10 +2345,23 @@ function loseGame() {
   gameOver = true;
   const contractType = activeContractType();
   const elapsed = roundStarted ? Math.max(0, performance.now() - roundStartTime) : 0;
-  resolveDeveloperRun(developerTelemetry, "mine_hit", elapsed);
   player.stats.boardsLost += 1;
   player.stats.currentWinStreak = 0;
   player.stats.minesCorrectlyFlagged += countCorrectPlayerFlags();
+  const flagOutcome = reconcileResolvedBoardFlags(false);
+  recordDeveloperEvent(developerTelemetry, { type: "flagsExposed", count: flagOutcome.exposed });
+  recordDeveloperEvent(developerTelemetry, { type: "flagsRecoveredAfterFailure", count: flagOutcome.recovered });
+  recordDeveloperEvent(developerTelemetry, { type: "flagsLostAfterFailure", count: flagOutcome.lost });
+  if (lastManualFlagRemovalAt > 0 && Date.now() - lastManualFlagRemovalAt <= 10000) {
+    recordDeveloperEvent(developerTelemetry, { type: "preRiskFlagRemoval" });
+  }
+  recordDeveloperEvent(developerTelemetry, {
+    type: "flagPoolEnd",
+    available: flagPool.availableFlags,
+    deployed: totalDeployedFlags(),
+    missing: flagPool.missingFlags,
+  });
+  resolveDeveloperRun(developerTelemetry, "mine_hit", elapsed);
   tickContractCooldowns();
   resetButton.textContent = contractType ? "DONE" : "RETRY";
   board.forEach((cell) => {
@@ -2012,6 +2393,7 @@ function winGame() {
   const configKey = `${settings.rows}×${settings.cols} / ${actualMineCount} mine${actualMineCount === 1 ? "" : "s"}`;
 
   player.coins += roundPayout;
+  runMeta.stats.coinsEarned += roundPayout;
   recordDeveloperEvent(developerTelemetry, { type: "coinsEarned", count: roundPayout });
   player.stats.boardsCompleted += 1;
   player.stats.coinsEarned += roundPayout;
@@ -2027,6 +2409,9 @@ function winGame() {
 
   const recovered = recoverFlaggedMines();
   recordDeveloperEvent(developerTelemetry, { type: "recoveredMines", count: recovered });
+  const returnedFlags = board.filter((cell) => cell.flagged).length;
+  reconcileResolvedBoardFlags(true);
+  recordDeveloperEvent(developerTelemetry, { type: "flagsReturnedAfterVictory", count: returnedFlags });
   tickContractCooldowns();
   const contractText = contractType ? ` ${completeContract(contractType)}` : "";
   const challengeText = completeMatchingChallenges({
@@ -2037,6 +2422,12 @@ function winGame() {
     flagPlacements: roundFlagPlacements,
     usedChording: roundUsedChording,
   });
+  recordDeveloperEvent(developerTelemetry, {
+    type: "flagPoolEnd",
+    available: flagPool.availableFlags,
+    deployed: totalDeployedFlags(),
+    missing: flagPool.missingFlags,
+  });
   resolveDeveloperRun(developerTelemetry, contractType ? "contract_completed" : "cleared", elapsed);
   if (!contractType && currentBoardSession()?.category === BOARD_CATEGORIES.standard) advanceContractSchedule();
   resetButton.textContent = contractType ? "BACK" : "AGAIN";
@@ -2044,6 +2435,7 @@ function winGame() {
     if (cell.mine && !cell.flagged) {
       cell.flagged = true;
       cell.flaggedByPlayer = false;
+      cell.flaggedByWorker = false;
       flagsPlaced += 1;
     }
   });
@@ -2073,6 +2465,7 @@ function finalizeCurrentBoardSession(won) {
   session = resolveBoardSession(session, won);
   session.modeState = createModeState();
   boardSessions[session.id] = session;
+  archiveResolvedBoard(session, won);
 
   if (session.campDiscovery) {
     campProgression = resolveCampDiscovery(campProgression, {
@@ -2098,12 +2491,38 @@ function finalizeCurrentBoardSession(won) {
     district = won
       ? secureParcel(district, session.parcelId, DISTRICT_CONFIG)
       : caveInParcel(district, session.parcelId);
-    if (!won) delete boardSessions[session.id];
+    if (!won) {
+      profile.blueprintLibrary = releaseBlueprintReservation(profile.blueprintLibrary, session.id);
+      delete boardSessions[session.id];
+    }
   }
 
   if (session.contractInstanceId && contractInstances[session.contractInstanceId]) {
     contractInstances[session.contractInstanceId].status = won ? "COMPLETED" : "FAILED";
   }
+}
+
+function archiveResolvedBoard(session, won) {
+  if (profile.boardArchive.some((summary) => summary.id === session.id)) return;
+  const currentAttempt = developerTelemetry.currentAttempt;
+  const summary = createBoardSummary(session, {
+    runId: runMeta.id,
+    runOrdinal: runMeta.ordinal,
+    outcome: won ? "WON" : "LOST",
+    treasureCount: roundTreasureCount,
+    elapsedMs: roundStarted ? Math.max(0, performance.now() - roundStartTime) : 0,
+    equipmentUsed: currentAttempt?.equipmentUses || {},
+    workerParticipation: Boolean(currentAttempt?.workerActionCount),
+  });
+
+  if (Number.isInteger(pendingBoardFocusIndex) && boardButtons[pendingBoardFocusIndex]) {
+    boardButtons[pendingBoardFocusIndex].focus({ preventScroll: true });
+    pendingBoardFocusIndex = null;
+  }
+  profile.boardArchive.push(summary);
+  const score = evaluateHighScore(profile, runMeta, summary);
+  profile = score.profile;
+  runMeta = score.run;
 }
 
 function recoverFlaggedMines() {
@@ -2114,8 +2533,13 @@ function recoverFlaggedMines() {
   board.filter((cell) => cell.mine && cell.flaggedByPlayer).forEach((cell) => {
     if (Math.random() < chance) recovered += 1;
   });
+  const workerChance = chance * GAME_CONFIG.automation.workerMineRecoveryMultiplier;
+  board.filter((cell) => cell.mine && cell.flaggedByWorker).forEach((cell) => {
+    if (Math.random() < workerChance) recovered += 1;
+  });
   player.mines += recovered;
   player.stats.minesRecovered += recovered;
+  runMeta.stats.minesRecovered += recovered;
   return recovered;
 }
 
@@ -2206,12 +2630,15 @@ function purchaseSupply(targetId) {
 
   if (targetId === "flags") {
     const cost = flagSupplyCost();
-    if (player.coins < cost || player.flags >= flagCapacity()) return false;
+    if (player.coins < cost || flagPool.missingFlags <= 0) return false;
 
     emergencyHandoutNotice = false;
     player.coins -= cost;
-    player.flags = Math.min(flagCapacity(), player.flags + BALANCE_CONFIG.shovel.flagBundleSize);
-    statusElement.textContent = formatMessage("suppliesFlags", { count: BALANCE_CONFIG.shovel.flagBundleSize });
+    const result = repairMissingFlags(flagPool, FLAG_CONFIG.replacementBundleSize, totalDeployedFlags());
+    flagPool = result.pool;
+    syncLegacyFlagStock();
+    recordDeveloperEvent(developerTelemetry, { type: "flagsReplaced", count: result.repaired });
+    statusElement.textContent = formatMessage("suppliesFlags", { count: result.repaired });
     return true;
   }
 
@@ -2261,6 +2688,28 @@ function activateEquipment(id) {
   useSelectedEquipment(0);
 }
 
+function fieldSpecificationMaximum(id, fieldSettings, levels = player) {
+  if (id === "tallerGrid") return GRID_LIMITS.min + levels.tallerGridLevel;
+  if (id === "widerGrid") return GRID_LIMITS.min + levels.widerGridLevel;
+  if (id === "addMine") {
+    return Math.min(
+      maxMineCountFor(fieldSettings.rows, fieldSettings.cols, safetyRadiusForSettings(fieldSettings)),
+      1 + levels.mineLevel,
+    );
+  }
+  if (id === "addTreasure") return maxTreasureCountFor(fieldSettings, levels.treasureLevel);
+  return null;
+}
+
+function fieldSpecificationKey(id) {
+  return {
+    tallerGrid: "rows",
+    widerGrid: "cols",
+    addMine: "mines",
+    addTreasure: "treasures",
+  }[id] || null;
+}
+
 function purchaseUpgrade(targetId) {
   if (targetId === "shovelCapacity") return purchaseCapacityUpgrade("shovel");
   if (targetId === "flagCapacity") return purchaseCapacityUpgrade("flags");
@@ -2268,6 +2717,11 @@ function purchaseUpgrade(targetId) {
   const id = targetId;
   const item = PROGRESSION_CONFIG.items[id];
   if (!item) return false;
+  const selectionKey = fieldSpecificationKey(id);
+  const editCurrentField = canEditFieldSpecification();
+  const fieldSelection = normalizeFieldSettings(editCurrentField ? settings : preferredFieldSettings());
+  const previousSelectionMaximum = selectionKey ? fieldSpecificationMaximum(id, fieldSelection) : null;
+  let restartForSelection = false;
 
   if (id === "improveShovel") {
     if (Object.values(boardSessions).some((session) => session.digBudget)) {
@@ -2295,13 +2749,38 @@ function purchaseUpgrade(targetId) {
     const levelKey = levelKeys[id];
     if (!levelKey) return false;
     const level = player[levelKey];
-    const cost = exponentialCost(item.baseCost, item.growth, level);
+    const cost = progressionCost(id, level);
     if (player.coins < cost) return false;
-    if ((id === "tallerGrid" || id === "widerGrid") && level >= GRID_LIMITS.max - GRID_LIMITS.min) return false;
     player.coins -= cost;
     player[levelKey] += 1;
+
+    if (selectionKey) {
+      const newSelectionMaximum = fieldSpecificationMaximum(id, fieldSelection);
+      const nextValue = selectionAfterCapacityUpgrade(
+        fieldSelection[selectionKey],
+        previousSelectionMaximum,
+        newSelectionMaximum,
+      );
+      if (nextValue !== fieldSelection[selectionKey]) {
+        fieldSelection[selectionKey] = nextValue;
+        fieldSelection.mines = Math.min(
+          fieldSelection.mines,
+          fieldSpecificationMaximum("addMine", fieldSelection),
+        );
+        fieldSelection.treasures = Math.min(
+          fieldSelection.treasures,
+          maxTreasureCountFor(fieldSelection),
+        );
+        preferences.lastBoardSelection = { ...fieldSelection };
+        if (editCurrentField) {
+          settings = { ...fieldSelection };
+          restartForSelection = true;
+        }
+      }
+    }
   }
 
+  if (restartForSelection) startGame();
   statusElement.textContent = formatMessage("upgradeInstalled", { name: item.name });
   return true;
 }
@@ -2317,6 +2796,11 @@ function purchaseCapacityUpgrade(kind) {
 
   player.coins -= cost;
   player[levelKey] += 1;
+  if (kind === "flags") {
+    flagPool = refillFlagPool(flagPool, flagCapacity(), totalDeployedFlags());
+    syncLegacyFlagStock();
+    recordDeveloperEvent(developerTelemetry, { type: "flagLockerRefill", count: flagPool.availableFlags });
+  }
   statusElement.textContent = formatMessage("storageExpanded", { kind: kind === "shovel" ? COPY_CONFIG.upgradeLabels.shovelLocker : COPY_CONFIG.upgradeLabels.flagLocker });
   return true;
 }
@@ -2391,6 +2875,15 @@ function maybeGrantEmergencyShovel(prefix = "") {
 
 function resetProgress() {
   player = createStartingPlayer();
+  flagPool = createFlagPool(BALANCE_CONFIG.capacity.flags[0], { regenIntervalMs: FLAG_CONFIG.regenerationIntervalMs });
+  profile = createProfile({
+    hints: player.hints,
+    specialEquipment: player.specialEquipment,
+    curios: player.curios,
+    lifetimeStats: player.stats,
+  });
+  runMeta = createRun({ ordinal: 1 });
+  preferences = { lastBoardSelection: { ...DEFAULT_SETTINGS }, speculationEnabled: false, riskThreshold: GAME_CONFIG.automation.defaultRiskThreshold, manualFlagReserve: 0 };
   developerTelemetry = createDeveloperTelemetry();
   clearStoredSaves();
   saveReady = true;
@@ -2415,9 +2908,85 @@ function resetProgress() {
   autoMinersState = createAutoMinerState(SPECIALISTS, performance.now());
   contractModalElement.hidden = true;
   fieldClearModalElement.hidden = true;
+  fieldSpecificationMenuElement.hidden = true;
+  fieldSpecificationToggleButton.setAttribute("aria-expanded", "false");
   document.body.classList.remove("is-contract-running", "is-auto-miners");
   startGame();
   statusElement.textContent = formatMessage("progressReset");
+  render();
+}
+
+function openRestructurePreview() {
+  if (isRevealing || !contractModalElement.hidden || !fieldClearModalElement.hidden) return;
+  const activeBoards = Object.values(boardSessions).filter((session) => ![BOARD_SESSION_STATUS.won, BOARD_SESSION_STATUS.lost].includes(session.status));
+  restructureRunSummaryElement.innerHTML = [
+    ["Highest mines", runMeta.currentHighScore?.score || 0],
+    ["Coins earned", runMeta.stats.coinsEarned || 0],
+    ["Mines recovered", runMeta.stats.minesRecovered || 0],
+    ["Blueprints", runMeta.stats.blueprintsDiscovered || 0],
+    ["Curios", runMeta.stats.curiosDiscovered || 0],
+    ["Workers hired", runMeta.stats.workersHired || 0],
+  ].map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join("");
+  restructureLostSummaryElement.textContent = `${activeBoards.length} active Board${activeBoards.length === 1 ? "" : "s"}, ${player.coins.toLocaleString()} coins, ${player.mines.toLocaleString()} mines, all supplies, upgrades, workers, Contracts, Challenges, Camp progress, and the District.`;
+  restructureRetainedSummaryElement.innerHTML = [
+    ["Blueprints", profile.blueprintLibrary.ownedIds.length],
+    ["Curios", player.curios.reduce((sum, count) => sum + count, 0)],
+    ["Hints", player.hints],
+    ["Equipment", specialEquipmentTotal()],
+    ["All-time High Score", profile.allTimeHighScore?.score || 0],
+  ].map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join("");
+  restructureModalElement.hidden = false;
+}
+
+function performCorporateRestructure() {
+  const retainedStats = { ...player.stats };
+  const retainedHints = player.hints;
+  const retainedEquipment = JSON.parse(JSON.stringify(player.specialEquipment));
+  const retainedCurios = [...player.curios];
+  const retainedManualFlagReserve = flagPool.manualFlagReserve;
+  const result = restructureState({ profile, run: runMeta, boardSessions, createRunState: createRun });
+  profile = result.profile;
+  runMeta = result.run;
+  player = createStartingPlayer();
+  flagPool = createFlagPool(BALANCE_CONFIG.capacity.flags[0], {
+    manualFlagReserve: retainedManualFlagReserve,
+    regenIntervalMs: FLAG_CONFIG.regenerationIntervalMs,
+  });
+  preferences.manualFlagReserve = flagPool.manualFlagReserve;
+  player.hints = retainedHints;
+  player.specialEquipment = retainedEquipment;
+  player.curios = retainedCurios;
+  player.stats = retainedStats;
+  player.contracts = createStartingContracts();
+  player.messageBoard = createStartingMessageBoard();
+  developerTelemetry = createDeveloperTelemetry();
+  settings = { ...DEFAULT_SETTINGS };
+  preferences.lastBoardSelection = { ...DEFAULT_SETTINGS };
+  currentMode = GAME_MODES.board;
+  currentView = "board";
+  currentBoardId = null;
+  boardSessions = {};
+  campProgression = createCampProgression(CAMP_CONFIG);
+  district = null;
+  selectedParcelId = null;
+  workerState = createWorkerState(SPECIALISTS, {});
+  player.specialists = createStartingSpecialists();
+  contractInstances = {};
+  nextBoardOrdinal = 1;
+  nextContractInstanceOrdinal = 1;
+  currentBoardState = null;
+  autoMinersState = createAutoMinerState(SPECIALISTS, performance.now());
+  autoMinersState.speculationEnabled = preferences.speculationEnabled;
+  autoMinersState.speculationInitialized = Boolean(preferences.speculationEnabled);
+  autoMinersState.riskThreshold = preferences.riskThreshold;
+  restructureModalElement.hidden = true;
+  contractModalElement.hidden = true;
+  fieldClearModalElement.hidden = true;
+  fieldSpecificationMenuElement.hidden = true;
+  fieldSpecificationToggleButton.setAttribute("aria-expanded", "false");
+  document.body.classList.remove("is-contract-running", "is-auto-miners");
+  startGame();
+  statusElement.textContent = `Corporate Restructuring complete. Run ${runMeta.ordinal} has begun.`;
   render();
 }
 
@@ -2440,13 +3009,11 @@ function tickAutoMiners() {
   const now = performance.now();
   let changed = false;
 
-  if (autoMinersState.automationMode !== "manual") {
-    autoMinersState.lastWorkerTickAt = now;
-    changed = runWorkerInitiative("agents", now) || changed;
-    // Analyze intentionally has the same active roster as Assist for now.
-    // The specialist cards remain visible as a roadmap until their rule logic
-    // is implemented against the shared board action API.
-  }
+  changed = tickBoardOpeningSurveys(1000) || changed;
+
+  autoMinersState.lastWorkerTickAt = now;
+  changed = runWorkerInitiative("agents", now) || changed;
+  changed = runWorkerInitiative("specialists", now) || changed;
 
   if (changed) render();
   updateSurveyorUI();
@@ -2469,21 +3036,59 @@ function surveyNow() {
   render();
 }
 
-function automationBoardIds() {
-  return activeParcels(district)
-    .map((parcel) => parcel.boardId)
-    .filter((boardId) => boardId && (currentView !== "board" || boardId !== currentBoardId) && boardSessions[boardId]?.modeState);
+function automationTargetIds(workerId) {
+  const typeId = workerTypeForId(workerId);
+  return Object.values(boardSessions)
+    .filter((session) => session.modeState && session.status === BOARD_SESSION_STATUS.committed)
+    .filter((session) => {
+      const mode = session.automation?.interactionMode || INTERACTION_MODES.manual;
+      return typeId === "analyst" ? [INTERACTION_MODES.analyze, INTERACTION_MODES.assist].includes(mode) : mode === INTERACTION_MODES.assist;
+    })
+    .sort((left, right) => left.createdOrdinal - right.createdOrdinal)
+    .map((session) => session.id);
 }
 
-function automationTargetIds() {
-  const targets = [];
-  if (currentView === "board" && roundStarted && !gameOver) targets.push(VISIBLE_BOARD_TARGET);
-  return [...targets, ...automationBoardIds()];
+function tickReusableFlags(deltaMs) {
+  if (flagPool.missingFlags > 0) recordDeveloperEvent(developerTelemetry, { type: "missingFlagTime", count: deltaMs });
+  const blockedFlagbearers = Object.values(autoMinersState?.workerTasks || {}).filter((task) => task.phase === "noFlags").length;
+  if (blockedFlagbearers > 0) recordDeveloperEvent(developerTelemetry, { type: "flagbearerNoFlagsTime", count: deltaMs * blockedFlagbearers });
+  const result = tickFlagRegeneration(
+    flagPool,
+    deltaMs,
+    totalDeployedFlags(),
+    FLAG_CONFIG.regenerationIntervalMs,
+  );
+  flagPool = result.pool;
+  syncLegacyFlagStock();
+  if (result.regenerated > 0) recordDeveloperEvent(developerTelemetry, { type: "flagsRegenerated", count: result.regenerated });
+  updateQuartermaster();
+  return result.regenerated > 0;
 }
 
-function automationModeState(targetId) {
-  if (targetId === VISIBLE_BOARD_TARGET) return currentView === "board" && roundStarted && !gameOver ? createModeState() : null;
-  return targetId ? boardSessions[targetId]?.modeState || null : null;
+function tickBoardOpeningSurveys(deltaMs) {
+  let changed = false;
+  Object.values(boardSessions).forEach((session) => {
+    const task = session.openingSurvey;
+    if (!task || session.status !== BOARD_SESSION_STATUS.preview) return;
+    task.remainingMs = Math.max(0, task.remainingMs - deltaMs);
+    if (task.remainingMs > 0) return;
+    if (currentView === "board" && currentBoardId === session.id) openCell(task.safeIndex, { automaticOpening: true });
+    workerState = releaseWorkers(workerState, [task.workerId]);
+    delete session.openingSurvey;
+    changed = true;
+  });
+  return changed;
+}
+
+function cancelBoardOpeningSurvey(session = currentBoardSession()) {
+  if (!session?.openingSurvey) return;
+  workerState = releaseWorkers(workerState, [session.openingSurvey.workerId]);
+  delete session.openingSurvey;
+}
+
+function automationModeState(boardId) {
+  if (currentView === "board" && currentBoardId === boardId && roundStarted && !gameOver) return createModeState();
+  return boardId ? boardSessions[boardId]?.modeState || null : null;
 }
 
 function workerTypeForId(workerId) {
@@ -2496,7 +3101,7 @@ function runWorkerInitiative(group, now) {
   order.forEach((typeId) => {
     if (!fieldClearModalElement.hidden) return;
     if (typeId === "surveyor" || specialistLevel(typeId) <= 0) return;
-    availableWorkers(workerState, typeId).forEach((worker) => {
+    boardAutomationWorkers(typeId).forEach((worker) => {
       autoMinersState.workerTargets[worker.id] ??= null;
       changed = advanceWorkerTurn(worker.id, now) || changed;
     });
@@ -2504,28 +3109,23 @@ function runWorkerInitiative(group, now) {
   return changed;
 }
 
+function boardAutomationWorkers(typeId) {
+  return Object.values(workerState.workersById)
+    .filter((worker) => worker.typeId === typeId)
+    .filter((worker) => worker.status === "AVAILABLE" || worker.assignment?.type === "BOARD_AUTOMATION")
+    .sort((left, right) => left.number - right.number);
+}
+
 function advanceWorkerTurn(id, now) {
   const task = autoMinersState.workerTasks[id];
   if (!task) return beginWorkerTurn(id, now);
-  if (task.targetId === VISIBLE_BOARD_TARGET && (
-    currentView !== "board" || currentBoardId !== task.boardId || !roundStarted || gameOver
-  )) {
-    autoMinersState.workerTargets[id] = null;
-    delete autoMinersState.workerTasks[id];
-    return true;
-  }
-  if (task.targetId !== VISIBLE_BOARD_TARGET && currentView === "board" && currentBoardId === task.boardId) {
-    autoMinersState.workerTargets[id] = VISIBLE_BOARD_TARGET;
-    delete autoMinersState.workerTasks[id];
-    return true;
-  }
-  if (task.targetId !== VISIBLE_BOARD_TARGET && !boardSessions[task.boardId]?.modeState) {
-    autoMinersState.workerTargets[id] = nextWorkerTarget(task.targetId);
+  if (!boardSessions[task.boardId]?.modeState || !automationTargetIds(id).includes(task.boardId)) {
+    autoMinersState.workerTargets[id] = nextWorkerTarget(id, task.boardId);
     delete autoMinersState.workerTasks[id];
     return true;
   }
 
-  const workingActiveBoard = task.targetId === VISIBLE_BOARD_TARGET;
+  const workingActiveBoard = currentView === "board" && currentBoardId === task.boardId;
   const visibleState = workingActiveBoard ? null : createModeState();
   const visibleBoardId = currentBoardId;
   const visibleView = currentView;
@@ -2542,6 +3142,35 @@ function advanceWorkerTurn(id, now) {
   }
   let resolved = false;
 
+  if (task.phase === "noFlags") {
+    const target = board[task.cursorIndex];
+    if (!revalidateWorkerTask(id, task, target)) {
+      delete autoMinersState.workerTasks[id];
+      restoreVisibleBoard();
+      return true;
+    }
+    if (workerUsableFlags(flagPool) <= 0) {
+      restoreVisibleBoard();
+      return false;
+    }
+    const session = boardSessions[task.boardId];
+    const existing = session.automation.reservations[target.index];
+    const reservation = existing?.workerId === id
+      ? { ok: true, state: session.automation }
+      : reserveTarget(session.automation, target.index, id, task.proof?.id || task.proof?.type);
+    session.automation = reservation.state;
+    if (!reservation.ok) {
+      delete autoMinersState.workerTasks[id];
+      restoreVisibleBoard();
+      return true;
+    }
+    task.phase = "analyzing";
+    task.phaseStartedAt = now;
+    autoMinersState.statusText = "A company flag is available. Flagbearer work resumed.";
+    restoreVisibleBoard();
+    return true;
+  }
+
   if (task.phase === "scanning") {
     if (task.nextScanAt && now + WORKER_TIMER_TOLERANCE_MS < task.nextScanAt) {
       restoreVisibleBoard();
@@ -2549,7 +3178,7 @@ function advanceWorkerTurn(id, now) {
     }
     const cell = board[task.cursorIndex];
     if (!cell) {
-      autoMinersState.workerTargets[id] = nextWorkerTarget(task.targetId);
+      autoMinersState.workerTargets[id] = nextWorkerTarget(id, task.boardId);
       delete autoMinersState.workerTasks[id];
       restoreVisibleBoard();
       return true;
@@ -2561,12 +3190,39 @@ function advanceWorkerTurn(id, now) {
     }
     const proof = workerProofForCell(id, cell);
     if (proof) {
-      task.phase = "analyzing";
-      task.phaseStartedAt = now;
-      task.proof = proof;
+      const session = boardSessions[task.boardId];
+      if (workerTypeForId(id) === "analyst") {
+        task.phase = "analyzing";
+        task.phaseStartedAt = now;
+        task.proof = proof;
+        task.revision = session.automation.mutationRevision;
+      } else if (workerTypeForId(id) === "flagbearer" && workerUsableFlags(flagPool) <= 0) {
+        task.phase = "noFlags";
+        task.proof = proof;
+        task.revision = session.automation.mutationRevision;
+        task.noFlagsStartedAt ||= Date.now();
+        autoMinersState.statusText = "No Flags: a mine is proved, but no worker-usable company flags remain.";
+        recordDeveloperEvent(developerTelemetry, { type: "manualReserveBlockedFlagbearer" });
+      } else {
+        const reservation = reserveTarget(session.automation, cell.index, id, proof.id || proof.blueprintId || proof.type);
+        session.automation = reservation.state;
+        if (reservation.ok) {
+          task.phase = "analyzing";
+          task.phaseStartedAt = now;
+          task.proof = proof;
+          task.revision = session.automation.mutationRevision;
+        } else {
+          continueWorkerScan(task, cell, now);
+        }
+      }
     } else if (task.stepsScanned + 1 >= task.scanOrder.length) {
-      autoMinersState.workerTargets[id] = nextWorkerTarget(task.targetId);
+      autoMinersState.workerTargets[id] = nextWorkerTarget(id, task.boardId);
       delete autoMinersState.workerTasks[id];
+      const pending = Object.entries(autoMinersState.workerTasks).some(([otherId, other]) => otherId !== id && other.boardId === task.boardId);
+      if (!pending) {
+        setBoardStalled(task.boardId);
+        maybeExecuteSpeculation(task.boardId);
+      }
     } else {
       task.stepsScanned += 1;
       task.cursorIndex = task.scanOrder[(task.startOffset + task.stepsScanned) % task.scanOrder.length];
@@ -2574,12 +3230,19 @@ function advanceWorkerTurn(id, now) {
     }
   } else if (now - task.phaseStartedAt >= workerRoundDurationMs(id)) {
     const target = board[task.cursorIndex];
-    performWorkerAction(id, target);
-    if (autoMinersState.workerPolicies?.[workerTypeForId(id)] === "jump") {
-      autoMinersState.workerTargets[id] = nextWorkerTarget(task.targetId);
-      delete autoMinersState.workerTasks[id];
+    if (revalidateWorkerTask(id, task, target)) {
+      if (workerTypeForId(id) === "flagbearer" && workerUsableFlags(flagPool) <= 0) {
+        task.phase = "noFlags";
+        task.noFlagsStartedAt ||= Date.now();
+        autoMinersState.statusText = "No Flags: a mine is proved, but no worker-usable company flags remain.";
+        recordDeveloperEvent(developerTelemetry, { type: "manualReserveBlockedFlagbearer" });
+      } else if (performWorkerAction(id, target) !== false) {
+        continueWorkerScan(task, target, now);
+      } else {
+        delete autoMinersState.workerTasks[id];
+      }
     } else {
-      continueWorkerScan(task, target, now);
+      delete autoMinersState.workerTasks[id];
     }
     resolved = hasWon();
     if (resolved) delete autoMinersState.workerTasks[id];
@@ -2599,12 +3262,22 @@ function advanceWorkerTurn(id, now) {
 }
 
 function beginWorkerTurn(id, now) {
-  const targets = automationTargetIds();
+  const targets = automationTargetIds(id);
   let targetId = autoMinersState.workerTargets[id] || targets[0] || null;
   if (!targets.includes(targetId)) targetId = targets[0] || null;
   autoMinersState.workerTargets[id] = targetId;
   const field = automationModeState(targetId);
-  if (!field) return false;
+  const worker = workerState.workersById[id];
+  if (!field) {
+    if (worker?.assignment?.type === "BOARD_AUTOMATION") {
+      worker.status = "AVAILABLE";
+      worker.assignment = null;
+      return true;
+    }
+    return false;
+  }
+  worker.status = "ASSIGNED";
+  worker.assignment = { type: "BOARD_AUTOMATION", boardId: targetId };
   const order = scanOrderForSettings(id, field.settings);
   const cursor = field.workerCursors?.[id];
   const startOffset = Math.max(0, order.indexOf(cursor));
@@ -2612,7 +3285,7 @@ function beginWorkerTurn(id, now) {
     id,
     typeId: workerTypeForId(id),
     targetId,
-    boardId: targetId === VISIBLE_BOARD_TARGET ? currentBoardId : targetId,
+    boardId: targetId,
     phase: "scanning",
     cursorIndex: order[startOffset],
     scanOrder: order,
@@ -2624,8 +3297,8 @@ function beginWorkerTurn(id, now) {
   return true;
 }
 
-function nextWorkerTarget(targetId) {
-  const targets = automationTargetIds();
+function nextWorkerTarget(workerId, targetId) {
+  const targets = automationTargetIds(workerId);
   if (!targets.length) return null;
   const index = targets.indexOf(targetId);
   return targets[(index + 1 + targets.length) % targets.length];
@@ -2651,14 +3324,35 @@ function scanOrderForSettings(id, fieldSettings) {
 
 function workerProofForCell(id, cell) {
   if (cell.open || cell.flagged) return null;
-  if (workerTypeForId(id) === "excavator") {
+  const typeId = workerTypeForId(id);
+  const session = currentBoardSession();
+  if (typeId === "analyst") {
+    const blueprintIds = workerState.workersById[id]?.blueprintIds || [];
+    for (const blueprintId of blueprintIds) {
+      const finding = matchBlueprint(board, settings, blueprintId)
+        .find((entry) => entry.conclusions.some((item) => item.index === cell.index));
+      if (finding) return {
+        ...finding,
+        id: `${blueprintId}:${finding.orientation}:${finding.conclusions.map((item) => item.index).join("-")}`,
+        targetIndexes: finding.conclusions.map((item) => item.index),
+        conclusionType: "mixed",
+      };
+    }
+    return null;
+  }
+  const advanced = (session?.automation?.findings || []).find((finding) =>
+    finding.blueprintId && finding.revision === session.automation.mutationRevision
+      && finding.targetIndexes.includes(cell.index)
+      && finding.conclusionType === (typeId === "excavator" ? "safe" : "mine"));
+  if (advanced) return advanced;
+  if (typeId === "excavator") {
     return availableFlagSatisfiedSafeProofs(board, settings).find((proof) => proof.targetIndexes.includes(cell.index)) || null;
   }
   return availableProofs(board, settings).find((proof) => ["provenMine", "completeTheCountMine"].includes(proof.type) && proof.targetIndexes.includes(cell.index)) || null;
 }
 
 function workerRoundDurationMs(id) {
-  return Math.round(WORKER_ROUND_MS / Math.max(1, specialistLevel(workerTypeForId(id))));
+  return Math.round(WORKER_ROUND_MS / Math.max(1, workerState.workersById[id]?.level || 1));
 }
 
 function workerScanDurationMs(cell) {
@@ -2679,6 +3373,25 @@ function continueWorkerScan(task, cell, now) {
 
 function performWorkerAction(id, target) {
   const typeId = workerTypeForId(id);
+  if (typeId === "analyst") {
+    const task = autoMinersState.workerTasks[id];
+    const session = boardSessions[task.boardId];
+    const finding = task.proof;
+    finding.conclusions.forEach((conclusion) => {
+      session.automation.findings.push({
+        id: `${finding.id}:${conclusion.index}`,
+        revision: session.automation.mutationRevision,
+        blueprintId: finding.blueprintId,
+        orientation: finding.orientation,
+        evidenceIndexes: [...finding.evidenceIndexes],
+        targetIndexes: [conclusion.index],
+        conclusionType: conclusion.type,
+      });
+    });
+    session.automation.stalled = false;
+    autoMinersState.statusText = `Analyst recorded a ${finding.blueprintId} finding.`;
+    return;
+  }
   if (typeId === "excavator") {
     recordBoardAction({
       actor: "worker",
@@ -2689,26 +3402,70 @@ function performWorkerAction(id, target) {
     });
     revealAutoCell(target);
   } else {
+    if (target.flagged || !flagAutoCell(target)) return false;
     recordBoardAction({ actor: "worker", specialistId: typeId, actionType: "flag", cell: target, result: { outcome: "flag_placed" } });
-    flagAutoCell(target);
   }
-  moves += 1;
+  markBoardMutation();
   const worker = SPECIALISTS.find((item) => item.id === typeId);
   autoMinersState.statusText = `${worker.name} acted on ${taskBoardLabel(autoMinersState.workerTasks[id])}.`;
 }
 
+function revalidateWorkerTask(id, task, target) {
+  const session = boardSessions[task.boardId];
+  if (!session || session.automation.mutationRevision !== task.revision || !target || target.open || target.flagged) return false;
+  const typeId = workerTypeForId(id);
+  const mode = session.automation.interactionMode;
+  if (typeId === "analyst") return [INTERACTION_MODES.analyze, INTERACTION_MODES.assist].includes(mode) && Boolean(workerProofForCell(id, target));
+  if (mode !== INTERACTION_MODES.assist) return false;
+  return Boolean(workerProofForCell(id, target));
+}
+
+function maybeExecuteSpeculation(boardId) {
+  const session = boardSessions[boardId];
+  if (!session?.automation?.stalled || !autoMinersState.speculationEnabled || session.automation.interactionMode !== INTERACTION_MODES.assist) return false;
+  const targets = estimateSpeculativeTargets(board, settings);
+  const target = targets[0];
+  if (!target || target.risk > autoMinersState.riskThreshold) return false;
+  const cost = speculationCost(settings, session.automation.speculativeGuessCount, GAME_CONFIG.automation.speculation);
+  if (player.coins < cost) {
+    session.automation.stallReason = "insufficient-coins";
+    return false;
+  }
+  player.coins -= cost;
+  session.automation.speculativeGuessCount += 1;
+  const cell = board[target.index];
+  recordBoardAction({ actor: "worker", specialistId: "speculation", actionType: "estimated-dig", cell, result: { outcome: cell.mine ? "mine_hit" : "opened", estimatedRisk: target.risk, cost } });
+  if (cell.mine) {
+    cell.open = true;
+    markBoardMutation(boardId);
+    loseGame();
+  } else {
+    revealAutoCell(cell);
+    markBoardMutation(boardId);
+    if (hasWon()) winGame();
+  }
+  return true;
+}
+
 function taskBoardLabel(task) {
-  if (!task || task.targetId === VISIBLE_BOARD_TARGET) return "the current board";
+  if (!task || task.boardId === currentBoardId) return "the current Board";
   const session = boardSessions[task.boardId];
   const parcel = session?.parcelId ? district?.parcelsById?.[session.parcelId] : null;
   return parcel ? parcelDisplayName(district, parcel) : "an Active Parcel";
 }
 
 function flagAutoCell(cell) {
+  if (!cell || cell.open || cell.flagged) return false;
+  const deployment = deployCompanyFlag({ worker: true, cell });
+  if (!deployment.ok) return false;
   cell.flagged = true;
   cell.flaggedByPlayer = false;
+  cell.flaggedByWorker = true;
   flagsPlaced += 1;
+  roundFlagPlacements += 1;
+  recordDeveloperEvent(developerTelemetry, { type: "automaticFlagPlaced" });
   refreshProofMetadata(board, settings);
+  return true;
 }
 
 function encodeWorkerTasks(tasks = {}, now) {
@@ -2739,16 +3496,18 @@ function decodeWorkerTasks(tasks = {}, now) {
 function workerMarkersForCell(index) {
   if (!autoMinersState?.workerTasks) return [];
   return Object.entries(autoMinersState.workerTasks)
-    .filter(([, task]) => task.targetId === VISIBLE_BOARD_TARGET && task.cursorIndex === index)
+    .filter(([, task]) => task.boardId === currentBoardId && task.cursorIndex === index)
     .map(([id, task]) => ({ id, task, name: `${SPECIALISTS.find((worker) => worker.id === workerTypeForId(id))?.name || id} ${workerState.workersById[id]?.number || ""}`.trim() }));
 }
 
 function workerTaskStage(task) {
+  if (task.phase === "noFlags") return "No Flags";
   if (task.phase === "scanning") return "Scanning";
   return performance.now() - task.phaseStartedAt < workerRoundDurationMs(task.id) / 3 ? "Analyzing" : "Planning action";
 }
 
 function workerTaskLabel(task) {
+  if (task.phase === "noFlags") return "No Flags";
   if (task.phase === "scanning") return "Scanning";
   const stage = workerTaskStage(task);
   if (stage === "Analyzing") return stage;
@@ -2804,6 +3563,9 @@ function syncWorkerMarker(marker, worker, workerType) {
 
 function workerTooltipMarkup(worker, workerType) {
   const { task } = worker;
+  if (task.phase === "noFlags") {
+    return `<strong>${worker.name}: NO FLAGS</strong><span>A mine has been proved, but no worker-usable flags remain. Return, replace, regenerate, or release a reserved flag.</span>`;
+  }
   const remainingSeconds = Math.max(0, Math.ceil((workerRoundDurationMs(task.id) - (performance.now() - task.phaseStartedAt)) / 1000));
   const countdown = `<span class="worker-tooltip__countdown">${remainingSeconds}s</span>`;
   if (workerTaskStage(task) === "Analyzing") {
@@ -2859,6 +3621,48 @@ function hideWorkerTooltip() {
   workerTooltipElement.innerHTML = "";
 }
 
+function showQuartermasterTooltip(source) {
+  if (!quartermasterTooltipElement || !source?.dataset.tooltip) return;
+  quartermasterTooltipSource = source;
+  quartermasterTooltipElement.textContent = source.dataset.tooltip;
+  quartermasterTooltipElement.hidden = false;
+  positionQuartermasterTooltip();
+}
+
+function positionQuartermasterTooltip() {
+  if (!quartermasterTooltipElement || !quartermasterTooltipSource) return;
+  const sourceRect = quartermasterTooltipSource.getBoundingClientRect();
+  const viewportPadding = 8;
+
+  if (sourceRect.bottom < 0 || sourceRect.top > window.innerHeight) {
+    hideQuartermasterTooltip();
+    return;
+  }
+
+  quartermasterTooltipElement.style.left = "0px";
+  quartermasterTooltipElement.style.top = "0px";
+  const tooltipRect = quartermasterTooltipElement.getBoundingClientRect();
+  const left = clamp(
+    sourceRect.left + sourceRect.width / 2 - tooltipRect.width / 2,
+    viewportPadding,
+    Math.max(viewportPadding, window.innerWidth - tooltipRect.width - viewportPadding),
+  );
+  const preferredTop = sourceRect.top - tooltipRect.height - 10;
+  const top = preferredTop >= viewportPadding
+    ? preferredTop
+    : Math.min(window.innerHeight - tooltipRect.height - viewportPadding, sourceRect.bottom + 10);
+
+  quartermasterTooltipElement.style.left = `${left}px`;
+  quartermasterTooltipElement.style.top = `${Math.max(viewportPadding, top)}px`;
+}
+
+function hideQuartermasterTooltip() {
+  if (!quartermasterTooltipElement) return;
+  quartermasterTooltipSource = null;
+  quartermasterTooltipElement.hidden = true;
+  quartermasterTooltipElement.textContent = "";
+}
+
 function showWorkerCompletionTooltip() {
   if (!workerTooltipElement || !workerTooltipState) return;
   workerTooltipElement.innerHTML = `
@@ -2907,6 +3711,7 @@ function revealAutoCell(startCell) {
   });
   recentlyRevealed = opened;
   refreshProofMetadata(board, settings);
+  markBoardMutation();
   window.setTimeout(() => {
     recentlyRevealed.clear();
     render();
@@ -2947,66 +3752,99 @@ function updateModeUI() {
   renderAutomationModeList();
   renderWorkerList(agentListElement, "agents");
   renderWorkerList(specialistListElement, "specialists");
+  renderBlueprintLibrary();
+  renderInterventionFeed();
+  speculationEnabledElement.checked = Boolean(autoMinersState.speculationEnabled);
+  speculationThresholdElement.value = String(Math.round((autoMinersState.riskThreshold || GAME_CONFIG.automation.defaultRiskThreshold) * 100));
+  speculationThresholdValueElement.textContent = `${speculationThresholdElement.value}%`;
+  manualFlagReserveElement.max = String(flagPool.maximumFlags);
+  manualFlagReserveElement.value = String(flagPool.manualFlagReserve);
+  manualFlagReserveValueElement.textContent = String(flagPool.manualFlagReserve);
+  workerUsableFlagsElement.textContent = `Worker-usable now: ${workerUsableFlags(flagPool)}`;
+}
+
+function renderBlueprintLibrary() {
+  const owned = new Set(profile.blueprintLibrary.ownedIds);
+  blueprintCountElement.textContent = `${owned.size} / ${BLUEPRINTS.length}`;
+  blueprintLibraryElement.innerHTML = BLUEPRINTS.map((blueprint) => `<article class="blueprint-card ${owned.has(blueprint.id) ? "is-owned" : "is-locked"}">
+    <strong>${owned.has(blueprint.id) ? blueprint.name : "? ? ?"}</strong>
+    <span>${owned.has(blueprint.id) ? blueprint.conclusions.map((type) => type === "mine" ? "✹" : "◇").join(" ") : "Undiscovered"}</span>
+    <small>${owned.has(blueprint.id) ? "Rotations and reflections recognized" : "Discover on a Parcel Board"}</small>
+  </article>`).join("");
+}
+
+function renderInterventionFeed() {
+  const entries = deriveInterventionQueue(boardSessions, currentBoardId, Date.now(), autoMinersState.interventionSnoozes);
+  interventionCountElement.textContent = String(entries.length);
+  interventionFeedElement.innerHTML = entries.length ? entries.map((entry) => `<article class="intervention-entry">
+    <strong>${entry.category.replaceAll("_", " ")}</strong><span>${entry.cols}×${entry.rows} · ${entry.mines} mines</span><small>${entry.reason}</small>
+    <div><button type="button" data-intervention-board="${entry.boardId}">OPEN</button><button type="button" data-snooze-board="${entry.boardId}">SNOOZE 5M</button></div>
+  </article>`).join("") : "<p>No stalled background Boards.</p>";
+  interventionFeedElement.querySelectorAll("[data-intervention-board]").forEach((button) => button.addEventListener("click", () => switchToBoardSession(button.dataset.interventionBoard)));
+  interventionFeedElement.querySelectorAll("[data-snooze-board]").forEach((button) => button.addEventListener("click", () => {
+    autoMinersState.interventionSnoozes = snoozeIntervention(autoMinersState.interventionSnoozes, button.dataset.snoozeBoard, Date.now() + 300000);
+    render();
+  }));
 }
 
 function renderSurveyorCard() {
-  const worker = SPECIALISTS.find((item) => item.id === "surveyor");
-  const level = specialistLevel(worker.id);
-  const cost = workerCost(worker);
-  const affordable = player.coins >= cost;
-  const extraCost = nextWorkerHireCost(worker, workerState.workerTypes[worker.id]);
-  const canHireExtra = level > 0 && player.coins >= extraCost;
-  surveyorCardElement.innerHTML = `
-    <article class="specialist-card${level > 0 ? " is-active" : " is-available"}">
-      <div class="specialist-card__topline"><strong>${worker.name}</strong><b>${level > 0 ? `LV ${level}` : "AVAILABLE"}</b></div>
-      <p>${worker.task} Current schedule: ${formatClock(surveyorIntervalMs())}.</p>
-      <button class="worker-buy" type="button" data-worker-buy="surveyor" ${affordable ? "" : "disabled"}>${level > 0 ? `UPGRADE ${formatCurrency(cost)}` : formatWorkerCost(worker, cost)}</button>
-      ${level > 0 ? `<button class="worker-buy" type="button" data-worker-hire-extra="surveyor" ${canHireExtra ? "" : "disabled"}>HIRE ANOTHER ${formatCurrency(extraCost)}</button>` : ""}
-    </article>
-  `;
-  surveyorCardElement.querySelector("[data-worker-buy]").addEventListener("click", () => dispatchGameAction("autoMiners/hire", { id: "surveyor" }));
-  surveyorCardElement.querySelector("[data-worker-hire-extra]")?.addEventListener("click", () => dispatchGameAction("autoMiners/hireExtra", { id: "surveyor" }));
+  renderWorkerRoles(surveyorCardElement, ["surveyor"]);
 }
 
 function renderWorkerList(element, group) {
-  const order = autoMinersState.initiative[group];
-  element.innerHTML = order.map((id) => {
-    const specialist = SPECIALISTS.find((worker) => worker.id === id);
-    const level = specialistLevel(specialist.id);
-    const implemented = specialist.id === "surveyor" || specialist.id === "excavator" || specialist.id === "flagbearer";
-    const cost = workerCost(specialist);
-    const affordable = specialist.currency === "coins" ? player.coins >= cost : player.mines >= cost;
-    const status = level > 0 ? `LV ${level}` : specialist.id === "surveyor" ? "AVAILABLE" : "LOCKED";
-    const available = specialist.id === "surveyor" || (implemented && specialistLevel("surveyor") > 0);
-    const extraCost = nextWorkerHireCost(specialist, workerState.workerTypes[specialist.id]);
-    const extraAffordable = specialist.currency === "coins" ? player.coins >= extraCost : player.mines >= extraCost;
-    const button = available
-      ? `<button class="worker-buy" type="button" data-worker-buy="${specialist.id}" ${affordable ? "" : "disabled"}>${level > 0 ? `UPGRADE ${specialist.currency === "coins" ? formatCurrency(cost) : `${cost} MINES`}` : formatWorkerCost(specialist, cost)}</button>`
-      : "";
-    const hireAnother = available && level > 0
-      ? `<button class="worker-buy" type="button" data-worker-hire-extra="${specialist.id}" ${extraAffordable ? "" : "disabled"}>HIRE ANOTHER ${specialist.currency === "coins" ? formatCurrency(extraCost) : `${extraCost} MINES`}</button>`
-      : "";
-    const cardClass = level > 0 ? "is-active" : available ? "is-available" : "is-locked";
-    return `
-      <article class="specialist-card ${cardClass}" draggable="true" data-worker-id="${specialist.id}">
-        <div class="specialist-card__topline">
-          <strong>${specialist.name}</strong>
-          <b>${status}</b>
-        </div>
-        <p>${specialist.task}</p>
-        ${specialist.group === "agents" ? `<button class="worker-buy" type="button" data-worker-policy="${specialist.id}">${autoMinersState.workerPolicies?.[specialist.id] === "jump" ? "JUMP" : "FOCUS"}</button>` : ""}
-        ${button}
-        ${hireAnother}
-      </article>
-    `;
+  renderWorkerRoles(element, autoMinersState.initiative[group]);
+}
+
+function renderWorkerRoles(element, roleIds) {
+  element.innerHTML = roleIds.map((id) => {
+    const definition = SPECIALISTS.find((item) => item.id === id);
+    const available = id === "surveyor"
+      || (["excavator", "flagbearer"].includes(id) && specialistLevel("surveyor") > 0)
+      || (id === "analyst" && profile.blueprintLibrary.ownedIds.length > 0);
+    const hireCost = nextWorkerHireCost(definition, workerState.workerTypes[id]);
+    const workers = Object.values(workerState.workersById).filter((worker) => worker.typeId === id).sort((a, b) => a.number - b.number);
+    const workerCards = workers.map((worker) => {
+      const analyst = id === "analyst";
+      const upgradeCost = analyst
+        ? workerUpgradeCost(definition, worker, { baseCost: GAME_CONFIG.automation.analyst.upgradeMineCost, growth: GAME_CONFIG.automation.analyst.upgradeGrowth })
+        : workerUpgradeCost(definition, worker);
+      const currency = analyst ? "mines" : definition.currency;
+      const affordable = player[currency] >= upgradeCost;
+      const capacity = analyst && worker.level >= GAME_CONFIG.blueprints.secondSlotLevel ? 2 : 1;
+      const assignments = analyst ? Array.from({ length: capacity }, (_, slot) => blueprintAssignmentSelect(worker, slot)).join("") : "";
+      return `<article class="specialist-card is-active" data-worker-instance="${worker.id}">
+        <div class="specialist-card__topline"><strong>${definition.name} ${worker.number}</strong><b>LV ${worker.level}</b></div>
+        <p>${worker.status === "ASSIGNED" ? `Assigned: ${worker.assignment?.type || "work"}` : "Available"}</p>
+        ${assignments}
+        <button class="worker-buy" type="button" data-worker-upgrade="${worker.id}" ${affordable ? "" : "disabled"}>UPGRADE ${currency === "coins" ? formatCurrency(upgradeCost) : `${upgradeCost} MINES`}</button>
+      </article>`;
+    }).join("");
+    const canHire = available && player[definition.currency] >= hireCost;
+    return `<article class="specialist-card ${available ? "is-available" : "is-locked"}">
+      <div class="specialist-card__topline"><strong>${definition.name}</strong><b>${workers.length} HIRED</b></div>
+      <p>${definition.task}</p>
+      <button class="worker-buy" type="button" data-worker-hire-extra="${id}" ${canHire ? "" : "disabled"}>HIRE ${definition.currency === "coins" ? formatCurrency(hireCost) : `${hireCost} MINES`}</button>
+    </article>${workerCards}`;
   }).join("");
-  element.querySelectorAll("[data-worker-buy]").forEach((button) => {
-    button.addEventListener("click", () => dispatchGameAction("autoMiners/hire", { id: button.dataset.workerBuy }));
-  });
-  element.querySelectorAll("[data-worker-hire-extra]").forEach((button) => {
-    button.addEventListener("click", () => dispatchGameAction("autoMiners/hireExtra", { id: button.dataset.workerHireExtra }));
-  });
-  enableInitiativeDrag(element, group);
+  element.querySelectorAll("[data-worker-hire-extra]").forEach((button) => button.addEventListener("click", () => dispatchGameAction("autoMiners/hireExtra", { id: button.dataset.workerHireExtra })));
+  element.querySelectorAll("[data-worker-upgrade]").forEach((button) => button.addEventListener("click", () => dispatchGameAction("autoMiners/upgrade", { workerId: button.dataset.workerUpgrade })));
+  element.querySelectorAll("[data-blueprint-assignment]").forEach((select) => select.addEventListener("change", () => updateAnalystBlueprints(select.dataset.workerId)));
+}
+
+function blueprintAssignmentSelect(worker, slot) {
+  const options = [`<option value="">Unassigned</option>`, ...profile.blueprintLibrary.ownedIds.map((id) => {
+    const item = BLUEPRINTS.find((blueprint) => blueprint.id === id);
+    return `<option value="${id}" ${worker.blueprintIds?.[slot] === id ? "selected" : ""}>${item?.name || id}</option>`;
+  })];
+  return `<select class="blueprint-assignment" data-blueprint-assignment="${slot}" data-worker-id="${worker.id}">${options.join("")}</select>`;
+}
+
+function updateAnalystBlueprints(workerId) {
+  const selects = [...document.querySelectorAll(`[data-worker-id="${workerId}"]`)];
+  const ids = selects.map((select) => select.value).filter(Boolean);
+  workerState = assignBlueprints(workerState, workerId, ids, GAME_CONFIG.blueprints.secondSlotLevel);
+  delete autoMinersState.workerTasks[workerId];
+  render();
 }
 
 function workerCost(worker) {
@@ -3018,39 +3856,23 @@ function formatWorkerCost(worker, cost) {
 }
 
 function buyWorker(id) {
-  const worker = SPECIALISTS.find((item) => item.id === id);
-  const available = worker?.id === "surveyor" || (worker && ["excavator", "flagbearer"].includes(worker.id) && specialistLevel("surveyor") > 0);
-  if (!worker || !available) return;
-  const owned = Object.values(workerState.workersById).some((item) => item.typeId === id);
-  const cost = owned ? workerCost(worker) : nextWorkerHireCost(worker, workerState.workerTypes[id]);
-  if (worker.currency === "coins") {
-    if (player.coins < cost) return;
-    player.coins -= cost;
-  } else {
-    if (player.mines < cost) return;
-    player.mines -= cost;
-  }
-  if (!owned) {
-    workerState = hireWorker(workerState, worker).state;
-  } else {
-    workerState.workerTypes[id].level += 1;
-  }
-  player.specialists[worker.id] = workerState.workerTypes[id].level;
-  autoMinersState.statusText = owned
-    ? `${worker.name} is now shared level ${player.specialists[worker.id]}.`
-    : `${worker.name} hired.`;
-  render();
+  buyAdditionalWorker(id);
 }
 
 function buyAdditionalWorker(id) {
   const definition = SPECIALISTS.find((item) => item.id === id);
-  if (!definition || specialistLevel(id) <= 0) return;
+  const available = definition?.id === "surveyor"
+    || (["excavator", "flagbearer"].includes(definition?.id) && specialistLevel("surveyor") > 0)
+    || (definition?.id === "analyst" && profile.blueprintLibrary.ownedIds.length > 0);
+  if (!definition || !available) return;
   const cost = nextWorkerHireCost(definition, workerState.workerTypes[id]);
   const currency = definition.currency === "coins" ? "coins" : "mines";
   if (player[currency] < cost) return;
   player[currency] -= cost;
   const result = hireWorker(workerState, definition);
   workerState = result.state;
+  player.specialists[id] = specialistLevel(id);
+  runMeta.stats.workersHired += 1;
   autoMinersState.statusText = `${workerLabel(workerState.workersById[result.workerId])} hired for ${cost}.`;
   render();
 }
@@ -3080,8 +3902,13 @@ function updateQuartermaster() {
   coinCountElement.textContent = formatCurrency(player.coins);
   shovelCountElement.textContent = String(player.shovels).padStart(2, "0");
   shovelUsesElement.textContent = `${player.shovelUses} digs`;
-  flagStockElement.textContent = String(player.flags).padStart(2, "0");
-  flagCapacityElement.textContent = `${flagCapacity()} max`;
+  const deployed = totalDeployedFlags();
+  flagStockElement.textContent = String(flagPool.availableFlags).padStart(2, "0");
+  flagCapacityElement.textContent = `${flagPool.maximumFlags} maximum`;
+  flagDeployedElement.textContent = `${deployed} deployed`;
+  flagMissingElement.textContent = `${flagPool.missingFlags} replacing`;
+  flagRegenerationElement.hidden = flagPool.missingFlags <= 0;
+  flagRegenerationElement.textContent = `Next replacement: ${formatFlagCountdown(flagPool.flagRegenRemainingMs)}`;
   hintStockElement.textContent = String(player.hints).padStart(2, "0");
   hintCapacityElement.textContent = `${hintCapacity()} max`;
   activeMineCountElement.textContent = String(player.mines).padStart(2, "0");
@@ -3091,7 +3918,7 @@ function updateQuartermaster() {
   flagResourceElement.dataset.tooltip = COPY_CONFIG.tooltips.flags;
   mineResourceElement.dataset.tooltip = mineTooltip;
   shovelResourceElement.setAttribute("aria-label", `Shovels: ${player.shovels} in stock. ${COPY_CONFIG.tooltips.shovel}.`);
-  flagResourceElement.setAttribute("aria-label", `Flags: ${player.flags} in stock. ${COPY_CONFIG.tooltips.flags}.`);
+  flagResourceElement.setAttribute("aria-label", `Flags: ${flagPool.availableFlags} available, ${deployed} deployed, ${flagPool.missingFlags} missing, ${flagPool.maximumFlags} maximum. ${COPY_CONFIG.tooltips.flags}.`);
   hintResourceElement.setAttribute("aria-label", `Hints: ${player.hints} in stock. Reveal one known safe space or mine.`);
   mineResourceElement.setAttribute("aria-label", mineTooltip);
 
@@ -3100,7 +3927,7 @@ function updateQuartermaster() {
   buyHintsCostElement.textContent = formatCurrency(BALANCE_CONFIG.shovel.hintSupplyCost);
   buyShovelDetailElement.textContent = `+1 ${tier.name.toLowerCase()} shovel · ${shovelCapacity()} max`;
   buyShovelButton.disabled = !canPurchase() || player.coins < shovelCost || player.shovels >= shovelCapacity();
-  buyFlagsButton.disabled = !canPurchase() || player.coins < flagsCost || player.flags >= flagCapacity();
+  buyFlagsButton.disabled = !canPurchase() || player.coins < flagsCost || flagPool.missingFlags <= 0;
   buyHintsButton.disabled = !canPurchase() || player.coins < BALANCE_CONFIG.shovel.hintSupplyCost || player.hints + BALANCE_CONFIG.shovel.hintBundleSize > hintCapacity();
   storeNoteElement.textContent = canPurchase()
     ? formatMessage("suppliesReady", { name: tier.name, durability: tier.durability })
@@ -3193,7 +4020,48 @@ function isProgressionMilestoneReached(id) {
 
 function progressionCost(id, level) {
   const item = PROGRESSION_CONFIG.items[id];
-  return exponentialCost(item.baseCost, item.growth, level);
+  if (!GAME_CONFIG.crossCosts.categories[id]) return exponentialCost(item.baseCost, item.growth, level);
+  return calculateCrossCost({
+    id,
+    baseCost: item.baseCost,
+    ownGrowth: item.growth,
+    ownLevel: level,
+    levels: {
+      tallerGrid: player.tallerGridLevel,
+      widerGrid: player.widerGridLevel,
+      addMine: player.mineLevel,
+      addTreasure: player.treasureLevel,
+    },
+    categories: GAME_CONFIG.crossCosts.categories,
+    matrix: GAME_CONFIG.crossCosts.matrix,
+  }).cost;
+}
+
+function upgradeSpecificWorker(workerId) {
+  const worker = workerState.workersById[workerId];
+  const definition = SPECIALISTS.find((item) => item.id === worker?.typeId);
+  if (!worker || !definition) return;
+  const analyst = definition.id === "analyst";
+  const cost = analyst
+    ? workerUpgradeCost(definition, worker, { baseCost: GAME_CONFIG.automation.analyst.upgradeMineCost, growth: GAME_CONFIG.automation.analyst.upgradeGrowth })
+    : workerUpgradeCost(definition, worker);
+  const currency = analyst ? "mines" : definition.currency;
+  if (player[currency] < cost) return;
+  player[currency] -= cost;
+  workerState = upgradeWorker(workerState, workerId);
+  player.specialists[definition.id] = specialistLevel(definition.id);
+  delete autoMinersState.workerTasks[workerId];
+  render();
+}
+
+function progressionCostBreakdown(id, level) {
+  const item = PROGRESSION_CONFIG.items[id];
+  if (!GAME_CONFIG.crossCosts.categories[id]) return { cost: progressionCost(id, level), surcharge: 0 };
+  return calculateCrossCost({
+    id, baseCost: item.baseCost, ownGrowth: item.growth, ownLevel: level,
+    levels: { tallerGrid: player.tallerGridLevel, widerGrid: player.widerGridLevel, addMine: player.mineLevel, addTreasure: player.treasureLevel },
+    categories: GAME_CONFIG.crossCosts.categories, matrix: GAME_CONFIG.crossCosts.matrix,
+  });
 }
 
 function updateProgressionUI() {
@@ -3205,17 +4073,19 @@ function updateProgressionUI() {
 
   const taller = PROGRESSION_CONFIG.items.tallerGrid;
   const tallerCost = progressionCost("tallerGrid", player.tallerGridLevel);
-  showProgression(upgradeElements.tallerGrid, isUpgradeUnlocked("tallerGrid") && player.tallerGridLevel < GRID_LIMITS.max - GRID_LIMITS.min, progressionLocked || player.coins < tallerCost);
+  showProgression(upgradeElements.tallerGrid, isUpgradeUnlocked("tallerGrid"), progressionLocked || !Number.isFinite(tallerCost) || player.coins < tallerCost);
   upgradeElements.tallerGridTitle.textContent = taller.name;
   upgradeElements.tallerGridCost.textContent = formatCurrency(tallerCost);
-  upgradeElements.tallerGridDetail.textContent = formatCopy(taller.description, { next: GRID_LIMITS.min + player.tallerGridLevel + 1 });
+  const tallerBreakdown = progressionCostBreakdown("tallerGrid", player.tallerGridLevel);
+  upgradeElements.tallerGridDetail.textContent = `${formatCopy(taller.description, { next: GRID_LIMITS.min + player.tallerGridLevel + 1 })} Base ${formatCurrency(tallerBreakdown.baseCost)} + cross-cost ${formatCurrency(tallerBreakdown.surcharge)}.`;
 
   const wider = PROGRESSION_CONFIG.items.widerGrid;
   const widerCost = progressionCost("widerGrid", player.widerGridLevel);
-  showProgression(upgradeElements.widerGrid, isUpgradeUnlocked("widerGrid") && player.widerGridLevel < GRID_LIMITS.max - GRID_LIMITS.min, progressionLocked || player.coins < widerCost);
+  showProgression(upgradeElements.widerGrid, isUpgradeUnlocked("widerGrid"), progressionLocked || !Number.isFinite(widerCost) || player.coins < widerCost);
   upgradeElements.widerGridTitle.textContent = wider.name;
   upgradeElements.widerGridCost.textContent = formatCurrency(widerCost);
-  upgradeElements.widerGridDetail.textContent = formatCopy(wider.description, { next: GRID_LIMITS.min + player.widerGridLevel + 1 });
+  const widerBreakdown = progressionCostBreakdown("widerGrid", player.widerGridLevel);
+  upgradeElements.widerGridDetail.textContent = `${formatCopy(wider.description, { next: GRID_LIMITS.min + player.widerGridLevel + 1 })} Base ${formatCurrency(widerBreakdown.baseCost)} + cross-cost ${formatCurrency(widerBreakdown.surcharge)}.`;
 
   const shovelItem = PROGRESSION_CONFIG.items.improveShovel;
   const nextTier = BALANCE_CONFIG.shovel.tiers[player.shovelTier + 1];
@@ -3232,13 +4102,15 @@ function updateProgressionUI() {
   const mineCost = progressionCost("addMine", player.mineLevel);
   showProgression(upgradeElements.addMine, isUpgradeUnlocked("addMine"), progressionLocked || player.coins < mineCost);
   upgradeElements.addMineCost.textContent = formatCurrency(mineCost);
-  upgradeElements.addMineDetail.textContent = formatCopy(mineItem.description, { next: maxUnlockedMineCount() + 1 });
+  const mineBreakdown = progressionCostBreakdown("addMine", player.mineLevel);
+  upgradeElements.addMineDetail.textContent = `${formatCopy(mineItem.description, { next: maxUnlockedMineCount() + 1 })} Base ${formatCurrency(mineBreakdown.baseCost)} + cross-cost ${formatCurrency(mineBreakdown.surcharge)}.`;
 
   const treasureItem = PROGRESSION_CONFIG.items.addTreasure;
   const treasureCost = progressionCost("addTreasure", player.treasureLevel);
   showProgression(upgradeElements.addTreasure, isUpgradeUnlocked("addTreasure"), progressionLocked || player.coins < treasureCost);
   upgradeElements.addTreasureCost.textContent = formatCurrency(treasureCost);
-  upgradeElements.addTreasureDetail.textContent = treasureItem.description;
+  const treasureBreakdown = progressionCostBreakdown("addTreasure", player.treasureLevel);
+  upgradeElements.addTreasureDetail.textContent = `${treasureItem.description} Base ${formatCurrency(treasureBreakdown.baseCost)} + cross-cost ${formatCurrency(treasureBreakdown.surcharge)}.`;
 
   const yieldItem = PROGRESSION_CONFIG.items.mineYield;
   const yieldCost = progressionCost("mineYield", player.mineYieldLevel);
@@ -3272,7 +4144,9 @@ function updateProgressionUI() {
   showProgression(upgradeElements.flagCap, Boolean(nextFlagCap), progressionLocked || player.coins < flagCapCost);
   upgradeElements.flagCapTitle.textContent = COPY_CONFIG.upgradeLabels.flagLocker;
   upgradeElements.flagCapCost.textContent = nextFlagCap ? formatCurrency(flagCapCost) : "MAX";
-  upgradeElements.flagCapDetail.textContent = nextFlagCap ? `${flagCap} → ${nextFlagCap} flags` : "500 flag maximum reached";
+  upgradeElements.flagCapDetail.textContent = nextFlagCap
+    ? `${flagCap} → ${nextFlagCap} reusable flags. Upgrading completely repairs and refills the pool.`
+    : "Maximum reusable flag capacity reached";
 
   const safetyMaxed = player.safetyRadius >= 2;
   const safetyNextCostsMines = player.safetyRadius === 1;
@@ -3320,9 +4194,9 @@ function updateStatsUI() {
     formatDuration,
   });
   const summary = summarizeDeveloperTelemetry(developerTelemetry);
-  const current = developerTelemetry.currentRun;
+  const current = developerTelemetry.currentAttempt;
   const developerEntries = [
-    ["Runs recorded", summary.runsRecorded],
+    ["Attempts recorded", summary.attemptsRecorded],
     ["Average board duration", formatOptionalDuration(summary.averageBoardDurationMs)],
     ["Current run reveals", current?.revealCount ?? 0],
     ["Current flags placed / removed", `${current?.flagPlacements ?? 0} / ${current?.flagRemovals ?? 0}`],
@@ -3918,29 +4792,35 @@ function maxMineCountFor(rows, cols, safetyRadius = 0) {
   return Math.max(1, rows * cols - safeAreaWidth * safeAreaHeight);
 }
 
+function setSelectOptions(element, values, selectedValue) {
+  const signature = values.join(",");
+  if (element.dataset.options !== signature) {
+    element.replaceChildren(...values.map((value) => {
+      const option = document.createElement("option");
+      option.value = String(value);
+      option.textContent = String(value);
+      return option;
+    }));
+    element.dataset.options = signature;
+  }
+  element.value = String(selectedValue);
+}
+
+function canEditFieldSpecification() {
+  return currentView === "board" && !isFixedBoardSession() && (!roundStarted || gameOver);
+}
+
 function syncSettingsControls() {
-  rebuildSelect(rowsInput, availableRows(), (value) => `${value} rows`);
-  rebuildSelect(colsInput, availableCols(), (value) => `${value} columns`);
-  rebuildSelect(minesInput, availableMines(), (value) => `${value} mine${value === 1 ? "" : "s"}`);
-  rowsInput.value = String(settings.rows);
-  colsInput.value = String(settings.cols);
-  minesInput.value = String(settings.mines);
-  const locked = isFixedBoardSession() || (roundStarted && !gameOver);
+  settings = normalizeFieldSettings(settings);
+  setSelectOptions(rowsInput, availableRows(), settings.rows);
+  setSelectOptions(colsInput, availableCols(), settings.cols);
+  setSelectOptions(minesInput, availableMines(), settings.mines);
+  setSelectOptions(treasuresInput, availableTreasures(), settings.treasures);
+  const locked = !canEditFieldSpecification();
   rowsInput.disabled = locked;
   colsInput.disabled = locked;
   minesInput.disabled = locked;
-}
-
-function rebuildSelect(select, values, label) {
-  const current = select.value;
-  select.innerHTML = "";
-  values.forEach((value) => {
-    const option = document.createElement("option");
-    option.value = String(value);
-    option.textContent = label(value);
-    select.append(option);
-  });
-  if (values.some((value) => String(value) === current)) select.value = current;
+  treasuresInput.disabled = locked;
 }
 
 function applySettingsFromControls() {
@@ -3954,9 +4834,23 @@ function applySettingsFromControls() {
     syncSettingsControls();
     return;
   }
-  settings.rows = Number.parseInt(rowsInput.value, 10);
-  settings.cols = Number.parseInt(colsInput.value, 10);
-  settings.mines = Number.parseInt(minesInput.value, 10);
+  const nextSettings = {
+    rows: clamp(Number.parseInt(rowsInput.value, 10) || GRID_LIMITS.min, GRID_LIMITS.min, GRID_LIMITS.min + player.tallerGridLevel),
+    cols: clamp(Number.parseInt(colsInput.value, 10) || GRID_LIMITS.min, GRID_LIMITS.min, GRID_LIMITS.min + player.widerGridLevel),
+    mines: Number.parseInt(minesInput.value, 10) || 1,
+    treasures: Number.parseInt(treasuresInput.value, 10) || 1,
+  };
+  nextSettings.mines = clamp(
+    nextSettings.mines,
+    1,
+    Math.min(
+      maxMineCountFor(nextSettings.rows, nextSettings.cols, safetyRadiusForSettings(nextSettings)),
+      maxUnlockedMineCount(),
+    ),
+  );
+  nextSettings.treasures = clamp(nextSettings.treasures, 1, maxTreasureCountFor(nextSettings));
+  settings = nextSettings;
+  preferences.lastBoardSelection = { ...settings };
   startGame();
 }
 
@@ -3976,19 +4870,17 @@ function renderAutomationModeList() {
   const modes = [
     ["manual", "Manual", "Workers are paused."],
     ["assist", "Assist", "Surveyor, Excavator, and Flagbearer work."],
-    ["analyze", "Analyze", "Assist behavior; additional analysts are coming soon."],
+    ["analyze", "Analyze", "Show basic and Analyst findings without worker actions."],
   ];
+  const selectedMode = currentBoardSession()?.automation?.interactionMode || INTERACTION_MODES.manual;
   const element = document.querySelector("#automation-mode-list");
   element.innerHTML = modes.map(([id, name, detail]) => `
-    <button class="worker-buy${autoMinersState.automationMode === id ? " is-selected" : ""}" type="button" data-automation-mode="${id}">
+    <button class="worker-buy${selectedMode === id ? " is-selected" : ""}" type="button" data-automation-mode="${id}">
       <strong>${name}</strong><small>${detail}</small>
     </button>
   `).join("");
   element.querySelectorAll("[data-automation-mode]").forEach((button) => {
     button.addEventListener("click", () => dispatchGameAction("autoMiners/setMode", { mode: button.dataset.automationMode }));
-  });
-  element.querySelectorAll("[data-worker-policy]").forEach((button) => {
-    button.addEventListener("click", () => dispatchGameAction("autoMiners/togglePolicy", { id: button.dataset.workerPolicy }));
   });
 }
 
@@ -4075,6 +4967,18 @@ function grantDebugCoins() {
   render();
 }
 
+function startDeveloperBoard({ parcel = false } = {}) {
+  const session = createBlankSession(parcel ? { rows: 25, cols: 25, mines: 90 } : { rows: 100, cols: 100, mines: 1500 }, {
+    category: parcel ? BOARD_CATEGORIES.districtParcel : BOARD_CATEGORIES.devTest,
+    owner: { type: "developer", id: parcel ? "parcel-smoke" : "large-smoke" },
+    seed: `developer:${parcel ? "parcel" : "large"}:${Date.now()}`,
+    parcelId: parcel ? "developer-parcel" : null,
+  });
+  session.developerTest = true;
+  statusElement.textContent = parcel ? "Developer Parcel Board ready." : "Developer large Board ready.";
+  render();
+}
+
 function formatPercent(value, decimals = 0) {
   return `${(value * 100).toFixed(decimals)}%`;
 }
@@ -4088,6 +4992,11 @@ function formatClock(milliseconds) {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function formatFlagCountdown(milliseconds) {
+  const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000));
+  return `${String(Math.floor(totalSeconds / 60)).padStart(2, "0")}:${String(totalSeconds % 60).padStart(2, "0")}`;
 }
 
 function randomInteger(minimum, maximum) {
@@ -4140,11 +5049,23 @@ const GAME_ACTION_HANDLERS = {
   "board/activate": ({ index }) => activateBoardCell(index),
   "board/flag": ({ index }) => toggleFlag(index),
   "settings/change": applySettingsFromControls,
+  "settings/toggle": () => {
+    fieldSpecificationMenuElement.hidden = !fieldSpecificationMenuElement.hidden;
+    fieldSpecificationToggleButton.setAttribute("aria-expanded", String(!fieldSpecificationMenuElement.hidden));
+    if (!fieldSpecificationMenuElement.hidden) {
+      equipmentInventoryElement.hidden = true;
+      equipmentToggleButton.setAttribute("aria-expanded", "false");
+    }
+  },
   "purchase/buy": ({ id }) => buyPurchase(id),
   "equipment/toggle": () => {
     if (specialEquipmentTotal() <= 0) return;
     equipmentInventoryElement.hidden = !equipmentInventoryElement.hidden;
     equipmentToggleButton.setAttribute("aria-expanded", String(!equipmentInventoryElement.hidden));
+    if (!equipmentInventoryElement.hidden) {
+      fieldSpecificationMenuElement.hidden = true;
+      fieldSpecificationToggleButton.setAttribute("aria-expanded", "false");
+    }
   },
   "equipment/activate": ({ id }) => activateEquipment(id),
   "contracts/accept": ({ id }) => acceptOfferedContract(id),
@@ -4167,15 +5088,47 @@ const GAME_ACTION_HANDLERS = {
   "autoMiners/survey": surveyNow,
   "autoMiners/hire": ({ id }) => buyWorker(id),
   "autoMiners/hireExtra": ({ id }) => buyAdditionalWorker(id),
+  "autoMiners/upgrade": ({ workerId }) => upgradeSpecificWorker(workerId),
   "autoMiners/setMode": ({ mode }) => {
     if (!["manual", "assist", "analyze"].includes(mode)) return;
-    autoMinersState.automationMode = mode;
+    const session = currentBoardSession();
+    if (!session) return;
+    session.automation.interactionMode = mode;
+    session.automation.findings = [];
+    session.automation.reservations = {};
+    if (mode === INTERACTION_MODES.manual) {
+      Object.entries(autoMinersState.workerTasks).forEach(([workerId, task]) => {
+        if (task.boardId === session.id) {
+          delete autoMinersState.workerTasks[workerId];
+          const worker = workerState.workersById[workerId];
+          if (worker?.assignment?.type === "BOARD_AUTOMATION") {
+            worker.status = "AVAILABLE";
+            worker.assignment = null;
+          }
+        }
+      });
+    }
     autoMinersState.statusText = `${mode[0].toUpperCase()}${mode.slice(1)} automation selected.`;
     render();
   },
-  "autoMiners/togglePolicy": ({ id }) => {
-    if (!autoMinersState.workerPolicies || !["excavator", "flagbearer"].includes(id)) return;
-    autoMinersState.workerPolicies[id] = autoMinersState.workerPolicies[id] === "jump" ? "focus" : "jump";
+  "autoMiners/speculation": ({ enabled, threshold }) => {
+    if (enabled !== undefined) {
+      const nextEnabled = Boolean(enabled);
+      if (nextEnabled && !autoMinersState.speculationInitialized) {
+        autoMinersState.riskThreshold = GAME_CONFIG.automation.defaultRiskThreshold;
+        autoMinersState.speculationInitialized = true;
+      }
+      autoMinersState.speculationEnabled = nextEnabled;
+    }
+    if (threshold !== undefined) autoMinersState.riskThreshold = clamp(Number(threshold), 0.01, 0.5);
+    preferences.speculationEnabled = autoMinersState.speculationEnabled;
+    preferences.riskThreshold = autoMinersState.riskThreshold;
+    render();
+  },
+  "autoMiners/manualFlagReserve": ({ value }) => {
+    flagPool = setManualFlagReserve(flagPool, value);
+    preferences.manualFlagReserve = flagPool.manualFlagReserve;
+    autoMinersState.statusText = `Manual Flag Reserve set to ${flagPool.manualFlagReserve}. ${workerUsableFlags(flagPool)} flags are worker-usable now.`;
     render();
   },
   "autoMiners/reorder": reorderInitiative,
@@ -4186,9 +5139,12 @@ const GAME_ACTION_HANDLERS = {
   "round/reset": handleRoundControl,
   "round/hint": () => useHint(),
   "progress/reset": resetProgress,
+  "progress/restructurePreview": openRestructurePreview,
+  "progress/restructureConfirm": performCorporateRestructure,
   "debug/grantCoins": grantDebugCoins,
   "timers/tick": ({ deltaMs = 1000 }) => {
     tickMessageBoard();
+    tickReusableFlags(deltaMs);
     tickAutoMiners();
     tickDistrictRuntime(deltaMs);
   },
@@ -4197,6 +5153,8 @@ const GAME_ACTION_HANDLERS = {
 rowsInput.addEventListener("change", () => dispatchGameAction("settings/change"));
 colsInput.addEventListener("change", () => dispatchGameAction("settings/change"));
 minesInput.addEventListener("change", () => dispatchGameAction("settings/change"));
+treasuresInput.addEventListener("change", () => dispatchGameAction("settings/change"));
+fieldSpecificationToggleButton.addEventListener("click", () => dispatchGameAction("settings/toggle"));
 buyShovelButton.addEventListener("click", () => dispatchGameAction("purchase/buy", { id: "supply:shovel" }));
 buyFlagsButton.addEventListener("click", () => dispatchGameAction("purchase/buy", { id: "supply:flags" }));
 buyHintsButton.addEventListener("click", () => dispatchGameAction("purchase/buy", { id: "supply:hints" }));
@@ -4230,6 +5188,25 @@ surveyNowButton.addEventListener("click", () => dispatchGameAction("autoMiners/s
 contractModalStartButton.addEventListener("click", () => dispatchGameAction("contracts/closeBriefing"));
 fieldClearModalDismissButton.addEventListener("click", () => dispatchGameAction("autoMiners/dismissClear"));
 resetButton.addEventListener("click", () => dispatchGameAction("round/reset"));
+quartermasterPanelElement.addEventListener("pointerover", (event) => {
+  const source = event.target.closest("[data-tooltip]");
+  if (!source || !quartermasterPanelElement.contains(source) || source.contains(event.relatedTarget)) return;
+  showQuartermasterTooltip(source);
+});
+quartermasterPanelElement.addEventListener("pointerout", (event) => {
+  const source = event.target.closest("[data-tooltip]");
+  if (source && source === quartermasterTooltipSource && !source.contains(event.relatedTarget)) hideQuartermasterTooltip();
+});
+quartermasterPanelElement.addEventListener("focusin", (event) => {
+  const source = event.target.closest("[data-tooltip]");
+  if (source && quartermasterPanelElement.contains(source)) showQuartermasterTooltip(source);
+});
+quartermasterPanelElement.addEventListener("focusout", (event) => {
+  const source = event.target.closest("[data-tooltip]");
+  if (source && source === quartermasterTooltipSource && !source.contains(event.relatedTarget)) hideQuartermasterTooltip();
+});
+quartermasterPanelElement.addEventListener("scroll", positionQuartermasterTooltip, { passive: true });
+window.addEventListener("resize", positionQuartermasterTooltip);
 document.addEventListener("pointermove", () => {
   // A completed tooltip stays visible while the pointer is still, then clears
   // as soon as the player moves it again.
@@ -4262,11 +5239,46 @@ boardElement.addEventListener("click", (event) => {
   const recover = event.target.closest("[data-recover-parcel]");
   if (recover) return startParcelRecovery(recover.dataset.recoverParcel, Number(recover.dataset.workerCount));
 });
-resetProgressButton.addEventListener("click", () => dispatchGameAction("progress/reset"));
+resetProgressButton.addEventListener("click", () => {
+  if (window.confirm("Delete all progress, permanent collections, and records? This cannot be undone.")) dispatchGameAction("progress/reset");
+});
+boardElement.addEventListener("scroll", () => {
+  if (!boardElement.classList.contains("is-virtual") || virtualScrollFrame) return;
+  virtualScrollFrame = window.requestAnimationFrame(() => {
+    virtualScrollFrame = 0;
+    render();
+  });
+});
+restructureProgressButton.addEventListener("click", () => dispatchGameAction("progress/restructurePreview"));
+restructureCancelButton.addEventListener("click", () => { restructureModalElement.hidden = true; });
+restructureConfirmButton.addEventListener("click", () => dispatchGameAction("progress/restructureConfirm"));
+speculationEnabledElement.addEventListener("change", () => dispatchGameAction("autoMiners/speculation", { enabled: speculationEnabledElement.checked }));
+speculationThresholdElement.addEventListener("input", () => {
+  speculationThresholdValueElement.textContent = `${speculationThresholdElement.value}%`;
+});
+speculationThresholdElement.addEventListener("change", () => dispatchGameAction("autoMiners/speculation", { threshold: Number(speculationThresholdElement.value) / 100 }));
+manualFlagReserveElement.addEventListener("input", () => {
+  manualFlagReserveValueElement.textContent = manualFlagReserveElement.value;
+});
+manualFlagReserveElement.addEventListener("change", () => dispatchGameAction("autoMiners/manualFlagReserve", { value: Number(manualFlagReserveElement.value) }));
 window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !fieldSpecificationMenuElement.hidden) {
+    fieldSpecificationMenuElement.hidden = true;
+    fieldSpecificationToggleButton.setAttribute("aria-expanded", "false");
+    fieldSpecificationToggleButton.focus();
+    return;
+  }
   if (event.shiftKey && event.key.toLowerCase() === "g") {
     event.preventDefault();
     dispatchGameAction("debug/grantCoins");
+  }
+  if (event.shiftKey && event.key.toLowerCase() === "l") {
+    event.preventDefault();
+    startDeveloperBoard();
+  }
+  if (event.shiftKey && event.key.toLowerCase() === "p") {
+    event.preventDefault();
+    startDeveloperBoard({ parcel: true });
   }
 });
 function initializeApplication() {

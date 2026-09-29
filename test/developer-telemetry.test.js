@@ -9,7 +9,7 @@ import {
   summarizeDeveloperTelemetry,
 } from "../src/engine/developer-telemetry.js";
 
-test("developer telemetry snapshots and resets every board run", () => {
+test("developer telemetry snapshots and resets every Board attempt", () => {
   const telemetry = createDeveloperTelemetry();
   restartDeveloperRun(telemetry, { rows: 3, cols: 3, mines: 1 }, 1000);
   recordDeveloperEvent(telemetry, { type: "reveal", count: 4 }, 1100);
@@ -17,11 +17,11 @@ test("developer telemetry snapshots and resets every board run", () => {
   resolveDeveloperRun(telemetry, "cleared", 500, 1500);
   restartDeveloperRun(telemetry, { rows: 4, cols: 4, mines: 2 }, 2000);
 
-  assert.equal(telemetry.completedRuns.length, 1);
-  assert.equal(telemetry.completedRuns[0].revealCount, 4);
-  assert.equal(telemetry.completedRuns[0].firstPurchaseTimeMs, 250);
-  assert.equal(telemetry.currentRun.revealCount, 0);
-  assert.deepEqual(telemetry.currentRun.board, { rows: 4, cols: 4, mines: 2 });
+  assert.equal(telemetry.completedAttempts.length, 1);
+  assert.equal(telemetry.completedAttempts[0].revealCount, 4);
+  assert.equal(telemetry.completedAttempts[0].firstPurchaseTimeMs, 250);
+  assert.equal(telemetry.currentAttempt.revealCount, 0);
+  assert.deepEqual(telemetry.currentAttempt.board, { rows: 4, cols: 4, mines: 2 });
 });
 
 test("developer telemetry derives rates, averages, and counter maps", () => {
@@ -34,15 +34,16 @@ test("developer telemetry derives rates, averages, and counter maps", () => {
   restartDeveloperRun(telemetry, { rows: 3, cols: 3, mines: 1 }, 2600);
 
   const summary = summarizeDeveloperTelemetry(telemetry, 2700);
-  assert.equal(summary.runsRecorded, 2);
+  assert.equal(summary.attemptsRecorded, 2);
   assert.equal(summary.averageBoardDurationMs, 500);
   assert.equal(summary.mineHitRate, 0.5);
   assert.equal(summary.abandonedBoardRate, 0.5);
   assert.deepEqual(summary.equipmentUses, { probeCharge: 1 });
 });
 
-test("developer telemetry keeps structured board actions", () => {
+test("developer telemetry keeps action aggregates without a permanent action log", () => {
   const telemetry = createDeveloperTelemetry();
+  restartDeveloperRun(telemetry, { rows: 3, cols: 3, mines: 1 }, 1000);
   recordDeveloperAction(telemetry, {
     actor: "worker",
     specialistId: "excavator",
@@ -53,13 +54,7 @@ test("developer telemetry keeps structured board actions", () => {
     result: { outcome: "opened", revealedTiles: [4, 5] },
   });
 
-  assert.deepEqual(telemetry.actions, [{
-    actor: "worker",
-    specialistId: "excavator",
-    actionType: "dig",
-    target: { index: 4, row: 1, col: 1 },
-    timeMs: 1250,
-    evidence: [{ index: 1, row: 0, col: 1, adjacent: 1, flaggedNeighbors: 1, hiddenNeighbors: 1 }],
-    result: { outcome: "opened", revealedTiles: [4, 5] },
-  }]);
+  assert.equal(telemetry.currentAttempt.actionCount, 1);
+  assert.equal(telemetry.currentAttempt.workerActionCount, 1);
+  assert.equal("actions" in telemetry, false);
 });
