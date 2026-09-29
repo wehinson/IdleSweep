@@ -15,12 +15,7 @@ export const SPECIALISTS = Object.freeze([
   { id: "surveyor", name: "Surveyor", group: "district", currency: "coins", baseCost: 100, task: "Before District unlock, enlarges the guaranteed-safe opening. After unlock, surveys one Unknown Parcel at a time." },
   { id: "excavator", name: "Excavator", group: "agents", currency: "coins", baseCost: 150, task: "From top-left, opens one tile beside a number already touching enough flags." },
   { id: "flagbearer", name: "Flagbearer", group: "agents", currency: "coins", baseCost: 180, task: "From bottom-left, places one certain flag when all remaining neighbors must be mines." },
-  { id: "depthAnalyst", name: "Depth Analyst", group: "specialists", currency: "mines", baseCost: 5, task: "Looks for safe chording opportunities from the bottom-right." },
-  { id: "prospector", name: "Prospector", group: "specialists", currency: "mines", baseCost: 6, task: "Checks one row per pass for treasure chests." },
-  { id: "tunneller", name: "Tunneller", group: "specialists", currency: "mines", baseCost: 8, task: "Solves one 1-2-1 pattern per pass." },
-  { id: "foreman", name: "Foreman", group: "specialists", currency: "mines", baseCost: 10, task: "Solves one 1-2-2-1 pattern per pass." },
-  { id: "coordinator", name: "Coordinator", group: "specialists", currency: "mines", baseCost: 12, task: "Finds 1-2-x mine patterns." },
-  { id: "pathfinder", name: "Pathfinder", group: "specialists", currency: "mines", baseCost: 15, task: "Finds border-based 1-1-x patterns, improving at levels 5 and 10." },
+  { id: "analyst", name: "Analyst", group: "specialists", currency: "coins", upgradeCurrency: "mines", baseCost: 250, task: "Scans Analyze and Assist Boards for assigned blueprint patterns." },
 ]);
 
 export const SPECIAL_EQUIPMENT_BY_ID = Object.freeze(Object.fromEntries(SPECIAL_EQUIPMENT.map((item) => [item.id, item])));

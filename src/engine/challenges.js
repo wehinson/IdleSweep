@@ -9,8 +9,8 @@ export function challengeMatchesClear(challenge, result) {
 
 export function advanceChallengeTimers(messageBoard, elapsedMs, maxActive = Number.POSITIVE_INFINITY) {
   const challenges = messageBoard.challenges
-    .map((challenge) => ({ ...challenge, expiresInMs: challenge.expiresInMs - elapsedMs }))
-    .filter((challenge) => challenge.expiresInMs > 0);
+    .map((challenge) => (challenge.claimable ? challenge : { ...challenge, expiresInMs: challenge.expiresInMs - elapsedMs }))
+    .filter((challenge) => challenge.claimable || challenge.expiresInMs > 0);
   return {
     ...messageBoard,
     challenges,

@@ -37,8 +37,43 @@
           </div>
 
           <p id="status" class="status">Sweep the grid. Right-click or long-press to flag.</p>
-
-          <section id="worker-proof" class="worker-proof" aria-live="polite" hidden></section>
+          <p id="field-value" class="field-value">Field value: $0</p>
+          <div class="record-controls">
+            <div class="record-strip" aria-label="High Score">
+              <span>All-time <strong id="all-time-high-score">0</strong></span>
+              <span>This Run <strong id="run-high-score">0</strong></span>
+            </div>
+            <button id="field-specification-toggle" class="field-specification-toggle" type="button" aria-expanded="false" aria-controls="field-specification-menu">
+              Field Spec
+            </button>
+            <section id="field-specification-menu" class="field-specification-menu" aria-labelledby="field-specification-title" hidden>
+              <div class="field-specification-menu__header">
+                <span class="store__eyebrow">Board Setup</span>
+                <strong id="field-specification-title">Field Specification</strong>
+              </div>
+              <div class="field-specification-row">
+                <label for="cols-input">Width</label>
+                <select id="cols-input"></select>
+              </div>
+              <div class="field-specification-row">
+                <label for="rows-input">Height</label>
+                <select id="rows-input"></select>
+              </div>
+              <div class="field-specification-row">
+                <label for="mines-input">Mines</label>
+                <select id="mines-input"></select>
+              </div>
+              <div class="field-specification-row">
+                <label for="treasures-input">Treasures</label>
+                <select id="treasures-input"></select>
+              </div>
+              <label class="field-specification-switch" for="swap-controls-input">
+                <span>Swap flag/dig clicks</span>
+                <input id="swap-controls-input" type="checkbox" />
+              </label>
+              <p id="settings-note" class="field-specification-note">1 mine and 1 treasure.</p>
+            </section>
+          </div>
 
           <div
             id="board"
@@ -63,11 +98,12 @@
             </div>
           </div>
           <div class="buttons" aria-label="Cabinet mode controls">
-            <button id="use-hint" class="cabinet-mode-button" type="button" title="Reveal a calculated proof">Use Hint</button>
-            <button id="district-button" class="cabinet-mode-button is-active" type="button">District</button>
-            <button id="auto-miners-button" class="cabinet-mode-button cabinet-mode-button--green" type="button">Auto Mine</button>
+            <button id="use-hint" class="cabinet-mode-button" type="button" title="Reveal a known safe space or mine">Use<br>Hint</button>
+            <button id="district-button" class="cabinet-mode-button" type="button">District</button>
+            <button id="auto-miners-button" class="cabinet-mode-button cabinet-mode-button--green" type="button">Auto<br>Mine</button>
           </div>
         </section>
+        <div id="worker-tooltip" class="worker-tooltip" role="tooltip" hidden></div>
       </main>
 
       <aside id="quartermaster-panel" class="quartermaster-panel" aria-label="Quartermaster inventory and store">
@@ -82,25 +118,28 @@
         </div>
 
         <div class="resource-grid" aria-label="Current resources">
-          <div class="resource-card resource-card--shovel" id="shovel-resource" data-tooltip="Needed to dig. Upgrade for more powerful tools.">
+          <div class="resource-card resource-card--shovel" id="shovel-resource" data-tooltip="Needed to dig. Upgrade for more powerful tools." tabindex="0">
             <span class="resource-card__icon" aria-hidden="true">⛏</span>
             <span class="resource-card__label">Shovels</span>
             <strong id="shovel-count" class="resource-card__value">10</strong>
             <span id="shovel-uses" class="resource-card__detail">100 digs</span>
           </div>
-          <div class="resource-card" id="flag-resource" data-tooltip="Needed to mark mines. Upgrade for better mine retrieval.">
+          <div class="resource-card" id="flag-resource" data-tooltip="Reusable company flags are shared by every Board." tabindex="0">
             <span class="resource-card__icon" aria-hidden="true">⚑</span>
             <span class="resource-card__label">Flags</span>
             <strong id="flag-stock" class="resource-card__value">15</strong>
-            <span id="flag-capacity" class="resource-card__detail">15 max</span>
+            <span id="flag-capacity" class="resource-card__detail">15 maximum</span>
+            <span id="flag-deployed" class="resource-card__detail">0 deployed</span>
+            <span id="flag-missing" class="resource-card__detail">0 replacing</span>
+            <span id="flag-regeneration" class="resource-card__detail" hidden>Next replacement: 00:30</span>
           </div>
-          <div class="resource-card" id="hint-resource" data-tooltip="Reveal one calculated proof on the active board.">
+          <div class="resource-card" id="hint-resource" data-tooltip="Reveal one known safe space or mine on the active board." tabindex="0">
             <span class="resource-card__icon" aria-hidden="true">?</span>
             <span class="resource-card__label">Hints</span>
             <strong id="hint-stock" class="resource-card__value">3</strong>
             <span id="hint-capacity" class="resource-card__detail">10 max</span>
           </div>
-          <div class="resource-card" id="mine-resource" data-tooltip="Purchase a Steel Shovel to unlock.">
+          <div class="resource-card" id="mine-resource" data-tooltip="Purchase a Steel Shovel to unlock." tabindex="0">
             <span class="resource-card__icon" aria-hidden="true">✹</span>
             <span class="resource-card__label">Mines</span>
             <strong id="active-mine-count" class="resource-card__value">00</strong>
@@ -120,10 +159,10 @@
             </span>
             <span id="buy-shovel-cost" class="store-item__cost">$25</span>
           </button>
-          <button id="buy-flags" class="store-item" type="button" title="Supplies cannot be bought during a round.">
+          <button id="buy-flags" class="store-item" type="button" title="Replace missing reusable flags.">
             <span class="store-item__copy">
-              <strong>Buy flags</strong>
-              <small>+5 flags</small>
+              <strong>Replace Flags</strong>
+              <small>Restores up to 5 missing flags</small>
             </span>
             <span id="buy-flags-cost" class="store-item__cost">$10</span>
           </button>
@@ -212,7 +251,7 @@
 
         <section id="specialists-panel" class="specialists-panel" aria-label="Auto Miner workers" hidden>
           <div class="panel-header">
-            <span class="panel-header__eyebrow">Auto Mine Crew</span>
+            <span class="panel-header__eyebrow">Auto Mine</span>
             <h2>District Crew</h2>
           </div>
 
@@ -224,6 +263,12 @@
           <div class="worker-group">
             <div class="store__subheader"><span class="store__eyebrow">Automation</span><strong>Board assistance</strong></div>
             <div id="automation-mode-list" class="specialist-list" aria-label="Automation mode"></div>
+            <label class="automation-setting"><input id="speculation-enabled" type="checkbox"> Authorized Speculation</label>
+            <label class="automation-setting" for="speculation-threshold">Maximum estimated risk <output id="speculation-threshold-value">15%</output></label>
+            <input id="speculation-threshold" type="range" min="1" max="50" step="1" value="15">
+            <label class="automation-setting" for="manual-flag-reserve">Manual Flag Reserve <output id="manual-flag-reserve-value">0</output></label>
+            <input id="manual-flag-reserve" type="range" min="0" max="15" step="1" value="0">
+            <p id="worker-usable-flags" class="store-note">Worker-usable now: 15</p>
           </div>
 
           <div class="worker-group">
@@ -243,6 +288,14 @@
           <div class="worker-group">
             <div class="store__subheader"><strong>Specialists</strong></div>
             <div id="specialist-list" class="specialist-list" aria-label="Specialist initiative"></div>
+          </div>
+          <div class="worker-group">
+            <div class="store__subheader"><span class="store__eyebrow">Blueprint Library</span><strong id="blueprint-count">0 / 2</strong></div>
+            <div id="blueprint-library" class="blueprint-library"></div>
+          </div>
+          <div class="worker-group">
+            <div class="store__subheader"><span class="store__eyebrow">Interventions</span><strong id="intervention-count">0</strong></div>
+            <div id="intervention-feed" class="intervention-feed"><p>No stalled background Boards.</p></div>
           </div>
           <p id="specialist-note" class="store-note">Surveyors investigate Unknown Parcels after the District is unlocked.</p>
         </section>
@@ -279,23 +332,6 @@
           <h2>Settings</h2>
         </div>
 
-        <fieldset class="setting-group">
-          <legend>Board Choice</legend>
-          <div class="setting-row setting-row--split">
-            <label for="cols-input">Columns</label>
-            <select id="cols-input"></select>
-          </div>
-          <div class="setting-row setting-row--split">
-            <label for="rows-input">Rows</label>
-            <select id="rows-input"></select>
-          </div>
-          <div class="setting-row setting-row--split">
-            <label for="mines-input">Mines</label>
-            <select id="mines-input"></select>
-          </div>
-          <p id="settings-note" class="settings-note">1 mine, placed after the first click.</p>
-        </fieldset>
-
         <fieldset class="setting-group message-board-controls">
           <legend>Message Board</legend>
           <div class="message-board-status">
@@ -324,7 +360,7 @@
           </summary>
           <dl id="stats-grid" class="stats-grid"></dl>
           <div class="stats-subsection">
-            <span class="stats-label">Developer telemetry · per board run</span>
+            <span class="stats-label">Developer telemetry · per Board attempt</span>
             <dl id="developer-stats-grid" class="stats-grid"></dl>
             <p id="developer-stats-note" class="settings-note"></p>
           </div>
@@ -334,15 +370,25 @@
           </div>
         </details>
 
-        <section class="progress-reset" aria-label="Progress reset">
+        <section class="progress-reset restructuring-control" aria-label="Corporate Restructuring">
           <div>
-            <strong>Progress</strong>
-            <span>Return to the starting purse, tools, abilities, and ledger.</span>
+            <strong>Corporate Restructuring</strong>
+            <span>Begin a new Run. Keep blueprints, Curios, hints, equipment, records, and lifetime statistics.</span>
+          </div>
+          <button id="restructure-progress" class="progress-reset__button" type="button">Preview</button>
+        </section>
+
+        <section class="progress-reset" aria-label="Delete all progress">
+          <div>
+            <strong>Delete All Progress</strong>
+            <span>Delete the company, permanent collection, records, and all Run data.</span>
           </div>
           <button id="reset-progress" class="progress-reset__button" type="button">
-            Reset
+            Delete
           </button>
         </section>
+
+        <p class="app-version">Sweeper Inc. <span id="app-version">0.2.5</span></p>
 
         <section class="save-management" aria-labelledby="save-management-title">
           <div>
@@ -400,6 +446,25 @@
         <button id="field-clear-modal-dismiss" class="contract-button contract-button--large" type="button">Clear</button>
       </section>
     </div>
+
+    <div id="restructure-modal" class="contract-modal" hidden>
+      <section class="contract-modal__window restructure-modal__window" role="dialog" aria-modal="true" aria-labelledby="restructure-modal-title">
+        <span class="store__eyebrow">Run transition</span>
+        <h2 id="restructure-modal-title">Corporate Restructuring</h2>
+        <p>Active and materialized Boards will be archived or abandoned. This action cannot be undone.</p>
+        <div class="restructure-summary">
+          <section><h3>This Run</h3><dl id="restructure-run-summary"></dl></section>
+          <section><h3>Will be lost</h3><p id="restructure-lost-summary"></p></section>
+          <section><h3>Will be retained</h3><dl id="restructure-retained-summary"></dl></section>
+        </div>
+        <div class="save-management__actions">
+          <button id="restructure-cancel" class="dev-button" type="button">Cancel</button>
+          <button id="restructure-confirm" class="progress-reset__button" type="button">Restructure</button>
+        </div>
+      </section>
+    </div>
+
+    <div id="quartermaster-tooltip" class="quartermaster-tooltip" role="tooltip" hidden></div>
 
     <script type="module" src="src/main.js"></script>
   </body>

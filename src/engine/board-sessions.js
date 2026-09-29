@@ -1,4 +1,5 @@
 import { BOARD_CATEGORIES } from "./camp-progression.js";
+import { INTERACTION_MODES, createAutomationState } from "./automation.js";
 import { createStableId } from "./seeded-random.js";
 
 export const BOARD_SESSION_STATUS = Object.freeze({
@@ -10,6 +11,7 @@ export const BOARD_SESSION_STATUS = Object.freeze({
 
 export function createBoardSession(options) {
   const seed = String(options.seed || `${Date.now()}:${Math.random()}`);
+  const defaultMode = options.category === BOARD_CATEGORIES.districtParcel ? INTERACTION_MODES.assist : INTERACTION_MODES.manual;
   return {
     id: options.id || createStableId("board", seed, options.ordinal || 0),
     category: options.category || BOARD_CATEGORIES.standard,
@@ -17,6 +19,8 @@ export function createBoardSession(options) {
     seed,
     settings: { ...options.settings },
     status: BOARD_SESSION_STATUS.preview,
+    initialMineCount: options.initialMineCount ?? null,
+    automation: options.automation ? JSON.parse(JSON.stringify(options.automation)) : createAutomationState(defaultMode),
     modeState: options.modeState || null,
     entrances: options.entrances ? JSON.parse(JSON.stringify(options.entrances)) : [],
     campDiscovery: Boolean(options.campDiscovery),
@@ -30,6 +34,14 @@ export function createBoardSession(options) {
 export function commitBoardSession(session) {
   if (session.status !== BOARD_SESSION_STATUS.preview) return session;
   return { ...session, status: BOARD_SESSION_STATUS.committed };
+}
+
+export function materializeBoardSession(session, initialMineCount) {
+  return {
+    ...commitBoardSession(session),
+    initialMineCount: Math.max(0, Number(initialMineCount) || 0),
+    automation: { ...session.automation, mutationRevision: (session.automation?.mutationRevision || 0) + 1 },
+  };
 }
 
 export function reserveContractDigs(session, player, shovelTier, requiredDigs) {

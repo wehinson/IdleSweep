@@ -1,6 +1,7 @@
-export function createCellInputController({ longPressMs = 450 } = {}) {
+export function createCellInputController({ longPressMs = 450, swapped = false } = {}) {
   let longPressTimer = null;
   let ignoreNextClick = false;
+  let isSwapped = swapped;
 
   function cancel() {
     if (longPressTimer !== null) {
@@ -9,23 +10,29 @@ export function createCellInputController({ longPressMs = 450 } = {}) {
     }
   }
 
+  function setSwapped(value) {
+    isSwapped = Boolean(value);
+  }
+
   function bind(button, { onActivate, onFlag, enableLongPress = true }) {
+    const primaryAction = () => (isSwapped ? onFlag() : onActivate());
+    const secondaryAction = () => (isSwapped ? onActivate() : onFlag());
     button.addEventListener("click", () => {
       if (ignoreNextClick) {
         ignoreNextClick = false;
         return;
       }
-      onActivate();
+      primaryAction();
     });
     button.addEventListener("contextmenu", (event) => {
       event.preventDefault();
-      onFlag();
+      secondaryAction();
     });
     button.addEventListener("pointerdown", () => {
       if (!enableLongPress) return;
       cancel();
       longPressTimer = window.setTimeout(() => {
-        onFlag();
+        secondaryAction();
         ignoreNextClick = true;
         longPressTimer = null;
       }, longPressMs);
@@ -35,5 +42,5 @@ export function createCellInputController({ longPressMs = 450 } = {}) {
     button.addEventListener("pointercancel", cancel);
   }
 
-  return { bind, cancel };
+  return { bind, cancel, setSwapped };
 }

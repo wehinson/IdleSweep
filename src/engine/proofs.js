@@ -73,6 +73,18 @@ export function availableProofs(board, settings) {
   return proofs;
 }
 
+export function availableFlagSatisfiedSafeProofs(board, settings) {
+  const proofs = [];
+  board.filter((cell) => cell.open && !cell.mine && cell.adjacent > 0).forEach((clue) => {
+    const nearby = getNeighbors(clue, board, settings);
+    const flagCount = nearby.filter((cell) => cell.flagged).length;
+    if (flagCount !== clue.adjacent) return;
+    const targetIndexes = nearby.filter((cell) => !cell.open && !cell.flagged).map((cell) => cell.index);
+    if (targetIndexes.length) proofs.push({ type: "flagSatisfiedClueSafe", clueIndex: clue.index, targetIndexes });
+  });
+  return proofs;
+}
+
 export function scoreProofCascade(board, settings, proof) {
   const baseline = new Set(board.filter((cell) => PROOF_KEYS.some((key) => cell[key])).map((cell) => cell.index));
   const simulated = board.map((cell) => ({ ...cell }));

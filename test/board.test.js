@@ -20,3 +20,14 @@ test("clear evaluation ignores unopened mines", () => {
   board.slice(1).forEach((cell) => { cell.open = true; });
   assert.equal(hasClearedBoard(board), true);
 });
+
+test("runtime Board state uses typed flags and sparse find records", () => {
+  const board = createBoardCells({ rows: 4, cols: 4, mines: 2 });
+  board[3].mine = true;
+  board[5].treasure = true;
+  board[5].treasureValue = 20;
+  assert.equal(board.storage.bits instanceof Uint16Array, true);
+  assert.equal(board.storage.adjacent instanceof Uint8Array, true);
+  assert.deepEqual([...board.storage.treasureValues], [[5, 20]]);
+  assert.equal(board[3].mine, true);
+});

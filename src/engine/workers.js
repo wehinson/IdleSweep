@@ -11,7 +11,7 @@ export function createWorkerState(definitions, legacyLevels = {}) {
     };
     if (level > 0) {
       const id = `${definition.id}-1`;
-      workersById[id] = createWorker(id, definition.id, 1);
+      workersById[id] = createWorker(id, definition.id, 1, level);
     }
   }
   return { workerTypes, workersById };
@@ -42,9 +42,37 @@ export function hireWorker(workerState, workerDefinition) {
           nextWorkerNumber: number + 1,
         },
       },
-      workersById: { ...workerState.workersById, [id]: createWorker(id, workerDefinition.id, number) },
+      workersById: { ...workerState.workersById, [id]: createWorker(id, workerDefinition.id, number, 1) },
     },
   };
+}
+
+export function workerUpgradeCost(workerDefinition, worker, options = {}) {
+  const base = options.baseCost ?? workerDefinition.upgradeBaseCost ?? workerDefinition.baseCost;
+  const growth = options.growth ?? 1.6;
+  return Math.ceil(base * growth ** Math.max(0, worker.level - 1));
+}
+
+export function upgradeWorker(workerState, workerId) {
+  const worker = workerState.workersById[workerId];
+  if (!worker) throw new Error(`Unknown worker: ${workerId}`);
+  const next = structuredCloneSafe(workerState);
+  next.workersById[workerId].level += 1;
+  next.workerTypes[worker.typeId].level = Math.max(
+    ...Object.values(next.workersById).filter((item) => item.typeId === worker.typeId).map((item) => item.level),
+  );
+  return next;
+}
+
+export function assignBlueprints(workerState, workerId, blueprintIds, secondSlotLevel = 5) {
+  const worker = workerState.workersById[workerId];
+  if (!worker || worker.typeId !== "analyst") throw new Error(`Worker ${workerId} is not an Analyst.`);
+  const capacity = worker.level >= secondSlotLevel ? 2 : 1;
+  const unique = [...new Set(blueprintIds)];
+  if (unique.length > capacity) throw new Error(`Analyst ${workerId} can hold ${capacity} blueprint assignment${capacity === 1 ? "" : "s"}.`);
+  const next = structuredCloneSafe(workerState);
+  next.workersById[workerId].blueprintIds = unique;
+  return next;
 }
 
 export function availableWorkers(workerState, typeId) {
@@ -75,8 +103,8 @@ export function releaseWorkers(workerState, workerIds) {
   return next;
 }
 
-function createWorker(id, typeId, number) {
-  return { id, typeId, number, status: "AVAILABLE", assignment: null };
+function createWorker(id, typeId, number, level = 1) {
+  return { id, typeId, number, level, status: "AVAILABLE", assignment: null, blueprintIds: [] };
 }
 
 function structuredCloneSafe(value) {
