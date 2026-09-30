@@ -5,6 +5,7 @@ const UPGRADE_LEVEL_KEYS = Object.freeze({
   tallerGrid: "tallerGridLevel", widerGrid: "widerGridLevel", improveShovel: "shovelTier",
   addMine: "mineLevel", addTreasure: "treasureLevel", mineYield: "mineYieldLevel",
   treasureValue: "treasureValueLevel", betterFlags: "betterFlagsLevel",
+  shovelCapacity: "shovelCapacityLevel", flagCapacity: "flagCapacityLevel",
 });
 
 export function upgradeIsUnlocked(id, player, order) {

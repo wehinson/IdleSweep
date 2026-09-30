@@ -17,7 +17,7 @@ test("store purchaseable registry has unique stable ids across every store kind"
   assert.equal(STORE_PURCHASEABLE_BY_ID["upgrade:shovelCapacity"].kind, PURCHASEABLE_KINDS.upgrade);
   assert.equal(STORE_PURCHASEABLE_BY_ID["ability:chording"].kind, PURCHASEABLE_KINDS.ability);
   assert.deepEqual(
-    STORE_PURCHASEABLES.filter((purchaseable) => purchaseable.kind === PURCHASEABLE_KINDS.upgrade && !purchaseable.targetId.endsWith("Capacity"))
+    STORE_PURCHASEABLES.filter((purchaseable) => purchaseable.kind === PURCHASEABLE_KINDS.upgrade)
       .map((purchaseable) => purchaseable.targetId),
     GAME_CONFIG.progression.order,
   );

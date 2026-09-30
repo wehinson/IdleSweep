@@ -878,6 +878,7 @@ function replaceGameState(savedState) {
     curios: player.curios,
     lifetimeStats: player.stats,
   });
+  profile.equipmentPurchaseIds = equipmentShopState(player, profile).purchasedIds;
   runMeta = savedState.runMeta || createRun({ ordinal: 1 });
   preferences = savedState.preferences || {
     lastBoardSelection: savedState.settings,
@@ -1683,7 +1684,7 @@ boardInputController.bind(button, {
         text = String(cell.adjacent);
       }
 
-      if (player.chordingUnlocked && cell.adjacent > 0 && !cell.mine) {
+      if (chordingLevel(player) > 0 && cell.adjacent > 0 && !cell.mine) {
         classes.push("is-chordable");
         button.title = formatMessage("chordingReady");
       }
@@ -2790,6 +2791,7 @@ function purchaseUpgrade(targetId) {
 }
 
 function purchaseCapacityUpgrade(kind) {
+  if (!isUpgradeUnlocked(kind === "shovel" ? "shovelCapacity" : "flagCapacity")) return false;
   const levels = kind === "shovel" ? BALANCE_CONFIG.capacity.shovel : BALANCE_CONFIG.capacity.flags;
   const levelKey = kind === "shovel" ? "shovelCapacityLevel" : "flagCapacityLevel";
   const costs = kind === "shovel" ? BALANCE_CONFIG.upgrades.shovelCapacityCosts : BALANCE_CONFIG.upgrades.flagCapacityCosts;
@@ -4118,7 +4120,7 @@ function updateProgressionUI() {
   const shovelCap = shovelCapacity();
   const nextShovelCap = nextCapacity("shovel");
   const shovelCapCost = capacityUpgradeCost("shovel");
-  showProgression(upgradeElements.shovelCap, true, progressionLocked || !nextShovelCap || player.coins < shovelCapCost);
+  showProgression(upgradeElements.shovelCap, isUpgradeUnlocked("shovelCapacity"), progressionLocked || !nextShovelCap || player.coins < shovelCapCost);
   upgradeElements.shovelCapTitle.textContent = COPY_CONFIG.upgradeLabels.shovelLocker;
   upgradeElements.shovelCapCost.textContent = nextShovelCap ? formatCurrency(shovelCapCost) : "Max";
   upgradeElements.shovelCapDetail.textContent = nextShovelCap ? `${shovelCap} → ${nextShovelCap} shovels` : "50 shovel maximum reached";
@@ -4126,7 +4128,7 @@ function updateProgressionUI() {
   const flagCap = flagCapacity();
   const nextFlagCap = nextCapacity("flags");
   const flagCapCost = capacityUpgradeCost("flags");
-  showProgression(upgradeElements.flagCap, true, progressionLocked || !nextFlagCap || player.coins < flagCapCost);
+  showProgression(upgradeElements.flagCap, isUpgradeUnlocked("flagCapacity"), progressionLocked || !nextFlagCap || player.coins < flagCapCost);
   upgradeElements.flagCapTitle.textContent = COPY_CONFIG.upgradeLabels.flagLocker;
   upgradeElements.flagCapCost.textContent = nextFlagCap ? formatCurrency(flagCapCost) : "Max";
   upgradeElements.flagCapDetail.textContent = nextFlagCap
@@ -4999,7 +5001,7 @@ function clamp(value, min, max) {
 function activateBoardCell(index) {
   const cell = board[index];
   if (!cell) return;
-  if (cell.open && cell.adjacent > 0 && player.chordingUnlocked) {
+  if (cell.open && cell.adjacent > 0 && chordingLevel(player) > 0) {
     chordCell(index);
     return;
   }
@@ -5254,6 +5256,7 @@ window.addEventListener("keydown", (event) => {
     restructureModalElement.hidden = true;
     fieldClearModalElement.hidden = true;
     if (!contractModalElement.hidden) closeContractBriefing();
+    contractModalElement.hidden = true;
     fieldSpecificationMenuElement.hidden = true;
     fieldSpecificationToggleButton.setAttribute("aria-expanded", "false");
     equipmentInventoryElement.hidden = true;

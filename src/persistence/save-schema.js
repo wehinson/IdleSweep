@@ -41,6 +41,11 @@ export function validateSave(input) {
   const document = migrateSave(input);
   const state = unpackVersionThreeState(document.state);
   assertPlainObject(document.state.profile, "state.profile");
+  const purchases = document.state.profile.equipmentPurchaseIds;
+  if (purchases !== undefined && (!Array.isArray(purchases)
+    || purchases.some((id) => !SPECIAL_EQUIPMENT.some((item) => item.id === id)))) {
+    throw new Error("The equipment purchase history is invalid.");
+  }
   assertPlainObject(document.state.run, "state.run");
   assertPlainObject(document.state.preferences, "state.preferences");
   assertPlainObject(state, "state");
@@ -345,6 +350,10 @@ function validateDeveloperRun(run, path) {
 }
 
 function validatePlayer(player) {
+  if (player.chordingLevel !== undefined
+    && (!Number.isInteger(player.chordingLevel) || player.chordingLevel < 0 || player.chordingLevel > 2)) {
+    throw new Error("The chording level is invalid.");
+  }
   for (const key of ["coins", "shovels", "flags", "mines", "shovelUses"]) {
     assertFiniteNonNegative(player[key], `player.${key}`);
   }

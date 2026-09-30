@@ -42,7 +42,7 @@ test("unaffordable equipment cannot unlock the next item", () => {
 });
 
 test("upgrades reveal a growing prefix in their constant order", () => {
-  const keys = ["tallerGridLevel", "widerGridLevel", "shovelTier", "mineLevel", "treasureLevel", "mineYieldLevel", "treasureValueLevel", "betterFlagsLevel"];
+  const keys = ["tallerGridLevel", "widerGridLevel", "shovelTier", "mineLevel", "treasureLevel", "mineYieldLevel", "treasureValueLevel", "betterFlagsLevel", "shovelCapacityLevel", "flagCapacityLevel"];
   const player = Object.fromEntries(keys.map((key) => [key, 0]));
   const order = config.progression.order;
   for (let index = 0; index < order.length; index += 1) {

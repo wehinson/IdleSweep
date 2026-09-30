@@ -268,7 +268,7 @@ const SWEEPER_INC_CONFIG = {
 
   // This is the only reveal order used by the Workshop. Internal ids stay stable.
   progression: {
-    order: ["tallerGrid", "widerGrid", "improveShovel", "addMine", "addTreasure", "mineYield", "treasureValue", "betterFlags"],
+    order: ["tallerGrid", "widerGrid", "improveShovel", "addMine", "addTreasure", "mineYield", "treasureValue", "betterFlags", "shovelCapacity", "flagCapacity"],
     items: {
       tallerGrid: { name: "Taller Grid", description: "Unlock {next} rows for future rounds.", baseCost: 80, growth: 1.5 },
       widerGrid: { name: "Wider Grid", description: "Unlock {next} columns for future rounds.", baseCost: 80, growth: 1.5 },
