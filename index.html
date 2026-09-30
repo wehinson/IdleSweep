@@ -108,8 +108,7 @@
 
       <aside id="quartermaster-panel" class="quartermaster-panel" aria-label="Quartermaster inventory and store">
         <div class="panel-header">
-          <span class="panel-header__eyebrow">Supply Deck</span>
-          <h2>Quartermaster's</h2>
+          <h2>Quartermaster</h2>
         </div>
 
         <div class="coin-display" aria-label="Coins">
@@ -149,7 +148,6 @@
 
         <section class="store" aria-labelledby="supplies-title">
           <div class="store__header">
-            <span class="store__eyebrow">Outfitter</span>
             <h3 id="supplies-title">Supplies</h3>
           </div>
           <button id="buy-shovel" class="store-item" type="button" title="Supplies cannot be bought during a round.">
@@ -162,7 +160,7 @@
           <button id="buy-flags" class="store-item" type="button" title="Replace missing reusable flags.">
             <span class="store-item__copy">
               <strong>Replace Flags</strong>
-              <small>Restores up to 5 missing flags</small>
+              <small>Restores up to 7 missing flags</small>
             </span>
             <span id="buy-flags-cost" class="store-item__cost">$10</span>
           </button>
@@ -170,83 +168,13 @@
             <span class="store-item__copy"><strong>Buy hints</strong><small>+5 hints</small></span>
             <span id="buy-hints-cost" class="store-item__cost">$1000</span>
           </button>
-          <button id="shovel-cap" class="store-item store-item--compact" type="button" hidden>
-            <span class="store-item__copy"><strong id="shovel-cap-title">Shovel Locker</strong><small id="shovel-cap-detail">Raise storage cap</small></span>
-            <span id="shovel-cap-cost" class="store-item__cost">$120</span>
-          </button>
-          <button id="flag-cap" class="store-item store-item--compact" type="button" hidden>
-            <span class="store-item__copy"><strong id="flag-cap-title">Flag Locker</strong><small id="flag-cap-detail">Raise storage cap</small></span>
-            <span id="flag-cap-cost" class="store-item__cost">$160</span>
-          </button>
           <div id="special-equipment-store" class="special-equipment-store" hidden>
             <div class="store__subheader">
-              <span class="store__eyebrow">Special Equipment</span>
-              <strong>Single-use recovery tools</strong>
+              <h3 id="special-equipment-title">Equipment</h3>
             </div>
             <div id="special-equipment-list" class="store-list"></div>
           </div>
           <p id="store-note" class="store-note">Supplies are stocked between rounds.</p>
-        </section>
-
-        <section id="upgrades-section" class="store" aria-labelledby="upgrades-title">
-          <div class="store__header">
-            <span class="store__eyebrow">Workshop</span>
-            <h3 id="upgrades-title">Upgrades</h3>
-          </div>
-          <div class="store-list">
-            <button id="taller-grid" class="store-item" type="button" hidden>
-              <span class="store-item__copy"><strong id="taller-grid-title">Taller Grid</strong><small id="taller-grid-detail">Unlock +1 row</small></span>
-              <span id="taller-grid-cost" class="store-item__cost">$80</span>
-            </button>
-            <button id="wider-grid" class="store-item" type="button" hidden>
-              <span class="store-item__copy"><strong id="wider-grid-title">Wider Grid</strong><small id="wider-grid-detail">Unlock +1 column</small></span>
-              <span id="wider-grid-cost" class="store-item__cost">$80</span>
-            </button>
-            <button id="improve-shovel" class="store-item" type="button">
-              <span class="store-item__copy">
-                <strong id="upgrade-title">Improve shovel</strong>
-                <small id="upgrade-detail">Wooden → Copper</small>
-              </span>
-              <span id="upgrade-cost" class="store-item__cost">$60</span>
-            </button>
-            <button id="add-mine" class="store-item" type="button" hidden>
-              <span class="store-item__copy"><strong>Add mine</strong><small id="add-mine-detail">Unlock +1 mine</small></span>
-              <span id="add-mine-cost" class="store-item__cost">$90</span>
-            </button>
-            <button id="add-treasure" class="store-item" type="button" hidden>
-              <span class="store-item__copy"><strong>Add treasure</strong><small id="add-treasure-detail">Unlock +1 chest</small></span>
-              <span id="add-treasure-cost" class="store-item__cost">$80</span>
-            </button>
-            <button id="treasure-value" class="store-item" type="button" hidden>
-              <span class="store-item__copy"><strong>Richer caches</strong><small id="treasure-value-detail">Increase average value</small></span>
-              <span id="treasure-value-cost" class="store-item__cost">$100</span>
-            </button>
-            <button id="better-flags" class="store-item" type="button" hidden>
-              <span class="store-item__copy"><strong>Better Flags</strong><small id="better-flags-detail">Improve mine recovery</small></span>
-              <span id="better-flags-cost" class="store-item__cost">$150</span>
-            </button>
-            <button id="mine-yield" class="store-item" type="button" hidden>
-              <span class="store-item__copy"><strong>Mine yield</strong><small id="mine-yield-detail">+1% per extra mine</small></span>
-              <span id="mine-yield-cost" class="store-item__cost">$180</span>
-            </button>
-          </div>
-        </section>
-
-        <section id="abilities-section" class="store" aria-labelledby="abilities-title">
-          <div class="store__header">
-            <span class="store__eyebrow">Abilities</span>
-            <h3 id="abilities-title">Abilities</h3>
-          </div>
-          <div class="store-list">
-            <button id="safety-radius" class="store-item" type="button">
-              <span class="store-item__copy"><strong>Safety Radius</strong><small id="safety-radius-detail">No mine near first click</small></span>
-              <span id="safety-radius-cost" class="store-item__cost">$40</span>
-            </button>
-            <button id="chording" class="store-item" type="button" hidden>
-              <span class="store-item__copy"><strong id="chording-title">Chording</strong><small id="chording-detail">Unlock regular Minesweeper chording</small></span>
-              <span id="chording-cost" class="store-item__cost">3 mines</span>
-            </button>
-          </div>
         </section>
 
         <section id="specialists-panel" class="specialists-panel" aria-label="Auto Miner workers" hidden>
@@ -299,6 +227,77 @@
           </div>
           <p id="specialist-note" class="store-note">Surveyors investigate Unknown Parcels after the District is unlocked.</p>
         </section>
+      </aside>
+
+      <aside id="workshop-panel" class="workshop-panel" aria-label="Workshop upgrades and abilities">
+        <div class="panel-header"><h2>Workshop</h2></div>
+        <section id="upgrades-section" class="store" aria-labelledby="upgrades-title">
+          <div class="store__header">
+            <h3 id="upgrades-title">Upgrades</h3>
+          </div>
+          <div class="store-list">
+          <button id="taller-grid" class="store-item" type="button" hidden>
+              <span class="store-item__copy"><strong id="taller-grid-title">Taller Grid</strong><small id="taller-grid-detail">Unlock +1 row</small></span>
+              <span id="taller-grid-cost" class="store-item__cost">$80</span>
+            </button>
+          <button id="wider-grid" class="store-item" type="button" hidden>
+              <span class="store-item__copy"><strong id="wider-grid-title">Wider Grid</strong><small id="wider-grid-detail">Unlock +1 column</small></span>
+              <span id="wider-grid-cost" class="store-item__cost">$80</span>
+            </button>
+          <button id="improve-shovel" class="store-item" type="button">
+              <span class="store-item__copy">
+                <strong id="upgrade-title">Improve shovel</strong>
+                <small id="upgrade-detail">Wooden → Copper</small>
+              </span>
+              <span id="upgrade-cost" class="store-item__cost">$60</span>
+            </button>
+          <button id="add-mine" class="store-item" type="button" hidden>
+              <span class="store-item__copy"><strong>Add mine</strong><small id="add-mine-detail">Unlock +1 mine</small></span>
+              <span id="add-mine-cost" class="store-item__cost">$90</span>
+            </button>
+          <button id="add-treasure" class="store-item" type="button" hidden>
+              <span class="store-item__copy"><strong>Add treasure</strong><small id="add-treasure-detail">Unlock +1 chest</small></span>
+              <span id="add-treasure-cost" class="store-item__cost">$120</span>
+            </button>
+          <button id="mine-yield" class="store-item" type="button" hidden>
+              <span class="store-item__copy"><strong>Mine yield</strong><small id="mine-yield-detail">+1% per extra mine</small></span>
+              <span id="mine-yield-cost" class="store-item__cost">$180</span>
+            </button>
+          <button id="treasure-value" class="store-item" type="button" hidden>
+              <span class="store-item__copy"><strong>Richer caches</strong><small id="treasure-value-detail">Increase average value</small></span>
+              <span id="treasure-value-cost" class="store-item__cost">$100</span>
+            </button>
+          <button id="better-flags" class="store-item" type="button" hidden>
+              <span class="store-item__copy"><strong>Better Flags</strong><small id="better-flags-detail">Improve mine recovery</small></span>
+              <span id="better-flags-cost" class="store-item__cost">$150</span>
+            </button>
+          <button id="shovel-cap" class="store-item store-item--compact" type="button" hidden>
+            <span class="store-item__copy"><strong id="shovel-cap-title">Shovel Locker</strong><small id="shovel-cap-detail">Raise storage cap</small></span>
+            <span id="shovel-cap-cost" class="store-item__cost">$120</span>
+          </button>
+          <button id="flag-cap" class="store-item store-item--compact" type="button" hidden>
+            <span class="store-item__copy"><strong id="flag-cap-title">Flag Locker</strong><small id="flag-cap-detail">Raise storage cap</small></span>
+            <span id="flag-cap-cost" class="store-item__cost">$160</span>
+          </button>
+          </div>
+        </section>
+
+        <section id="abilities-section" class="store" aria-labelledby="abilities-title">
+          <div class="store__header">
+            <h3 id="abilities-title">Abilities</h3>
+          </div>
+          <div class="store-list">
+            <button id="safety-radius" class="store-item" type="button">
+              <span class="store-item__copy"><strong>Safety Radius</strong><small id="safety-radius-detail">No mine near first click</small></span>
+              <span id="safety-radius-cost" class="store-item__cost">$40</span>
+            </button>
+            <button id="chording" class="store-item" type="button" hidden>
+              <span class="store-item__copy"><strong id="chording-title">Chording</strong><small id="chording-detail">Unlock regular Minesweeper chording</small></span>
+              <span id="chording-cost" class="store-item__cost">3 mines</span>
+            </button>
+          </div>
+        </section>
+
       </aside>
 
       <aside class="contracts-panel message-board-panel" aria-label="Message Board">
@@ -384,7 +383,7 @@
             <span>Delete the company, permanent collection, records, and all Run data.</span>
           </div>
           <button id="reset-progress" class="progress-reset__button" type="button">
-            Delete
+            <span>Delete</span>
           </button>
         </section>
 

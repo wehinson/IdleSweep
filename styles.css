@@ -1349,6 +1349,9 @@ button {
 }
 
 .contract-modal__window {
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  scrollbar-color: var(--cyan) #080d13;
   background:
     linear-gradient(90deg, rgba(255, 255, 255, 0.06), transparent 22px),
     linear-gradient(180deg, #25313a, #111820);
@@ -1359,6 +1362,17 @@ button {
   max-width: 470px;
   padding: 22px;
   width: min(100%, 470px);
+}
+
+.restructure-modal__window { width: min(100%, 660px); max-width: 660px; padding: 16px; }
+.restructure-summary h3 { font-size: 0.8rem; margin: 10px 0 6px; }
+.restructure-summary dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 12px; margin: 0; }
+.restructure-summary dl div { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 6px 0; border-bottom: 1px solid rgba(216, 255, 232, 0.16); }
+.restructure-summary dt { font-size: 0.68rem; }
+.restructure-summary dd { margin: 0; color: var(--cyan); font-weight: bold; }
+.restructure-modal__window .save-management__actions { position: sticky; bottom: -16px; background: #111820; padding: 12px 0; margin-top: 12px; }
+@media (max-width: 480px) {
+  .restructure-summary dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 .contract-modal__window h2 {
@@ -2187,6 +2201,11 @@ body.is-auto-miners .quartermaster-panel > :not(#specialists-panel) {
   outline-offset: 2px;
 }
 
+#reset-progress { position: relative; overflow: hidden; touch-action: none; user-select: none; }
+#reset-progress.is-armed { background: #4a2026; }
+#reset-progress::before { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--hold-progress, 0%); background: #e43d40; }
+#reset-progress span { position: relative; z-index: 1; }
+
 .progress-reset__button:active {
   border-bottom-width: 2px;
   transform: translateY(2px);
@@ -2643,4 +2662,35 @@ select:disabled {
     min-width: max-content;
     width: max-content;
   }
+}
+
+/* Workshop shares the shop appearance and scroll behavior. */
+.workshop-panel {
+  background: linear-gradient(180deg, #28333a, #141d23);
+  border: 6px solid #080b10;
+  border-radius: 8px;
+  box-shadow: 0 22px 42px rgba(0, 0, 0, 0.35);
+  color: var(--white);
+  flex: 1 1 310px;
+  max-width: 330px;
+  min-width: 270px;
+  padding: 18px;
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  scrollbar-color: var(--cyan) #080d13;
+}
+.workshop-panel .store-item__copy { min-width: 0; overflow-wrap: anywhere; }
+body.is-auto-miners .workshop-panel { display: none; }
+body.is-contract-running .workshop-panel { filter: blur(3px) grayscale(0.2); opacity: 0.38; pointer-events: none; }
+@media (max-width: 700px) {
+  .workshop-panel { min-width: 0; width: min(100%, 430px); max-width: 430px; max-height: calc(100dvh - 24px); }
+}
+
+/* Keep keyboard focus visible without the yellow selection outline. */
+.field-specification-toggle:focus-visible,
+.field-specification-menu select:focus-visible,
+.field-specification-switch:focus-within,
+.field-specification-switch input:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--cyan);
 }
