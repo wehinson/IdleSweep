@@ -1,1 +1,1465 @@
-/* Tomb Expedition (Codex): placeholder. */
+/* Tomb Expedition: a 1920s field case, lapis cartouches and papyrus. */
+html[data-theme="tomb-expedition"] {
+  --ink: #30271c; --cabinet: #cda96c; --cabinet-edge: #6f502e;
+  --red: #963d2d; --yellow: #795419; --yellow-rgb: 121, 84, 25;
+  --cyan: #214c77; --green: #386147; --screen: #162c40;
+  --screen-glow: #30271c; --glow-rgb: 48, 39, 28;
+  --cell: #d8b579; --cell-raised: #ecd09a; --cell-open: #f2e4bc; --cell-open-alt: #e6d6a8;
+  --white: #30271c; --panel-bg: #f3e8c9; --panel-bg-deep: #dfcda5;
+  --num-1: #174e84; --num-2: #24603c; --num-3: #a03228; --num-4: #623781;
+  --mine: #efb49c; --font-display: "Cinzel", Georgia, serif;
+  --font-body: "Source Sans 3", "Segoe UI", sans-serif; --muted: #66563d;
+  --theme-line: #b89a66; --theme-soft: #e8d8b4; --theme-paper: #fbf2d8;
+  --theme-accent: #214c77; --theme-bright: #f1ce80; --theme-screen-text: #f4e7c9;
+  --theme-screen-muted: #d5c7ad; --theme-screen-card: #203b51;
+  --theme-button: #244c75; --theme-button-end: #173752; --theme-on-button: #fff0ca;
+  --theme-good-bg: #d4e4bd; --theme-good: #2f5535; --theme-danger-bg: #f4d5c1;
+  --theme-danger: #872e24; --theme-radius: 4px; --theme-panel-radius: 6px;
+  --theme-shadow: 0 14px 28px #35261530; --theme-focus: #3474ae;
+  --theme-hint: "☼"; --theme-curio: #694188;
+  color-scheme: light; background: #d5b885;
+}
+html[data-theme="tomb-expedition"] body {
+  background: radial-gradient(ellipse at 12% 5%, #fff0c9b0, transparent 42%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96'%3E%3Cpath d='M0 48h96M48 0v48M0 96h96M16 70h20m28-48h16' fill='none' stroke='%23816139' stroke-opacity='.12'/%3E%3C/svg%3E"),
+    linear-gradient(135deg, #ead2a0, #cfa772 65%, #a78155);
+  background-attachment: fixed;
+}
+html[data-theme="tomb-expedition"] .cabinet {
+  background: linear-gradient(90deg, #9c713f44, transparent 9%, transparent 91%, #9c713f44),
+    repeating-linear-gradient(0deg, transparent 0 63px, #79542618 64px 65px), linear-gradient(#e9cc94, #bf965a);
+  border: 5px solid var(--cabinet-edge); border-radius: 12px 12px 5px 5px;
+  box-shadow: 0 20px 36px #39271740, inset 0 0 0 2px #f5dfaf, inset 0 0 0 7px #a6824e;
+}
+html[data-theme="tomb-expedition"] .cabinet::before,
+html[data-theme="tomb-expedition"] .cabinet::after {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='72' viewBox='0 0 12 72'%3E%3Cg fill='none' stroke='%23e9c675' stroke-width='1.3'%3E%3Cpath d='M2 4h8v14H2zM3 10h6M6 23v16M2 28h8M2 49l4-6 4 6-4 6zM2 64h8M6 59v10'/%3E%3C/g%3E%3C/svg%3E") center top / 12px 72px repeat-y, #24486c;
+  width: 12px; top: 14px; height: calc(100% - 28px); border-radius: 8px;
+  border: 1px solid #edca82; box-shadow: 0 0 0 1px #705433; pointer-events: none;
+}
+html[data-theme="tomb-expedition"] .cabinet::before { left: 5px; }
+html[data-theme="tomb-expedition"] .cabinet::after { right: 5px; }
+html[data-theme="tomb-expedition"] .marquee {
+  background: linear-gradient(100deg, #173550, #315b83 48%, #173550);
+  border: 2px solid #ebc876; border-radius: 44px; color: #f6df9e;
+  box-shadow: 0 0 0 2px #69512e, inset 0 0 0 4px #23415b, inset 0 0 0 5px #a88c52; padding: 13px 9px;
+}
+html[data-theme="tomb-expedition"] .marquee h1 { font-size: clamp(1.05rem, 3.8vw, 1.38rem); font-weight: 700; letter-spacing: .04em; text-shadow: 0 2px 1px #071b2c; }
+html[data-theme="tomb-expedition"] .marquee__spark { color: #f6df9e; font-size: 1.15rem; text-shadow: 0 0 12px #f3b347; animation: tomb-expedition-torch 5s ease-in-out infinite alternate; }
+html[data-theme="tomb-expedition"] .screen { background: radial-gradient(ellipse at 50% 0, #49607060, transparent 65%), var(--screen); border: 3px solid #785732; border-radius: 5px; box-shadow: inset 0 2px 18px #06172370, 0 1px 0 #f8dea0; }
+html[data-theme="tomb-expedition"] .cell {
+  background: linear-gradient(135deg, #fff0c250, transparent 50%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18'%3E%3Cpath d='M3 9h2m7-5h1m-4 11h2' stroke='%2393703d' stroke-opacity='.2'/%3E%3C/svg%3E"), var(--cell);
+  border: 1px solid #9a7440; border-bottom: 3px solid #806034; border-radius: 3px;
+  box-shadow: inset 1px 1px 0 #f9e2a4, inset -1px -1px 0 #b4915a; color: #41301d;
+}
+html[data-theme="tomb-expedition"] .settings-panel,
+html[data-theme="tomb-expedition"] .curio-panel,
+html[data-theme="tomb-expedition"] .contracts-panel,
+html[data-theme="tomb-expedition"] .quartermaster-panel,
+html[data-theme="tomb-expedition"] .workshop-panel,
+html[data-theme="tomb-expedition"] .contract-modal__window {
+  background: repeating-linear-gradient(0deg, #9b744709 0 1px, transparent 1px 4px), linear-gradient(115deg, #fbf2d8, #eddfbc);
+}
+html[data-theme="tomb-expedition"] .curio-slot { border-radius: 45% 45% 3px 3px; }
+html[data-theme="tomb-expedition"] .district-view { background: repeating-linear-gradient(0deg, transparent 0 23px, #96764822 23px 24px), repeating-linear-gradient(90deg, transparent 0 23px, #96764822 23px 24px), #e8d4a6; }
+html[data-theme="tomb-expedition"] .district-cell { border-radius: 3px; }
+html[data-theme="tomb-expedition"] .district-cell.state-unknown { background: #6a614d; }
+html[data-theme="tomb-expedition"] .district-cell.state-accessible { background: #d6e1e3; }
+html[data-theme="tomb-expedition"] .worker-cursor--excavator .worker-cursor__label::before { content: "B"; }
+html[data-theme="tomb-expedition"] .worker-cursor--flagbearer .worker-cursor__label::before { content: "K"; }
+html[data-theme="tomb-expedition"] .contract-modal,
+html[data-theme="tomb-expedition"] body.is-contract-running::before { background: #172738c9; }
+@keyframes tomb-expedition-torch {
+  from { text-shadow: 0 0 5px #f3b347; }
+  to { text-shadow: 0 0 14px #f3b347, 0 0 3px #fff1ce; }
+}
+
+/* Full surface coverage, including transient controls and engine-driven states. */
+html[data-theme="tomb-expedition"] body {
+  font-family: var(--font-body);
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+html[data-theme="tomb-expedition"] button,
+html[data-theme="tomb-expedition"] select,
+html[data-theme="tomb-expedition"] input {
+  font-family: var(--font-body);
+}
+
+html[data-theme="tomb-expedition"] .app-shell {
+  gap: 18px;
+}
+
+html[data-theme="tomb-expedition"] .cabinet {
+  min-width: 0;
+  padding: 12px 19px 16px;
+}
+
+html[data-theme="tomb-expedition"] .marquee {
+  gap: 8px;
+  margin-inline: 3px;
+}
+
+html[data-theme="tomb-expedition"] .marquee h1 {
+  overflow-wrap: anywhere;
+}
+
+html[data-theme="tomb-expedition"] .screen {
+  padding: 12px;
+  color: var(--theme-screen-text);
+}
+
+html[data-theme="tomb-expedition"] .hud {
+  gap: 8px;
+}
+
+html[data-theme="tomb-expedition"] .meter {
+  background: var(--theme-screen-card);
+  border: 1px solid var(--theme-line);
+  border-radius: var(--theme-radius);
+  color: var(--theme-screen-text);
+  padding: 7px;
+}
+
+html[data-theme="tomb-expedition"] .meter__label {
+  color: var(--theme-screen-muted);
+  font-size: .66rem;
+  line-height: 1.2;
+}
+
+html[data-theme="tomb-expedition"] .meter__value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-theme="tomb-expedition"] #reset {
+  background: linear-gradient(var(--theme-button), var(--theme-button-end));
+  border: 2px solid var(--theme-line);
+  border-bottom-width: 4px;
+  color: var(--theme-on-button);
+  box-shadow: inset 0 0 0 2px #ffffff20, 0 3px 0 #00000018;
+  text-shadow: none;
+  font-size: .63rem;
+  font-weight: 700;
+  padding: 4px;
+}
+
+html[data-theme="tomb-expedition"] #reset:active {
+  border-bottom-width: 2px;
+  transform: translateY(2px);
+}
+
+html[data-theme="tomb-expedition"] #reset:disabled {
+  background: var(--theme-screen-card);
+  color: var(--theme-screen-muted);
+}
+
+html[data-theme="tomb-expedition"] #status {
+  color: var(--theme-screen-text);
+  font-size: .85rem;
+  margin-top: 8px;
+}
+
+html[data-theme="tomb-expedition"] .field-value {
+  color: var(--theme-bright);
+  font-size: .72rem;
+  text-shadow: none;
+}
+
+html[data-theme="tomb-expedition"] .record-strip {
+  background: var(--theme-screen-card);
+  border: 1px solid var(--theme-line);
+  border-radius: var(--theme-radius);
+  color: var(--theme-screen-muted);
+  font-size: .59rem;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+html[data-theme="tomb-expedition"] .record-strip strong {
+  color: var(--theme-screen-text);
+  font-size: .72rem;
+}
+
+html[data-theme="tomb-expedition"] .field-specification-toggle {
+  background: var(--theme-soft);
+  border: 1px solid var(--theme-line);
+  border-bottom-width: 3px;
+  border-radius: var(--theme-radius);
+  color: var(--theme-accent);
+  font-size: .67rem;
+  font-weight: 700;
+  flex-basis: 66px;
+}
+
+html[data-theme="tomb-expedition"] .field-specification-menu,
+html[data-theme="tomb-expedition"] .equipment-inventory {
+  background: var(--theme-paper);
+  border: 2px solid var(--theme-line);
+  border-radius: var(--theme-panel-radius);
+  color: var(--ink);
+  box-shadow: var(--theme-shadow);
+}
+
+html[data-theme="tomb-expedition"] .field-specification-menu__header,
+html[data-theme="tomb-expedition"] .field-specification-switch {
+  border-color: var(--theme-line);
+}
+
+html[data-theme="tomb-expedition"] .field-specification-menu__header strong,
+html[data-theme="tomb-expedition"] .equipment-inventory__header strong {
+  color: var(--theme-accent);
+  font-size: .85rem;
+}
+
+html[data-theme="tomb-expedition"] .field-specification-row label,
+html[data-theme="tomb-expedition"] .field-specification-switch span {
+  color: var(--ink);
+}
+
+html[data-theme="tomb-expedition"] .field-specification-note {
+  color: var(--muted);
+  font-size: .75rem;
+}
+
+html[data-theme="tomb-expedition"] .board {
+  gap: 5px;
+}
+
+html[data-theme="tomb-expedition"] .board.is-virtual {
+  scrollbar-color: var(--theme-accent) var(--theme-soft);
+}
+
+html[data-theme="tomb-expedition"] .board.is-virtual .cell {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  min-height: 34px;
+  font-size: 1rem;
+}
+
+html[data-theme="tomb-expedition"] .cell {
+  font-family: var(--font-body);
+  font-weight: 800;
+  text-shadow: none;
+}
+
+html[data-theme="tomb-expedition"] .cell:not(.is-open):hover:not(:disabled) {
+  background: linear-gradient(135deg, #ffffff60, transparent), var(--cell-raised);
+  border-color: var(--theme-accent);
+  box-shadow: inset 0 0 0 1px var(--theme-accent);
+}
+
+html[data-theme="tomb-expedition"] .cell.is-open {
+  background: var(--cell-open);
+  border: 1px solid var(--theme-line);
+  box-shadow: inset 0 2px 3px #50352118;
+  color: var(--ink);
+}
+
+html[data-theme="tomb-expedition"] .cell.is-open:nth-child(even) {
+  background: var(--cell-open-alt);
+}
+
+html[data-theme="tomb-expedition"] .cell.is-open[data-adjacent="1"] {
+  color: var(--num-1);
+}
+
+html[data-theme="tomb-expedition"] .cell.is-open[data-adjacent="2"] {
+  color: var(--num-2);
+}
+
+html[data-theme="tomb-expedition"] .cell.is-open[data-adjacent="3"] {
+  color: var(--num-3);
+}
+
+html[data-theme="tomb-expedition"] .cell.is-open[data-adjacent="4"] {
+  color: var(--num-4);
+}
+
+html[data-theme="tomb-expedition"] .cell.is-open[data-adjacent="5"] {
+  color: #774518;
+}
+
+html[data-theme="tomb-expedition"] .cell.is-open[data-adjacent="6"] {
+  color: #126367;
+}
+
+html[data-theme="tomb-expedition"] .cell.is-open[data-adjacent="7"] {
+  color: #423645;
+}
+
+html[data-theme="tomb-expedition"] .cell.is-open[data-adjacent="8"] {
+  color: #242424;
+}
+
+html[data-theme="tomb-expedition"] .cell.is-open.is-treasure,
+html[data-theme="tomb-expedition"] .cell.is-open.is-treasure-gold {
+  background: radial-gradient(circle at 35% 25%, #fff8d5, #f1d281 65%, #d8ae59);
+  border-color: #aa7f36;
+  color: #624013;
+  text-shadow: none;
+}
+
+html[data-theme="tomb-expedition"] .cell.is-open.is-treasure-bronze {
+  background: radial-gradient(circle at 35% 25%, #ffe3bf, #dfac79);
+  border-color: #a67141;
+  color: #613415;
+  text-shadow: none;
+}
+
+html[data-theme="tomb-expedition"] .cell.is-open.is-treasure-silver {
+  background: radial-gradient(circle at 35% 25%, #ffffff, #c6d8df);
+  border-color: #859ca6;
+  color: #304958;
+  text-shadow: none;
+}
+
+html[data-theme="tomb-expedition"] .cell.is-curio,
+html[data-theme="tomb-expedition"] .cell.is-open.is-curio {
+  background: radial-gradient(circle at 35% 25%, #fff0ff, #d9bbdf);
+  border-color: #8e65a2;
+  color: var(--theme-curio);
+  text-shadow: none;
+}
+
+html[data-theme="tomb-expedition"] .cell.is-flagged {
+  color: var(--theme-danger);
+  text-shadow: none;
+  box-shadow: inset 0 0 0 2px var(--theme-danger);
+}
+
+html[data-theme="tomb-expedition"] .cell.is-mine,
+html[data-theme="tomb-expedition"] .cell.is-open.is-mine {
+  background: radial-gradient(circle at 35% 25%, #ffe3cf, var(--mine));
+  border-color: var(--theme-danger);
+  color: #742536;
+  text-shadow: none;
+  box-shadow: inset 0 0 0 2px var(--theme-danger);
+}
+
+html[data-theme="tomb-expedition"] .cell.is-hinted {
+  box-shadow: inset 0 0 0 2px var(--theme-accent), 0 0 0 2px var(--theme-bright);
+}
+
+html[data-theme="tomb-expedition"] .cell.is-hinted::after {
+  content: var(--theme-hint);
+  color: var(--theme-accent);
+  background: var(--theme-paper);
+  border-radius: 50%;
+  font: 700 .72rem/1 var(--font-body);
+  width: 13px;
+  height: 13px;
+  text-align: center;
+  right: 2px;
+  top: 2px;
+}
+
+html[data-theme="tomb-expedition"] .cell.is-chordable:hover {
+  outline: 2px dashed var(--theme-accent);
+  outline-offset: -3px;
+}
+
+html[data-theme="tomb-expedition"] .cell.is-equipment-target {
+  box-shadow: inset 0 0 0 2px var(--theme-accent), 0 0 0 2px var(--theme-bright);
+}
+
+html[data-theme="tomb-expedition"] .cell.has-entrance::after {
+  background: repeating-linear-gradient(90deg, var(--theme-line) 0 3px, var(--theme-soft) 3px 7px);
+  border: 1px solid var(--theme-accent);
+  box-shadow: 0 0 0 1px var(--theme-bright);
+  border-radius: 2px;
+}
+
+html[data-theme="tomb-expedition"] .cell.is-worker-cursor {
+  box-shadow: inset 0 0 0 2px var(--theme-good), 0 0 0 2px var(--theme-good-bg);
+}
+
+html[data-theme="tomb-expedition"] .worker-cursor--excavator {
+  --worker-ring: var(--theme-good);
+  background: var(--theme-good-bg);
+  color: var(--theme-good);
+  border: 1px solid var(--theme-good);
+}
+
+html[data-theme="tomb-expedition"] .worker-cursor--flagbearer {
+  --worker-ring: var(--theme-danger);
+  background: var(--theme-danger-bg);
+  color: var(--theme-danger);
+  border: 1px solid var(--theme-danger);
+}
+
+html[data-theme="tomb-expedition"] .worker-cursor__label {
+  font-size: 0;
+}
+
+html[data-theme="tomb-expedition"] .worker-cursor--excavator .worker-cursor__label::before,
+html[data-theme="tomb-expedition"] .worker-cursor--flagbearer .worker-cursor__label::before {
+  font: 800 10px/1 var(--font-body);
+}
+
+html[data-theme="tomb-expedition"] .worker-cursor.is-pending .worker-cursor__ring {
+  background: conic-gradient(var(--worker-ring) var(--worker-ring-sweep), var(--theme-soft) 0);
+  box-shadow: none;
+}
+
+html[data-theme="tomb-expedition"] .treasure-popup {
+  border-radius: var(--theme-radius);
+  background: #f1d281;
+  border: 1px solid #aa7f36;
+  color: #624013;
+  font-size: .72rem;
+  font-weight: 700;
+  box-shadow: 0 3px 9px #30271c30;
+}
+
+html[data-theme="tomb-expedition"] .treasure-popup--bronze {
+  background: #efc595;
+  border-color: #a67141;
+  color: #613415;
+}
+
+html[data-theme="tomb-expedition"] .treasure-popup--silver {
+  background: #dfebee;
+  border-color: #859ca6;
+  color: #304958;
+}
+
+html[data-theme="tomb-expedition"] .treasure-popup--gold {
+  background: #f1d281;
+  border-color: #aa7f36;
+  color: #624013;
+}
+
+html[data-theme="tomb-expedition"] .controls {
+  padding: 12px 2px 2px;
+  gap: 8px;
+}
+
+html[data-theme="tomb-expedition"] .buttons {
+  gap: 6px;
+  flex: 1;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+html[data-theme="tomb-expedition"] .equipment-toggle {
+  background: linear-gradient(var(--theme-button), var(--theme-button-end));
+  border: 2px solid var(--theme-line);
+  border-radius: var(--theme-radius);
+  color: var(--theme-on-button);
+  box-shadow: 0 4px 0 #30271c35;
+  width: 50px;
+  height: 54px;
+}
+
+html[data-theme="tomb-expedition"] .equipment-toggle strong {
+  background: var(--theme-paper);
+  color: var(--theme-accent);
+  font-size: .7rem;
+}
+
+html[data-theme="tomb-expedition"] .equipment-toggle:not(:disabled):active,
+html[data-theme="tomb-expedition"] .equipment-toggle[aria-expanded="true"] {
+  box-shadow: 0 2px 0 #30271c35;
+}
+
+html[data-theme="tomb-expedition"] .cabinet-mode-button {
+  background: linear-gradient(var(--theme-button), var(--theme-button-end));
+  border: 1px solid var(--theme-line);
+  border-bottom-width: 3px;
+  border-radius: var(--theme-radius);
+  color: var(--theme-on-button);
+  box-shadow: 0 4px 0 #30271c30;
+  font-size: .63rem;
+  font-weight: 700;
+  width: 62px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 5px 2px;
+  text-transform: none;
+}
+
+html[data-theme="tomb-expedition"] #use-hint {
+  background: linear-gradient(#f1d596, #d6b16c);
+  color: #4a3515;
+}
+
+html[data-theme="tomb-expedition"] #district-button {
+  background: linear-gradient(var(--theme-button), var(--theme-button-end));
+}
+
+html[data-theme="tomb-expedition"] .cabinet-mode-button--green,
+html[data-theme="tomb-expedition"] #auto-miners-button {
+  background: linear-gradient(#436e52, #2e533c);
+  border-color: #779778;
+  color: #fff8e6;
+}
+
+html[data-theme="tomb-expedition"] .cabinet-mode-button.is-active,
+html[data-theme="tomb-expedition"] .cabinet-mode-button:active {
+  box-shadow: 0 2px 0 #30271c30, 0 0 0 2px var(--theme-paper);
+  transform: translateY(2px);
+}
+
+html[data-theme="tomb-expedition"] .settings-panel,
+html[data-theme="tomb-expedition"] .curio-panel,
+html[data-theme="tomb-expedition"] .contracts-panel,
+html[data-theme="tomb-expedition"] .quartermaster-panel,
+html[data-theme="tomb-expedition"] .workshop-panel,
+html[data-theme="tomb-expedition"] .contract-modal__window {
+  border: 1px solid var(--theme-line);
+  border-radius: var(--theme-panel-radius);
+  box-shadow: var(--theme-shadow), inset 0 0 0 4px var(--theme-paper);
+  color: var(--ink);
+  padding: 18px;
+  scrollbar-color: var(--theme-accent) var(--theme-soft);
+}
+
+html[data-theme="tomb-expedition"] .panel-header,
+html[data-theme="tomb-expedition"] .settings-panel__header {
+  border-bottom: 3px double var(--theme-line);
+  padding-bottom: 12px;
+}
+
+html[data-theme="tomb-expedition"] .panel-header h2,
+html[data-theme="tomb-expedition"] .store h3,
+html[data-theme="tomb-expedition"] .settings-panel h2,
+html[data-theme="tomb-expedition"] .contract-modal__window h2,
+html[data-theme="tomb-expedition"] .stats-section summary h3 {
+  color: var(--theme-accent);
+  text-shadow: none;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+html[data-theme="tomb-expedition"] .panel-header h2,
+html[data-theme="tomb-expedition"] .settings-panel h2 {
+  font-size: 1.35rem;
+}
+
+html[data-theme="tomb-expedition"] .store h3,
+html[data-theme="tomb-expedition"] .stats-section summary h3 {
+  font-size: 1.05rem;
+}
+
+html[data-theme="tomb-expedition"] .panel-header__eyebrow,
+html[data-theme="tomb-expedition"] .store__eyebrow,
+html[data-theme="tomb-expedition"] .settings-panel__eyebrow {
+  color: var(--muted);
+  letter-spacing: .1em;
+  font-family: var(--font-body);
+  font-size: .66rem;
+  font-weight: 700;
+}
+
+html[data-theme="tomb-expedition"] .coin-display,
+html[data-theme="tomb-expedition"] .message-board-status,
+html[data-theme="tomb-expedition"] .curio-status,
+html[data-theme="tomb-expedition"] .auto-mine-status {
+  background: var(--theme-soft);
+  border: 1px solid var(--theme-line);
+  border-radius: var(--theme-radius);
+  color: var(--ink);
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+html[data-theme="tomb-expedition"] .coin-display__value,
+html[data-theme="tomb-expedition"] .curio-status__value,
+html[data-theme="tomb-expedition"] .auto-mine-status__value,
+html[data-theme="tomb-expedition"] .message-board-status__value {
+  color: var(--theme-accent);
+  font-size: .86rem;
+  font-weight: 700;
+}
+
+html[data-theme="tomb-expedition"] .coin-display__value {
+  font-size: 1.2rem;
+}
+
+html[data-theme="tomb-expedition"] .coin-display__label,
+html[data-theme="tomb-expedition"] .curio-status__label,
+html[data-theme="tomb-expedition"] .auto-mine-status__label,
+html[data-theme="tomb-expedition"] .message-board-status__label {
+  color: var(--muted);
+  font-size: .68rem;
+}
+
+html[data-theme="tomb-expedition"] .resource-card {
+  background: var(--theme-paper);
+  border: 1px solid var(--theme-line);
+  border-radius: var(--theme-radius);
+  box-shadow: inset 0 -3px 0 var(--theme-soft);
+  padding: 10px 4px;
+}
+
+html[data-theme="tomb-expedition"] .resource-card__icon {
+  color: var(--theme-accent);
+  text-shadow: none;
+}
+
+html[data-theme="tomb-expedition"] #hint-resource .resource-card__icon {
+  font-size: 0;
+}
+
+html[data-theme="tomb-expedition"] #hint-resource .resource-card__icon::before {
+  content: var(--theme-hint);
+  font: 700 1.2rem/1 var(--font-body);
+}
+
+html[data-theme="tomb-expedition"] .resource-card__value {
+  color: var(--theme-accent);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+html[data-theme="tomb-expedition"] .resource-card__label,
+html[data-theme="tomb-expedition"] .resource-card__detail {
+  color: var(--muted);
+  font-size: .65rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+html[data-theme="tomb-expedition"] .resource-card::after,
+html[data-theme="tomb-expedition"] .equipment-inventory__item::after,
+html[data-theme="tomb-expedition"] .quartermaster-tooltip,
+html[data-theme="tomb-expedition"] .worker-tooltip {
+  background: var(--theme-paper);
+  border: 1px solid var(--theme-accent);
+  border-radius: var(--theme-radius);
+  box-shadow: var(--theme-shadow);
+  color: var(--ink);
+  font-size: .76rem;
+  line-height: 1.4;
+}
+
+html[data-theme="tomb-expedition"] .resource-card::before,
+html[data-theme="tomb-expedition"] .equipment-inventory__item::before {
+  border-top-color: var(--theme-accent);
+}
+
+html[data-theme="tomb-expedition"] .worker-tooltip strong {
+  color: var(--theme-accent);
+  font-size: .7rem;
+}
+
+html[data-theme="tomb-expedition"] .worker-tooltip > span {
+  color: var(--muted);
+  font-size: .72rem;
+}
+
+html[data-theme="tomb-expedition"] .worker-tooltip .worker-tooltip__countdown {
+  color: var(--theme-good) !important;
+  font-size: .7rem !important;
+}
+
+html[data-theme="tomb-expedition"] .store,
+html[data-theme="tomb-expedition"] .store__subheader,
+html[data-theme="tomb-expedition"] .setting-group,
+html[data-theme="tomb-expedition"] .stats-section {
+  border-color: var(--theme-line);
+}
+
+html[data-theme="tomb-expedition"] .store__subheader strong {
+  color: var(--muted);
+}
+
+html[data-theme="tomb-expedition"] .store-item,
+html[data-theme="tomb-expedition"] .equipment-inventory__item,
+html[data-theme="tomb-expedition"] .message-tile,
+html[data-theme="tomb-expedition"] .specialist-card,
+html[data-theme="tomb-expedition"] .blueprint-card,
+html[data-theme="tomb-expedition"] .intervention-entry,
+html[data-theme="tomb-expedition"] .safety-option {
+  background: var(--theme-paper);
+  border: 1px solid var(--theme-line);
+  border-radius: var(--theme-radius);
+  color: var(--ink);
+  min-width: 0;
+}
+
+html[data-theme="tomb-expedition"] .store-item:hover:not(:disabled),
+html[data-theme="tomb-expedition"] .equipment-inventory__item:hover:not(:disabled) {
+  background: var(--theme-soft);
+  border-color: var(--theme-accent);
+  box-shadow: inset 3px 0 var(--theme-accent);
+}
+
+html[data-theme="tomb-expedition"] .store-item__copy strong,
+html[data-theme="tomb-expedition"] .equipment-inventory__item strong,
+html[data-theme="tomb-expedition"] .specialist-card strong,
+html[data-theme="tomb-expedition"] .message-tile__topline strong,
+html[data-theme="tomb-expedition"] .progress-reset strong {
+  color: var(--ink);
+  font-size: .8rem;
+  font-weight: 700;
+  text-transform: none;
+  overflow-wrap: anywhere;
+}
+
+html[data-theme="tomb-expedition"] .store-item__copy small,
+html[data-theme="tomb-expedition"] .equipment-inventory__item small,
+html[data-theme="tomb-expedition"] .specialist-card p,
+html[data-theme="tomb-expedition"] .message-tile p {
+  color: var(--muted);
+  font-size: .75rem;
+  line-height: 1.4;
+}
+
+html[data-theme="tomb-expedition"] .store-item__cost {
+  background: var(--theme-soft);
+  color: var(--theme-accent);
+  border: 1px solid var(--theme-line);
+  border-radius: var(--theme-radius);
+  padding: 4px 6px;
+  font-size: .75rem;
+  font-weight: 700;
+  max-width: 45%;
+  overflow-wrap: anywhere;
+}
+
+html[data-theme="tomb-expedition"] .store-item--compact {
+  padding: 7px 8px;
+}
+
+html[data-theme="tomb-expedition"] .store-item--compact .store-item__copy strong {
+  font-size: .73rem;
+}
+
+html[data-theme="tomb-expedition"] .store-item--compact .store-item__copy small,
+html[data-theme="tomb-expedition"] .store-item--compact .store-item__cost {
+  font-size: .7rem;
+}
+
+html[data-theme="tomb-expedition"] .store-item:disabled,
+html[data-theme="tomb-expedition"] .equipment-inventory__item:disabled {
+  background: var(--theme-soft);
+  border-color: var(--theme-line);
+  color: var(--muted);
+  opacity: .72;
+}
+
+html[data-theme="tomb-expedition"] .equipment-inventory__item:disabled strong,
+html[data-theme="tomb-expedition"] .equipment-inventory__item:disabled small,
+html[data-theme="tomb-expedition"] .equipment-inventory__item:disabled b {
+  opacity: 1;
+  color: var(--muted);
+}
+
+html[data-theme="tomb-expedition"] .equipment-inventory__item b,
+html[data-theme="tomb-expedition"] .specialist-card b {
+  color: var(--theme-accent);
+  font-size: .72rem;
+}
+
+html[data-theme="tomb-expedition"] .equipment-inventory__item.is-selected {
+  border-color: var(--theme-accent);
+  box-shadow: inset 3px 0 var(--theme-accent);
+}
+
+html[data-theme="tomb-expedition"] .message-tile--contract {
+  border-left: 4px solid var(--theme-good);
+}
+
+html[data-theme="tomb-expedition"] .message-tile--contract.is-priority {
+  border-color: var(--yellow);
+  box-shadow: inset 0 0 0 1px var(--yellow);
+}
+
+html[data-theme="tomb-expedition"] .message-tile--challenge {
+  border-left: 4px solid var(--theme-curio);
+}
+
+html[data-theme="tomb-expedition"] .message-tile--challenge.is-claimable {
+  background: var(--theme-good-bg);
+  border-color: var(--theme-good);
+  box-shadow: inset 0 0 0 1px var(--theme-good);
+}
+
+html[data-theme="tomb-expedition"] .message-tile__topline {
+  flex-wrap: wrap;
+}
+
+html[data-theme="tomb-expedition"] .message-tile__kind {
+  color: var(--theme-good);
+  font-size: .63rem;
+}
+
+html[data-theme="tomb-expedition"] .message-tile__topline > span,
+html[data-theme="tomb-expedition"] .message-tile--challenge.is-claimable .message-tile__topline > span {
+  color: var(--theme-accent);
+  font-size: .7rem;
+  white-space: normal;
+}
+
+html[data-theme="tomb-expedition"] .message-tile__properties span {
+  background: var(--theme-soft);
+  color: var(--ink);
+  border-color: var(--theme-line);
+  border-radius: var(--theme-radius);
+  font-size: .7rem;
+  padding: 5px 7px;
+}
+
+html[data-theme="tomb-expedition"] .message-tile__properties strong {
+  color: var(--theme-accent);
+  font-size: .6rem;
+}
+
+html[data-theme="tomb-expedition"] .message-tile__properties span.is-met {
+  background: var(--theme-good-bg);
+  color: var(--theme-good);
+  border-color: var(--theme-good);
+  box-shadow: none;
+}
+
+html[data-theme="tomb-expedition"] .message-tile__properties span.is-met strong {
+  color: var(--theme-good);
+}
+
+html[data-theme="tomb-expedition"] .contract-button,
+html[data-theme="tomb-expedition"] .worker-buy,
+html[data-theme="tomb-expedition"] .district-toolbar button,
+html[data-theme="tomb-expedition"] .parcel-action,
+html[data-theme="tomb-expedition"] .dev-button {
+  background: linear-gradient(var(--theme-button), var(--theme-button-end));
+  color: var(--theme-on-button);
+  border: 1px solid var(--theme-button-end);
+  border-bottom-width: 3px;
+  border-radius: var(--theme-radius);
+  font-family: var(--font-body);
+  font-size: .75rem;
+  font-weight: 700;
+  text-transform: none;
+  white-space: normal;
+}
+
+html[data-theme="tomb-expedition"] .contract-button:hover:not(:disabled),
+html[data-theme="tomb-expedition"] .worker-buy:hover:not(:disabled),
+html[data-theme="tomb-expedition"] .district-toolbar button:hover:not(:disabled),
+html[data-theme="tomb-expedition"] .parcel-action:hover:not(:disabled),
+html[data-theme="tomb-expedition"] .dev-button:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+html[data-theme="tomb-expedition"] .worker-buy.is-selected {
+  background: var(--theme-good-bg);
+  border-color: var(--theme-good);
+  color: var(--theme-good);
+  box-shadow: inset 0 0 0 1px var(--theme-good);
+}
+
+html[data-theme="tomb-expedition"] .worker-buy:disabled,
+html[data-theme="tomb-expedition"] .contract-button:disabled,
+html[data-theme="tomb-expedition"] .district-toolbar button:disabled,
+html[data-theme="tomb-expedition"] .parcel-action:disabled {
+  background: var(--theme-soft);
+  color: var(--muted);
+  border-color: var(--theme-line);
+  opacity: 1;
+  filter: none;
+}
+
+html[data-theme="tomb-expedition"] .dev-button {
+  background: var(--theme-soft);
+  border-color: var(--theme-line);
+  color: var(--theme-accent);
+}
+
+html[data-theme="tomb-expedition"] .progress-reset,
+html[data-theme="tomb-expedition"] .save-management {
+  background: var(--theme-soft);
+  border: 1px solid var(--theme-line);
+  border-radius: var(--theme-radius);
+  padding: 12px;
+}
+
+html[data-theme="tomb-expedition"] .progress-reset {
+  border-color: var(--theme-danger);
+  flex-wrap: wrap;
+}
+
+html[data-theme="tomb-expedition"] .progress-reset span,
+html[data-theme="tomb-expedition"] .save-management span {
+  color: var(--muted);
+  font-size: .73rem;
+}
+
+html[data-theme="tomb-expedition"] .progress-reset__button {
+  background: var(--theme-danger);
+  border-bottom: 3px solid #5d2230;
+  color: #fff8ec;
+  border-radius: var(--theme-radius);
+  font-size: .72rem;
+  text-shadow: none;
+  white-space: normal;
+  max-width: 100%;
+  line-height: 1.3;
+  padding: 8px 10px;
+}
+
+html[data-theme="tomb-expedition"] .progress-reset__button span {
+  color: #fff8ec;
+  margin: 0;
+}
+
+html[data-theme="tomb-expedition"] #reset-progress.is-armed {
+  background: #512733;
+  color: #fff8ec;
+}
+
+html[data-theme="tomb-expedition"] #reset-progress::before {
+  background: var(--theme-danger);
+}
+
+html[data-theme="tomb-expedition"] .save-management h3 {
+  color: var(--theme-accent);
+  font-size: .9rem;
+}
+
+html[data-theme="tomb-expedition"] select,
+html[data-theme="tomb-expedition"] .setting-row input[type="number"] {
+  background: var(--theme-paper);
+  border: 1px solid var(--theme-line);
+  border-radius: var(--theme-radius);
+  color: var(--ink);
+  font: 700 .8rem var(--font-body);
+  max-width: 100%;
+}
+
+html[data-theme="tomb-expedition"] select {
+  appearance: auto;
+  padding: 5px 8px;
+}
+
+html[data-theme="tomb-expedition"] input[type="checkbox"],
+html[data-theme="tomb-expedition"] .setting-row input[type="checkbox"],
+html[data-theme="tomb-expedition"] .mine-slider {
+  accent-color: var(--theme-accent);
+}
+
+html[data-theme="tomb-expedition"] .setting-row {
+  color: var(--ink);
+  min-width: 0;
+}
+
+html[data-theme="tomb-expedition"] .setting-group legend,
+html[data-theme="tomb-expedition"] .setting-row label,
+html[data-theme="tomb-expedition"] .safety-option span {
+  color: var(--ink);
+}
+
+html[data-theme="tomb-expedition"] .safety-option:has(input:checked) {
+  background: var(--theme-good-bg);
+  border-color: var(--theme-good);
+  color: var(--theme-good);
+  box-shadow: none;
+}
+
+html[data-theme="tomb-expedition"] .curio-grid {
+  gap: 7px;
+}
+
+html[data-theme="tomb-expedition"] .curio-slot {
+  background: var(--theme-soft);
+  border: 1px dashed var(--theme-line);
+  color: var(--muted);
+}
+
+html[data-theme="tomb-expedition"] .curio-slot.is-found {
+  background: radial-gradient(circle at 35% 25%, #fff5ff, #e1c9e4);
+  border: 1px solid #9870aa;
+  color: var(--theme-curio);
+  box-shadow: inset 0 0 0 3px #ffffff60;
+  text-shadow: none;
+}
+
+html[data-theme="tomb-expedition"] .curio-slot__count {
+  background: var(--theme-curio);
+  color: #ffffff;
+  border-radius: 5px;
+}
+
+html[data-theme="tomb-expedition"] .curio-note,
+html[data-theme="tomb-expedition"] .store-note,
+html[data-theme="tomb-expedition"] .settings-note,
+html[data-theme="tomb-expedition"] .stats-label,
+html[data-theme="tomb-expedition"] .app-version {
+  color: var(--muted);
+  font-size: .75rem;
+}
+
+html[data-theme="tomb-expedition"] .stats-section summary,
+html[data-theme="tomb-expedition"] .stats-section summary::after {
+  color: var(--theme-accent);
+}
+
+html[data-theme="tomb-expedition"] .stats-grid dt,
+html[data-theme="tomb-expedition"] .stats-grid dd,
+html[data-theme="tomb-expedition"] .fastest-list li {
+  border-color: var(--theme-line);
+  font-size: .72rem;
+}
+
+html[data-theme="tomb-expedition"] .stats-grid dt,
+html[data-theme="tomb-expedition"] .fastest-list li span,
+html[data-theme="tomb-expedition"] .fastest-list .fastest-empty {
+  color: var(--muted);
+}
+
+html[data-theme="tomb-expedition"] .stats-grid dd,
+html[data-theme="tomb-expedition"] .fastest-list li strong {
+  color: var(--theme-accent);
+}
+
+html[data-theme="tomb-expedition"] .district-view {
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--theme-line);
+  border-radius: var(--theme-radius);
+  grid-template-columns: minmax(0, 1fr);
+  overflow: auto;
+}
+
+html[data-theme="tomb-expedition"] .district-locked {
+  background: var(--theme-paper);
+  border: 1px dashed var(--theme-line);
+  border-radius: var(--theme-radius);
+  color: var(--muted);
+  padding: 18px 12px;
+}
+
+html[data-theme="tomb-expedition"] .district-toolbar {
+  flex-wrap: wrap;
+}
+
+html[data-theme="tomb-expedition"] .district-map {
+  background: var(--theme-soft);
+  border: 1px solid var(--theme-line);
+  border-radius: var(--theme-radius);
+  min-height: 140px;
+}
+
+html[data-theme="tomb-expedition"] .district-cell {
+  background: var(--theme-paper);
+  border: 1px solid var(--theme-line);
+  color: var(--ink);
+  font-size: .65rem;
+}
+
+html[data-theme="tomb-expedition"] .district-cell span {
+  font-size: .6rem;
+  opacity: 1;
+}
+
+html[data-theme="tomb-expedition"] .district-cell.state-unknown {
+  color: #fff5db;
+  border-style: dashed;
+}
+
+html[data-theme="tomb-expedition"] .district-cell.state-surveyed {
+  background: var(--theme-paper);
+  color: var(--muted);
+  border-style: dashed;
+}
+
+html[data-theme="tomb-expedition"] .district-cell.state-accessible {
+  border-color: var(--theme-good);
+  color: var(--theme-good);
+}
+
+html[data-theme="tomb-expedition"] .district-cell.state-active {
+  background: #f1d281;
+  border-color: #a67a2c;
+  color: #5b3b13;
+}
+
+html[data-theme="tomb-expedition"] .district-cell.state-caved_in {
+  background: repeating-linear-gradient(135deg, transparent 0 7px, #95374812 7px 9px), var(--theme-danger-bg);
+  border-color: var(--theme-danger);
+  color: var(--theme-danger);
+}
+
+html[data-theme="tomb-expedition"] .district-cell.state-secured {
+  background: var(--theme-good-bg);
+  border-color: var(--theme-good);
+  color: var(--theme-good);
+}
+
+html[data-theme="tomb-expedition"] .district-cell.is-selected {
+  outline: 2px solid var(--theme-accent);
+  outline-offset: 1px;
+  box-shadow: inset 0 0 0 1px var(--theme-accent);
+}
+
+html[data-theme="tomb-expedition"] .district-cell.is-empty {
+  background: var(--theme-soft);
+  border-color: transparent;
+  opacity: .4;
+}
+
+html[data-theme="tomb-expedition"] .passage-mark {
+  background: var(--theme-accent);
+  border-radius: 2px;
+}
+
+html[data-theme="tomb-expedition"] .parcel-inspector {
+  background: var(--theme-paper);
+  color: var(--ink);
+  border: 1px solid var(--theme-line);
+  border-radius: var(--theme-radius);
+  max-height: 220px;
+}
+
+html[data-theme="tomb-expedition"] .parcel-inspector h2,
+html[data-theme="tomb-expedition"] .district-map__eyebrow {
+  color: var(--theme-accent);
+}
+
+html[data-theme="tomb-expedition"] .survey-report {
+  color: var(--ink);
+  font-size: .75rem;
+}
+
+html[data-theme="tomb-expedition"] .survey-report div {
+  grid-template-columns: minmax(60px, .8fr) minmax(0, 1fr);
+}
+
+html[data-theme="tomb-expedition"] .survey-report dd {
+  overflow-wrap: anywhere;
+}
+
+html[data-theme="tomb-expedition"] .parcel-warning {
+  color: var(--theme-danger);
+}
+
+html[data-theme="tomb-expedition"] .parcel-placeholder {
+  border-color: var(--theme-line);
+  color: var(--muted);
+}
+
+html[data-theme="tomb-expedition"] #specialists-panel {
+  color: var(--ink);
+}
+
+html[data-theme="tomb-expedition"] body.is-auto-miners .screen {
+  box-shadow: inset 0 0 0 2px var(--theme-good), 0 0 0 2px var(--theme-good-bg);
+}
+
+html[data-theme="tomb-expedition"] .specialist-card.is-active {
+  border-color: var(--theme-good);
+  box-shadow: inset 3px 0 var(--theme-good);
+}
+
+html[data-theme="tomb-expedition"] .specialist-card.is-available {
+  background: var(--theme-paper);
+  opacity: 1;
+}
+
+html[data-theme="tomb-expedition"] .specialist-card.is-locked {
+  background: var(--theme-soft);
+  border-style: dashed;
+  opacity: .8;
+}
+
+html[data-theme="tomb-expedition"] .specialist-card__topline {
+  flex-wrap: wrap;
+}
+
+html[data-theme="tomb-expedition"] .blueprint-card,
+html[data-theme="tomb-expedition"] .intervention-entry {
+  padding: 10px;
+  margin-top: 8px;
+  font-size: .78rem;
+  overflow-wrap: anywhere;
+}
+
+html[data-theme="tomb-expedition"] .blueprint-card strong,
+html[data-theme="tomb-expedition"] .intervention-entry strong {
+  color: var(--theme-accent);
+}
+
+html[data-theme="tomb-expedition"] .automation-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid var(--theme-line);
+  border-radius: var(--theme-radius);
+  background: var(--theme-soft);
+  font-size: .78rem;
+}
+
+html[data-theme="tomb-expedition"] .proof-diagram {
+  padding: 5px;
+  background: var(--theme-soft);
+  border-radius: var(--theme-radius);
+}
+
+html[data-theme="tomb-expedition"] .proof-cell {
+  background: var(--cell);
+  border: 1px solid var(--theme-line);
+  border-radius: 3px;
+  color: var(--ink);
+  font: 800 .7rem var(--font-body);
+}
+
+html[data-theme="tomb-expedition"] .proof-cell.is-clue,
+html[data-theme="tomb-expedition"] .proof-cell.is-open {
+  background: var(--cell-open);
+  color: var(--num-1);
+}
+
+html[data-theme="tomb-expedition"] .proof-cell.is-target {
+  background: #f1d281;
+  color: #624013;
+}
+
+html[data-theme="tomb-expedition"] .proof-cell.is-proof-target {
+  background: var(--theme-button);
+  color: var(--theme-on-button);
+}
+
+html[data-theme="tomb-expedition"] .proof-cell.is-flag {
+  background: var(--theme-danger-bg);
+  color: var(--theme-danger);
+}
+
+html[data-theme="tomb-expedition"] .proof-cell.is-void {
+  background: transparent;
+  border-color: transparent;
+}
+
+html[data-theme="tomb-expedition"] body.is-contract-running .cabinet {
+  box-shadow: 0 0 0 4px var(--theme-line), 0 24px 60px #20102060;
+}
+
+html[data-theme="tomb-expedition"] .contract-modal__window p,
+html[data-theme="tomb-expedition"] .contract-modal__specs dt {
+  color: var(--muted);
+}
+
+html[data-theme="tomb-expedition"] .contract-modal__specs dd {
+  color: var(--theme-accent);
+  font-size: .8rem;
+}
+
+html[data-theme="tomb-expedition"] .contract-modal__specs div,
+html[data-theme="tomb-expedition"] .restructure-summary dl div {
+  border-color: var(--theme-line);
+}
+
+html[data-theme="tomb-expedition"] .restructure-summary h3,
+html[data-theme="tomb-expedition"] .restructure-summary dd {
+  color: var(--theme-accent);
+}
+
+html[data-theme="tomb-expedition"] .restructure-summary section {
+  padding: 8px;
+  margin-bottom: 8px;
+  background: var(--theme-soft);
+  border-radius: var(--theme-radius);
+}
+
+html[data-theme="tomb-expedition"] .restructure-modal__window .save-management__actions {
+  background: var(--theme-paper);
+  border-top: 1px solid var(--theme-line);
+}
+
+html[data-theme="tomb-expedition"] button:focus-visible,
+html[data-theme="tomb-expedition"] select:focus-visible,
+html[data-theme="tomb-expedition"] input:focus-visible,
+html[data-theme="tomb-expedition"] .resource-card:focus-visible,
+html[data-theme="tomb-expedition"] .field-specification-switch:focus-within,
+html[data-theme="tomb-expedition"] .stats-section summary:focus-visible,
+html[data-theme="tomb-expedition"] .safety-option:focus-within,
+html[data-theme="tomb-expedition"] .field-specification-menu select:focus-visible {
+  outline: 2px solid var(--theme-focus);
+  outline-offset: 2px;
+}
+html[data-theme="tomb-expedition"] .cell.is-newly-open {
+  animation: tomb-expedition-reveal 220ms ease-out both;
+}
+
+@keyframes tomb-expedition-reveal {
+  from { opacity: .4; transform: translateY(2px) scale(.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (max-width: 700px) {
+html[data-theme="tomb-expedition"] .cabinet {
+  flex-basis: auto;
+  max-width: 430px;
+  width: 100%;
+}
+html[data-theme="tomb-expedition"] .settings-panel,
+html[data-theme="tomb-expedition"] .curio-panel,
+html[data-theme="tomb-expedition"] .contracts-panel,
+html[data-theme="tomb-expedition"] .quartermaster-panel,
+html[data-theme="tomb-expedition"] .workshop-panel {
+  flex-basis: auto;
+  min-width: 0;
+  width: 100%;
+  max-width: 430px;
+}
+}
+@media (max-width: 420px) {
+html[data-theme="tomb-expedition"] body {
+  padding: 10px;
+}
+html[data-theme="tomb-expedition"] .cabinet {
+  padding: 10px 14px 12px;
+}
+html[data-theme="tomb-expedition"] .screen {
+  padding: 8px;
+}
+html[data-theme="tomb-expedition"] .cabinet-mode-button {
+  width: 56px;
+  font-size: .6rem;
+}
+html[data-theme="tomb-expedition"] .controls {
+  gap: 6px;
+  padding-inline: 0;
+}
+html[data-theme="tomb-expedition"] .buttons {
+  gap: 4px;
+}
+html[data-theme="tomb-expedition"] .equipment-toggle {
+  width: 43px;
+}
+html[data-theme="tomb-expedition"] .meter__label {
+  font-size: .61rem;
+}
+html[data-theme="tomb-expedition"] #reset {
+  width: 54px;
+  height: 54px;
+  font-size: .56rem;
+}
+html[data-theme="tomb-expedition"] .save-management {
+  grid-template-columns: minmax(0, 1fr);
+}
+}
+
+/* Dynamic cards, disabled controls, and exact virtual tile pitch. */
+html[data-theme="tomb-expedition"] .board.is-virtual {
+  gap: 0;
+  /* The virtual range uses a 34px pitch, including each tile. */
+}
+
+html[data-theme="tomb-expedition"] .blueprint-card,
+html[data-theme="tomb-expedition"] .intervention-entry {
+  display: grid;
+  gap: 6px;
+}
+
+html[data-theme="tomb-expedition"] .blueprint-card small,
+html[data-theme="tomb-expedition"] .intervention-entry small {
+  color: var(--muted);
+  font-size: .72rem;
+}
+
+html[data-theme="tomb-expedition"] .blueprint-card.is-owned {
+  border-color: var(--theme-good);
+  box-shadow: inset 3px 0 var(--theme-good);
+}
+
+html[data-theme="tomb-expedition"] .blueprint-card.is-locked {
+  background: var(--theme-soft);
+  border-style: dashed;
+}
+
+html[data-theme="tomb-expedition"] .intervention-entry > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+html[data-theme="tomb-expedition"] .intervention-entry button {
+  background: var(--theme-button);
+  color: var(--theme-on-button);
+  border: 1px solid var(--theme-button-end);
+  border-radius: var(--theme-radius);
+  padding: 7px 9px;
+  font: 700 .72rem var(--font-body);
+  cursor: pointer;
+}
+
+html[data-theme="tomb-expedition"] .blueprint-assignment {
+  width: 100%;
+  min-width: 0;
+}
+
+html[data-theme="tomb-expedition"] input[type="range"] {
+  accent-color: var(--theme-accent);
+  max-width: 100%;
+}
+
+html[data-theme="tomb-expedition"] .automation-setting output {
+  color: var(--theme-accent);
+  font-weight: 700;
+}
+
+html[data-theme="tomb-expedition"] .store-item:disabled {
+  opacity: 1;
+  border-style: dashed;
+}
+
+html[data-theme="tomb-expedition"] .store-item:disabled .store-item__copy strong,
+html[data-theme="tomb-expedition"] .store-item:disabled .store-item__copy small,
+html[data-theme="tomb-expedition"] .store-item:disabled .store-item__cost {
+  color: var(--muted);
+}
+
+html[data-theme="tomb-expedition"] .equipment-toggle:disabled,
+html[data-theme="tomb-expedition"] .cabinet-mode-button:disabled {
+  background: var(--theme-soft);
+  border-color: var(--theme-line);
+  color: var(--muted);
+  box-shadow: none;
+  filter: none;
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+html[data-theme="tomb-expedition"] .specialist-card.is-locked {
+  opacity: 1;
+}
+
+html[data-theme="tomb-expedition"] .cell.is-hinted.has-entrance::after {
+  content: var(--theme-hint);
+  background: var(--theme-paper);
+  color: var(--theme-accent);
+}
+
+html[data-theme="tomb-expedition"] .resource-card__label {
+  text-transform: none;
+}
+
+html[data-theme="tomb-expedition"] .record-strip > span {
+  overflow-wrap: anywhere;
+}
+
+html[data-theme="tomb-expedition"] .restructure-summary dl div {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+html[data-theme="tomb-expedition"] .contract-modal__window {
+  overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+html[data-theme="tomb-expedition"] *,
+html[data-theme="tomb-expedition"] *::before,
+html[data-theme="tomb-expedition"] *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+}
