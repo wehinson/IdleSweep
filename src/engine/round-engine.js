@@ -2,6 +2,7 @@ import { createBoardCells, getNeighbors, hasClearedBoard, updateBoardAdjacency }
 import { refreshProofMetadata } from "./proofs.js";
 import { createGame } from "./game-engine.js";
 import { createStartingStats } from "./player.js";
+import { chordingLevel } from "./abilities.js";
 
 export function selectMineIndexes(availableIndexes, target, rng = Math.random) {
   const pool = [...availableIndexes];
@@ -60,6 +61,12 @@ export function evaluateChord(board, settings, index) {
     actual,
     candidates: nearby.filter((neighbor) => !neighbor.open && !neighbor.flagged).map((neighbor) => neighbor.index),
   };
+}
+
+export function chordRevealWaves(board, settings, index, level) {
+  const cell = board[index];
+  if (!cell || cell.open || cell.flagged || cell.mine || level < 1) return [];
+  return level >= 2 ? revealWaves(board, settings, index) : [[index]];
 }
 
 export function calculateRoundPayout(treasureValue, mineCount, mineYieldPercent = 0) {
@@ -261,6 +268,10 @@ function toggleFlag(state, index, effects) {
 }
 
 function chordCell(state, index, effects) {
+  if (chordingLevel(state.player) < 1) {
+    effects.push({ type: "rejected", reason: "chordingLocked" });
+    return;
+  }
   const cell = state.board[index];
   if (!cell || state.roundResolved || !cell.open || cell.mine || cell.adjacent <= 0) return;
   const chord = evaluateChord(state.board, state.settings, index);
@@ -272,7 +283,15 @@ function chordCell(state, index, effects) {
   if (candidates.length === 0) return;
   state.moves += 1;
   state.roundUsedChording = true;
-  candidates.filter((candidate) => !candidate.mine).forEach((candidate) => revealFrom(state, candidate.index));
+  candidates.filter((candidate) => !candidate.mine).forEach((candidate) => {
+    chordRevealWaves(state.board, state.settings, candidate.index, chordingLevel(state.player)).flat().forEach((cellIndex) => {
+      const target = state.board[cellIndex];
+      target.open = true;
+      state.player.stats.safeTilesDug += 1;
+      if (state.activeEquipment.bombBotUses > 0) state.activeEquipment.bombBotUses -= 1;
+      collectTreasure(state, target);
+    });
+  });
   const mine = candidates.find((candidate) => candidate.mine);
   if (mine) {
     state.player.stats.minesTriggered += 1;
