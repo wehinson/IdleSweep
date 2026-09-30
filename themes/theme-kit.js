@@ -144,9 +144,19 @@
     for (const [from, to] of Object.entries(theme.phrases || {})) {
       if (typeof to !== "string") errors.push(`phrase "${from}" must map to a string`);
     }
+    const seen = new Map();
     for (const [from, to] of Object.entries(theme.canvas?.colors || {})) {
-      if (!parseColor(from)) errors.push(`canvas colour key "${from}" is not a hex/rgb colour`);
-      if (!parseColor(to)) errors.push(`canvas colour value "${to}" is not a hex/rgb colour`);
+      const source = parseColor(from);
+      const target = parseColor(to);
+      if (!source) errors.push(`canvas colour key "${from}" is not a hex/rgb colour`);
+      if (!target) errors.push(`canvas colour value "${to}" is not a hex/rgb colour`);
+      if (!source || !target) continue;
+      const key = colorKey(source);
+      const value = colorKey(target) + "," + target.a;
+      if (seen.has(key) && seen.get(key).value !== value) {
+        errors.push(`canvas colour keys "${seen.get(key).from}" and "${from}" are the same colour with different targets`);
+      }
+      seen.set(key, { from, value });
     }
     return errors;
   }
