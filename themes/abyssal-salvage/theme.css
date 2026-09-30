@@ -671,3 +671,24 @@ html[data-theme="abyssal-salvage"] .settings-panel,
 html[data-theme="abyssal-salvage"] .contract-modal__window {
   scrollbar-color: var(--cyan) #020e16;
 }
+
+/* Number colours (scoped rules above set a tile text colour, so restate them here) */
+html[data-theme="abyssal-salvage"] .cell[data-adjacent="1"] {
+  color: var(--num-1);
+}
+
+html[data-theme="abyssal-salvage"] .cell[data-adjacent="2"] {
+  color: var(--num-2);
+}
+
+html[data-theme="abyssal-salvage"] .cell[data-adjacent="3"] {
+  color: var(--num-3);
+}
+
+html[data-theme="abyssal-salvage"] .cell[data-adjacent="4"],
+html[data-theme="abyssal-salvage"] .cell[data-adjacent="5"],
+html[data-theme="abyssal-salvage"] .cell[data-adjacent="6"],
+html[data-theme="abyssal-salvage"] .cell[data-adjacent="7"],
+html[data-theme="abyssal-salvage"] .cell[data-adjacent="8"] {
+  color: var(--num-4);
+}

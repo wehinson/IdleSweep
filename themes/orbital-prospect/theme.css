@@ -1,1 +1,718 @@
-/* Orbital Prospect (Claude): placeholder. */
+/* Orbital Prospect (Claude): a mining ship's cockpit in the asteroid belt.
+   Neon magenta and cyan on a starfield, chamfered hull plates, glowing readouts. */
+
+html[data-theme="orbital-prospect"] {
+  --ink: #05030f;
+  --cabinet: #140c2c;
+  --cabinet-edge: #07041a;
+  --red: #ff3d6e;
+  --yellow: #ffb03a;
+  --yellow-rgb: 255, 176, 58;
+  --cyan: #36e2ff;
+  --green: #7dff6a;
+  --screen: #07051a;
+  --screen-glow: #d9f7ff;
+  --glow-rgb: 54, 226, 255;
+  --cell: #241a4a;
+  --cell-raised: #34276a;
+  --cell-open: #17132b;
+  --cell-open-alt: #1c1733;
+  --white: #ecebff;
+  --panel-bg: #0b0820;
+  --panel-bg-deep: #05030f;
+  --num-1: #36e2ff;
+  --num-2: #7dff6a;
+  --num-3: #ff4d8d;
+  --num-4: #ffb03a;
+  --mine: #ff3d6e;
+  --font-display: "Orbitron", "Segoe UI", sans-serif;
+  --font-body: "Share Tech Mono", Consolas, monospace;
+  --op-magenta: #ff3df0;
+  --op-chamfer: 8px;
+  background: #020108;
+}
+
+html[data-theme="orbital-prospect"] body {
+  background:
+    radial-gradient(1px 1px at 20px 30px, #fff, transparent),
+    radial-gradient(1px 1px at 140px 80px, #cfe8ff, transparent),
+    radial-gradient(1.5px 1.5px at 260px 170px, #fff, transparent),
+    radial-gradient(1px 1px at 90px 220px, #ffd6fb, transparent),
+    radial-gradient(1px 1px at 330px 40px, #fff, transparent),
+    radial-gradient(ellipse at 80% 10%, rgba(255, 61, 240, 0.22), transparent 45%),
+    radial-gradient(ellipse at 10% 90%, rgba(54, 226, 255, 0.18), transparent 45%),
+    #04020d;
+  background-size: 380px 260px, 380px 260px, 380px 260px, 380px 260px, 380px 260px, auto, auto, auto;
+  background-attachment: fixed;
+}
+
+/* Slow parallax star drift */
+html[data-theme="orbital-prospect"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    radial-gradient(1px 1px at 50px 60px, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(2px 2px at 200px 150px, rgba(54, 226, 255, 0.7), transparent),
+    radial-gradient(1px 1px at 300px 280px, rgba(255, 61, 240, 0.8), transparent);
+  background-size: 360px 360px;
+  animation: orbital-prospect-drift 60s linear infinite;
+}
+
+html[data-theme="orbital-prospect"] .app-shell {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes orbital-prospect-drift {
+  to {
+    background-position: -360px 180px;
+  }
+}
+
+@keyframes orbital-prospect-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 10px rgba(255, 61, 240, 0.45), inset 0 0 12px rgba(255, 61, 240, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 22px rgba(255, 61, 240, 0.8), inset 0 0 16px rgba(255, 61, 240, 0.4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="orbital-prospect"] body::before,
+  html[data-theme="orbital-prospect"] .reset {
+    animation: none;
+  }
+}
+
+/* ---------- cockpit (cabinet) ---------- */
+
+html[data-theme="orbital-prospect"] .cabinet {
+  background:
+    linear-gradient(90deg, rgba(54, 226, 255, 0.1) 0 1px, transparent 1px) 0 0 / 24px 24px,
+    linear-gradient(0deg, rgba(54, 226, 255, 0.08) 0 1px, transparent 1px) 0 0 / 24px 24px,
+    linear-gradient(180deg, #1d1240, #120b2a 50%, #0a0619);
+  border: 2px solid rgba(255, 61, 240, 0.7);
+  border-radius: 4px 26px 4px 26px;
+  box-shadow:
+    0 0 0 4px #07041a,
+    0 0 0 5px rgba(54, 226, 255, 0.5),
+    0 0 40px rgba(255, 61, 240, 0.3),
+    0 30px 60px rgba(0, 0, 0, 0.7);
+}
+
+html[data-theme="orbital-prospect"] .cabinet::before,
+html[data-theme="orbital-prospect"] .cabinet::after {
+  background: repeating-linear-gradient(180deg, var(--op-magenta) 0 14px, transparent 14px 22px);
+  box-shadow: 0 0 8px rgba(255, 61, 240, 0.8);
+  opacity: 0.8;
+  width: 3px;
+}
+
+html[data-theme="orbital-prospect"] .cabinet::before {
+  left: 8px;
+}
+
+html[data-theme="orbital-prospect"] .cabinet::after {
+  right: 8px;
+}
+
+html[data-theme="orbital-prospect"] .marquee {
+  background: linear-gradient(90deg, rgba(255, 61, 240, 0.2), rgba(54, 226, 255, 0.2));
+  border: 1px solid var(--cyan);
+  border-radius: 0;
+  box-shadow: 0 0 16px rgba(54, 226, 255, 0.45), inset 0 0 16px rgba(255, 61, 240, 0.25);
+  clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 14px 100%, 0 50%);
+  color: #fff;
+}
+
+html[data-theme="orbital-prospect"] .marquee h1 {
+  font-size: clamp(0.8rem, 3.6vw, 1.05rem);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-shadow: 0 0 6px var(--cyan), 0 0 14px var(--op-magenta);
+  text-transform: uppercase;
+}
+
+html[data-theme="orbital-prospect"] .marquee__spark {
+  color: var(--op-magenta);
+  text-shadow: 0 0 8px var(--op-magenta);
+}
+
+html[data-theme="orbital-prospect"] .screen {
+  background:
+    radial-gradient(ellipse at 50% 120%, rgba(255, 61, 240, 0.2), transparent 55%),
+    linear-gradient(rgba(54, 226, 255, 0.04) 50%, transparent 50%) 0 0 / 100% 3px,
+    #07051a;
+  border: 2px solid rgba(54, 226, 255, 0.55);
+  border-radius: 2px 18px 2px 18px;
+  box-shadow: inset 0 0 30px rgba(54, 226, 255, 0.12), 0 0 18px rgba(54, 226, 255, 0.2);
+}
+
+html[data-theme="orbital-prospect"] .meter,
+html[data-theme="orbital-prospect"] .record-strip {
+  background: rgba(5, 3, 15, 0.9);
+  border: 1px solid rgba(54, 226, 255, 0.5);
+  border-radius: 0 10px 0 10px;
+  box-shadow: inset 0 0 12px rgba(54, 226, 255, 0.12);
+}
+
+html[data-theme="orbital-prospect"] .meter__label {
+  color: var(--op-magenta);
+  font-family: var(--font-display);
+  font-size: 0.5rem;
+  letter-spacing: 0.1em;
+}
+
+html[data-theme="orbital-prospect"] .meter__value,
+html[data-theme="orbital-prospect"] .record-strip strong {
+  color: var(--cyan);
+  font-family: var(--font-body);
+  font-size: 1.35rem;
+  text-shadow: 0 0 8px rgba(54, 226, 255, 0.8);
+}
+
+html[data-theme="orbital-prospect"] .record-strip strong {
+  font-size: 0.85rem;
+}
+
+/* Launch button: a pulsing ignition ring */
+html[data-theme="orbital-prospect"] .reset {
+  background: radial-gradient(circle, #2a0a2e 0 48%, #ff3df0 52%, #7a0f74 70%, #2a0a2e 72%);
+  border: 2px solid var(--cyan);
+  border-bottom: 2px solid var(--cyan);
+  color: #fff;
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 6px var(--op-magenta);
+  animation: orbital-prospect-pulse 2.4s ease-in-out infinite;
+}
+
+html[data-theme="orbital-prospect"] .status {
+  color: #bfe9ff;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+}
+
+html[data-theme="orbital-prospect"] .field-value {
+  color: var(--yellow);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+}
+
+html[data-theme="orbital-prospect"] .field-specification-toggle {
+  background: linear-gradient(135deg, rgba(255, 61, 240, 0.35), rgba(54, 226, 255, 0.25));
+  border: 1px solid var(--op-magenta);
+  border-radius: 0 10px 0 10px;
+  color: #fff;
+  font-size: 0.46rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+html[data-theme="orbital-prospect"] .field-specification-menu,
+html[data-theme="orbital-prospect"] .equipment-inventory {
+  background: rgba(7, 5, 26, 0.97);
+  border: 1px solid var(--cyan);
+  border-radius: 0 16px 0 16px;
+  box-shadow: 0 0 24px rgba(54, 226, 255, 0.3), 0 16px 40px rgba(0, 0, 0, 0.7);
+}
+
+/* ---------- board: chamfered hull plates over dark regolith ---------- */
+
+html[data-theme="orbital-prospect"] .cell {
+  --op-fill: var(--cell);
+  --op-edge: rgba(255, 61, 240, 0.55);
+  background:
+    linear-gradient(135deg, transparent var(--op-chamfer), var(--op-fill) 0) top left,
+    linear-gradient(225deg, transparent var(--op-chamfer), var(--op-fill) 0) top right,
+    linear-gradient(315deg, transparent var(--op-chamfer), var(--op-fill) 0) bottom right,
+    linear-gradient(45deg, transparent var(--op-chamfer), var(--op-fill) 0) bottom left;
+  background-repeat: no-repeat;
+  background-size: 51% 51%;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  color: #fff;
+  filter: drop-shadow(0 0 1px var(--op-edge)) drop-shadow(0 2px 0 rgba(0, 0, 0, 0.6));
+  font-family: var(--font-body);
+  font-size: clamp(1rem, 6vw, 1.45rem);
+}
+
+html[data-theme="orbital-prospect"] .cell:not(.is-open):hover:not(:disabled) {
+  --op-fill: var(--cell-raised);
+  --op-edge: var(--cyan);
+  background:
+    linear-gradient(135deg, transparent var(--op-chamfer), var(--op-fill) 0) top left,
+    linear-gradient(225deg, transparent var(--op-chamfer), var(--op-fill) 0) top right,
+    linear-gradient(315deg, transparent var(--op-chamfer), var(--op-fill) 0) bottom right,
+    linear-gradient(45deg, transparent var(--op-chamfer), var(--op-fill) 0) bottom left;
+  background-repeat: no-repeat;
+  background-size: 51% 51%;
+  filter: drop-shadow(0 0 4px var(--cyan));
+}
+
+/* One chamfered background for every tile state; each state only changes --op-fill and --op-edge. */
+html[data-theme="orbital-prospect"] .cell.is-open,
+html[data-theme="orbital-prospect"] .cell.is-open:nth-child(even),
+html[data-theme="orbital-prospect"] .cell.is-open.is-treasure,
+html[data-theme="orbital-prospect"] .cell.is-open.is-treasure-bronze,
+html[data-theme="orbital-prospect"] .cell.is-open.is-treasure-silver,
+html[data-theme="orbital-prospect"] .cell.is-open.is-treasure-gold,
+html[data-theme="orbital-prospect"] .cell.is-open.is-curio,
+html[data-theme="orbital-prospect"] .cell.is-mine {
+  background:
+    linear-gradient(135deg, transparent var(--op-chamfer), var(--op-fill) 0) top left,
+    linear-gradient(225deg, transparent var(--op-chamfer), var(--op-fill) 0) top right,
+    linear-gradient(315deg, transparent var(--op-chamfer), var(--op-fill) 0) bottom right,
+    linear-gradient(45deg, transparent var(--op-chamfer), var(--op-fill) 0) bottom left;
+  background-repeat: no-repeat;
+  background-size: 51% 51%;
+  border: 0;
+}
+
+html[data-theme="orbital-prospect"] .cell:focus-visible {
+  outline: 1px solid var(--cyan);
+}
+
+html[data-theme="orbital-prospect"] .cell.is-open {
+  --op-fill: var(--cell-open);
+  --op-edge: rgba(54, 226, 255, 0.3);
+  cursor: default;
+  text-shadow: 0 0 8px currentColor;
+}
+
+html[data-theme="orbital-prospect"] .cell.is-open:nth-child(even) {
+  --op-fill: var(--cell-open-alt);
+}
+
+html[data-theme="orbital-prospect"] .cell.is-open.is-treasure,
+html[data-theme="orbital-prospect"] .cell.is-open.is-treasure-gold {
+  --op-fill: #3d2a05;
+  --op-edge: #ffb03a;
+  color: #ffd27a;
+  text-shadow: 0 0 10px #ffb03a;
+}
+
+html[data-theme="orbital-prospect"] .cell.is-open.is-treasure-bronze {
+  --op-fill: #3a1508;
+  --op-edge: #ff7a3a;
+  color: #ffb08a;
+  text-shadow: 0 0 10px #ff7a3a;
+}
+
+html[data-theme="orbital-prospect"] .cell.is-open.is-treasure-silver {
+  --op-fill: #0b2f3a;
+  --op-edge: #36e2ff;
+  color: #d9f7ff;
+  text-shadow: 0 0 10px #36e2ff;
+}
+
+html[data-theme="orbital-prospect"] .cell.is-open.is-curio {
+  --op-fill: #2f0a3a;
+  --op-edge: #ff3df0;
+  color: #ffc4fb;
+  text-shadow: 0 0 10px #ff3df0;
+}
+
+html[data-theme="orbital-prospect"] .cell.is-flagged {
+  color: var(--yellow);
+  text-shadow: 0 0 10px var(--yellow);
+}
+
+html[data-theme="orbital-prospect"] .cell.is-mine {
+  --op-fill: #4a0a1e;
+  --op-edge: #ff3d6e;
+  color: #ff9ab4;
+  filter: drop-shadow(0 0 8px #ff3d6e);
+  text-shadow: 0 0 10px #ff3d6e;
+}
+
+html[data-theme="orbital-prospect"] .cell.is-hinted {
+  filter: drop-shadow(0 0 6px var(--green));
+}
+
+html[data-theme="orbital-prospect"] .cell.is-hinted::after {
+  color: var(--green);
+  content: "◌";
+}
+
+html[data-theme="orbital-prospect"] .cell.is-equipment-target {
+  --op-edge: var(--green);
+}
+
+html[data-theme="orbital-prospect"] .treasure-popup,
+html[data-theme="orbital-prospect"] .treasure-popup--gold,
+html[data-theme="orbital-prospect"] .treasure-popup--silver,
+html[data-theme="orbital-prospect"] .treasure-popup--bronze {
+  background: rgba(5, 3, 15, 0.92);
+  border: 1px solid var(--yellow);
+  border-radius: 0 8px 0 8px;
+  color: var(--yellow);
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  box-shadow: 0 0 12px rgba(255, 176, 58, 0.6);
+}
+
+html[data-theme="orbital-prospect"] .worker-cursor--excavator {
+  background: var(--yellow);
+  color: #1a0f00;
+}
+
+html[data-theme="orbital-prospect"] .worker-cursor--flagbearer {
+  background: var(--cyan);
+  color: #021018;
+}
+
+/* ---------- controls ---------- */
+
+html[data-theme="orbital-prospect"] .equipment-toggle {
+  background: radial-gradient(circle, rgba(54, 226, 255, 0.35), #0b0820 70%);
+  border: 1px solid var(--cyan);
+  border-radius: 0 14px 0 14px;
+  box-shadow: 0 0 14px rgba(54, 226, 255, 0.4);
+  color: var(--cyan);
+}
+
+html[data-theme="orbital-prospect"] .equipment-toggle strong {
+  background: #05030f;
+  color: #fff;
+}
+
+html[data-theme="orbital-prospect"] .cabinet-mode-button {
+  background: linear-gradient(180deg, rgba(54, 226, 255, 0.25), rgba(54, 226, 255, 0.05));
+  border: 1px solid var(--cyan);
+  border-radius: 0 12px 0 12px;
+  box-shadow: 0 0 10px rgba(54, 226, 255, 0.35);
+  color: #d9f7ff;
+  font-size: 0.42rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+html[data-theme="orbital-prospect"] .cabinet-mode-button--green {
+  background: linear-gradient(180deg, rgba(255, 61, 240, 0.35), rgba(255, 61, 240, 0.08));
+  border-color: var(--op-magenta);
+  box-shadow: 0 0 10px rgba(255, 61, 240, 0.4);
+  color: #ffe0fc;
+}
+
+html[data-theme="orbital-prospect"] .cabinet-mode-button.is-active {
+  box-shadow: 0 0 22px rgba(54, 226, 255, 0.9), inset 0 0 12px rgba(54, 226, 255, 0.5);
+  transform: none;
+}
+
+/* ---------- side panels: holo consoles ---------- */
+
+html[data-theme="orbital-prospect"] .settings-panel,
+html[data-theme="orbital-prospect"] .curio-panel,
+html[data-theme="orbital-prospect"] .contracts-panel,
+html[data-theme="orbital-prospect"] .quartermaster-panel,
+html[data-theme="orbital-prospect"] .workshop-panel,
+html[data-theme="orbital-prospect"] .contract-modal__window {
+  background:
+    linear-gradient(180deg, rgba(255, 61, 240, 0.1), transparent 60px),
+    linear-gradient(90deg, rgba(54, 226, 255, 0.05) 0 1px, transparent 1px) 0 0 / 20px 20px,
+    rgba(11, 8, 32, 0.94);
+  border: 1px solid rgba(54, 226, 255, 0.55);
+  border-radius: 0 22px 0 22px;
+  box-shadow: 0 0 0 3px #05030f, 0 0 0 4px rgba(255, 61, 240, 0.35), 0 24px 50px rgba(0, 0, 0, 0.7);
+}
+
+html[data-theme="orbital-prospect"] .panel-header,
+html[data-theme="orbital-prospect"] .settings-panel__header {
+  border-bottom: 1px solid rgba(255, 61, 240, 0.5);
+}
+
+html[data-theme="orbital-prospect"] .store h3,
+html[data-theme="orbital-prospect"] .settings-panel h2,
+html[data-theme="orbital-prospect"] .contract-modal__window h2 {
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-shadow: 0 0 8px var(--op-magenta);
+  text-transform: uppercase;
+}
+
+html[data-theme="orbital-prospect"] .store__eyebrow,
+html[data-theme="orbital-prospect"] .settings-panel__eyebrow {
+  color: var(--cyan);
+  letter-spacing: 0.1em;
+}
+
+html[data-theme="orbital-prospect"] .coin-display,
+html[data-theme="orbital-prospect"] .message-board-status,
+html[data-theme="orbital-prospect"] .curio-status,
+html[data-theme="orbital-prospect"] .auto-mine-status {
+  background: linear-gradient(90deg, rgba(255, 176, 58, 0.14), transparent), #05030f;
+  border: 1px solid var(--yellow);
+  border-radius: 0 12px 0 12px;
+}
+
+html[data-theme="orbital-prospect"] .coin-display__value,
+html[data-theme="orbital-prospect"] .message-board-status__value,
+html[data-theme="orbital-prospect"] .curio-status__value,
+html[data-theme="orbital-prospect"] .auto-mine-status__value {
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+  text-shadow: 0 0 8px rgba(255, 176, 58, 0.7);
+}
+
+html[data-theme="orbital-prospect"] .resource-card,
+html[data-theme="orbital-prospect"] .store-item,
+html[data-theme="orbital-prospect"] .message-tile,
+html[data-theme="orbital-prospect"] .specialist-card,
+html[data-theme="orbital-prospect"] .progress-reset,
+html[data-theme="orbital-prospect"] .save-management,
+html[data-theme="orbital-prospect"] .equipment-inventory__item,
+html[data-theme="orbital-prospect"] .blueprint-card,
+html[data-theme="orbital-prospect"] .intervention-entry {
+  background: linear-gradient(135deg, rgba(54, 226, 255, 0.08), transparent 50%), #0b0820;
+  border: 1px solid rgba(54, 226, 255, 0.3);
+  border-radius: 0 12px 0 12px;
+}
+
+html[data-theme="orbital-prospect"] .blueprint-card,
+html[data-theme="orbital-prospect"] .intervention-entry {
+  margin-top: 6px;
+  padding: 8px 10px;
+}
+
+html[data-theme="orbital-prospect"] .store-item:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(255, 61, 240, 0.18), transparent 60%), #120c30;
+  border-color: var(--op-magenta);
+  box-shadow: 0 0 14px rgba(255, 61, 240, 0.45);
+}
+
+html[data-theme="orbital-prospect"] .resource-card__icon {
+  color: var(--cyan);
+  text-shadow: 0 0 8px var(--cyan);
+}
+
+html[data-theme="orbital-prospect"] #hint-resource .resource-card__icon {
+  font-size: 0;
+}
+
+html[data-theme="orbital-prospect"] #hint-resource .resource-card__icon::before {
+  content: "◌";
+  font-size: 1.1rem;
+}
+
+html[data-theme="orbital-prospect"] .resource-card__label {
+  color: var(--op-magenta);
+  font-family: var(--font-display);
+  font-size: 0.46rem;
+  letter-spacing: 0.08em;
+}
+
+html[data-theme="orbital-prospect"] .resource-card__value {
+  font-family: var(--font-body);
+  font-size: 1.2rem;
+}
+
+html[data-theme="orbital-prospect"] .store-item__copy strong,
+html[data-theme="orbital-prospect"] .specialist-card strong,
+html[data-theme="orbital-prospect"] .message-tile__topline strong,
+html[data-theme="orbital-prospect"] .progress-reset strong {
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+html[data-theme="orbital-prospect"] .store-item__copy small,
+html[data-theme="orbital-prospect"] .specialist-card p,
+html[data-theme="orbital-prospect"] .message-tile p {
+  font-size: 0.78rem;
+}
+
+html[data-theme="orbital-prospect"] .store-item__cost {
+  border: 1px solid var(--yellow);
+  border-radius: 0 8px 0 8px;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  padding: 3px 8px;
+  text-shadow: 0 0 6px rgba(255, 176, 58, 0.7);
+}
+
+html[data-theme="orbital-prospect"] .resource-card::after,
+html[data-theme="orbital-prospect"] .quartermaster-tooltip,
+html[data-theme="orbital-prospect"] .worker-tooltip {
+  background: rgba(7, 5, 26, 0.97);
+  border: 1px solid var(--op-magenta);
+  border-radius: 0 10px 0 10px;
+  box-shadow: 0 0 18px rgba(255, 61, 240, 0.4);
+  font-family: var(--font-body);
+  font-size: 0.74rem;
+}
+
+html[data-theme="orbital-prospect"] .message-tile--contract {
+  border-color: rgba(125, 255, 106, 0.5);
+}
+
+html[data-theme="orbital-prospect"] .message-tile--challenge.is-claimable {
+  border-color: var(--yellow);
+  box-shadow: 0 0 18px rgba(255, 176, 58, 0.5);
+}
+
+html[data-theme="orbital-prospect"] .contract-button,
+html[data-theme="orbital-prospect"] .worker-buy,
+html[data-theme="orbital-prospect"] .district-toolbar button,
+html[data-theme="orbital-prospect"] .parcel-action,
+html[data-theme="orbital-prospect"] .dev-button {
+  background: linear-gradient(135deg, #ff3df0, #8a2bff);
+  border: 0;
+  border-radius: 0 10px 0 10px;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  box-shadow: 0 0 12px rgba(255, 61, 240, 0.5);
+}
+
+html[data-theme="orbital-prospect"] .dev-button {
+  background: linear-gradient(135deg, #36e2ff, #2a6bff);
+  box-shadow: 0 0 12px rgba(54, 226, 255, 0.5);
+  color: #021018;
+}
+
+html[data-theme="orbital-prospect"] .worker-buy:disabled {
+  background: #1c1733;
+  box-shadow: none;
+  color: rgba(236, 235, 255, 0.4);
+}
+
+html[data-theme="orbital-prospect"] .progress-reset {
+  border-color: rgba(255, 61, 110, 0.6);
+}
+
+html[data-theme="orbital-prospect"] .progress-reset__button {
+  background: repeating-linear-gradient(135deg, #ff3d6e 0 8px, #b3123f 8px 16px);
+  border: 0;
+  border-radius: 0 10px 0 10px;
+  font-family: var(--font-display);
+  font-size: 0.5rem;
+  font-weight: 800;
+  text-shadow: 0 1px 2px #000;
+}
+
+html[data-theme="orbital-prospect"] select,
+html[data-theme="orbital-prospect"] .setting-row input[type="number"] {
+  background: #05030f;
+  border: 1px solid var(--cyan);
+  border-radius: 0 10px 0 10px;
+  color: var(--cyan);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+}
+
+html[data-theme="orbital-prospect"] .curio-slot {
+  background: #0b0820;
+  border: 1px solid rgba(255, 61, 240, 0.3);
+  border-radius: 0 8px 0 8px;
+}
+
+html[data-theme="orbital-prospect"] .curio-slot.is-found {
+  background: radial-gradient(circle, rgba(255, 61, 240, 0.4), #0b0820 70%);
+  border-color: var(--op-magenta);
+  color: #ffc4fb;
+  text-shadow: 0 0 10px var(--op-magenta);
+}
+
+html[data-theme="orbital-prospect"] .curio-slot__count {
+  background: var(--op-magenta);
+  color: #1a0019;
+}
+
+/* ---------- belt map (district) ---------- */
+
+html[data-theme="orbital-prospect"] .district-view {
+  background:
+    radial-gradient(ellipse at 30% 50%, rgba(255, 61, 240, 0.18), transparent 50%),
+    radial-gradient(1px 1px at 30px 20px, #fff, transparent) 0 0 / 90px 70px,
+    #07051a;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.6);
+  color: var(--screen-glow);
+}
+
+html[data-theme="orbital-prospect"] .district-map {
+  background: rgba(5, 3, 15, 0.6);
+  border: 1px solid rgba(54, 226, 255, 0.4);
+}
+
+html[data-theme="orbital-prospect"] .district-cell {
+  background: radial-gradient(ellipse at 40% 35%, #4a4460, #2a2540 70%);
+  border: 1px solid rgba(54, 226, 255, 0.35);
+  border-radius: 45% 55% 50% 40% / 50% 40% 60% 50%;
+  color: var(--screen-glow);
+  font-family: var(--font-body);
+}
+
+html[data-theme="orbital-prospect"] .district-cell.state-unknown {
+  background: #110d24;
+  color: rgba(217, 247, 255, 0.4);
+}
+
+html[data-theme="orbital-prospect"] .district-cell.state-active {
+  background: radial-gradient(ellipse at 40% 35%, #ffd27a, #b8741a 70%);
+  color: #1a0f00;
+}
+
+html[data-theme="orbital-prospect"] .district-cell.state-secured {
+  background: radial-gradient(ellipse at 40% 35%, #b8ffb0, #3a9a30 70%);
+  color: #041a02;
+}
+
+html[data-theme="orbital-prospect"] .district-cell.state-caved_in {
+  background: radial-gradient(ellipse at 40% 35%, #ff8aa8, #9a1239 70%);
+}
+
+html[data-theme="orbital-prospect"] .district-cell.is-selected {
+  outline: 1px solid var(--op-magenta);
+  box-shadow: 0 0 14px var(--op-magenta);
+}
+
+html[data-theme="orbital-prospect"] .district-locked {
+  background: rgba(5, 3, 15, 0.6);
+  border: 1px dashed var(--cyan);
+}
+
+html[data-theme="orbital-prospect"] .contract-modal {
+  background: rgba(2, 1, 8, 0.8);
+}
+
+html[data-theme="orbital-prospect"] .stats-section summary {
+  color: var(--cyan);
+}
+
+html[data-theme="orbital-prospect"] .settings-panel,
+html[data-theme="orbital-prospect"] .contract-modal__window {
+  scrollbar-color: var(--op-magenta) #05030f;
+}
+
+/* Number colours (scoped rules above set a tile text colour, so restate them here) */
+html[data-theme="orbital-prospect"] .cell[data-adjacent="1"] {
+  color: var(--num-1);
+}
+
+html[data-theme="orbital-prospect"] .cell[data-adjacent="2"] {
+  color: var(--num-2);
+}
+
+html[data-theme="orbital-prospect"] .cell[data-adjacent="3"] {
+  color: var(--num-3);
+}
+
+html[data-theme="orbital-prospect"] .cell[data-adjacent="4"],
+html[data-theme="orbital-prospect"] .cell[data-adjacent="5"],
+html[data-theme="orbital-prospect"] .cell[data-adjacent="6"],
+html[data-theme="orbital-prospect"] .cell[data-adjacent="7"],
+html[data-theme="orbital-prospect"] .cell[data-adjacent="8"] {
+  color: var(--num-4);
+}

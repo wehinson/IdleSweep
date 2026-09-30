@@ -632,3 +632,24 @@ html[data-theme="brass-colliery"] .settings-panel,
 html[data-theme="brass-colliery"] .contract-modal__window {
   scrollbar-color: #c9a24a #1a1511;
 }
+
+/* Number colours (scoped rules above set a tile text colour, so restate them here) */
+html[data-theme="brass-colliery"] .cell[data-adjacent="1"] {
+  color: var(--num-1);
+}
+
+html[data-theme="brass-colliery"] .cell[data-adjacent="2"] {
+  color: var(--num-2);
+}
+
+html[data-theme="brass-colliery"] .cell[data-adjacent="3"] {
+  color: var(--num-3);
+}
+
+html[data-theme="brass-colliery"] .cell[data-adjacent="4"],
+html[data-theme="brass-colliery"] .cell[data-adjacent="5"],
+html[data-theme="brass-colliery"] .cell[data-adjacent="6"],
+html[data-theme="brass-colliery"] .cell[data-adjacent="7"],
+html[data-theme="brass-colliery"] .cell[data-adjacent="8"] {
+  color: var(--num-4);
+}
