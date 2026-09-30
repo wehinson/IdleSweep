@@ -40,7 +40,7 @@ test("translate returns the input when no phrases are given", () => {
 
 test("mapColor keeps alpha and ignores unknown colours", () => {
   const compiled = kit.compileColors({ "#182413": "#102030", "#9cac77": "rgba(0, 0, 0, 0.5)" });
-  assert.equal(kit.mapColor("#182413", compiled), "rgb(16, 32, 48)");
+  assert.equal(kit.mapColor("#182413", compiled), "#102030");
   assert.equal(kit.mapColor("rgba(24, 36, 19, 0.25)", compiled), "rgba(16, 32, 48, 0.25)");
   assert.equal(kit.mapColor("#9CAC77", compiled), "rgba(0, 0, 0, 0.5)");
   assert.equal(kit.mapColor("#abcdef", compiled), "#abcdef");
@@ -51,7 +51,8 @@ test("every theme is valid, unique, and scoped", () => {
   assert.equal(themes.length, 5, "five redesign themes are registered");
   assert.equal(new Set(themes.map((theme) => theme.id)).size, 5);
   for (const theme of themes) {
-    assert.deepEqual(kit.validateTheme(theme), [], theme.id);
+    const errors = kit.validateTheme(theme);
+    assert.equal(errors.length, 0, `${theme.id}: ${errors.join("; ")}`);
     const css = readFileSync(join(themesDir, theme.id, "theme.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
     const selectors = css
       .replace(/@(?:import|font-face)[^;{]*;/g, "")

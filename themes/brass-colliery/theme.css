@@ -1,1 +1,634 @@
-/* Brass & Soot Colliery (Claude): placeholder. */
+/* Brass & Soot Colliery (Claude): a Victorian pithead in cast iron, brass, walnut, and gaslight.
+   Riveted iron plates hide the seam; hewn limestone lies under them. */
+
+html[data-theme="brass-colliery"] {
+  --ink: #1b1510;
+  --cabinet: #2b241e;
+  --cabinet-edge: #120e0a;
+  --red: #9e2b25;
+  --yellow: #e2b85c;
+  --yellow-rgb: 226, 184, 92;
+  --cyan: #d8914a;
+  --green: #7f8f4a;
+  --screen: #1d1813;
+  --screen-glow: #f2e4c4;
+  --glow-rgb: 242, 206, 150;
+  --cell: #3a3631;
+  --cell-raised: #4c463f;
+  --cell-open: #d9ccb0;
+  --cell-open-alt: #cfc1a2;
+  --white: #f1e6cc;
+  --panel-bg: #1a1511;
+  --panel-bg-deep: #0f0c09;
+  --num-1: #1f4e79;
+  --num-2: #2f5f2a;
+  --num-3: #8e1f1a;
+  --num-4: #4d2a61;
+  --mine: #c9582c;
+  --font-display: "Cinzel", Georgia, serif;
+  --font-body: "Special Elite", "Courier New", monospace;
+  background: #0d0a07;
+}
+
+html[data-theme="brass-colliery"] body {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255, 190, 90, 0.2), transparent 45%),
+    radial-gradient(circle at 85% 70%, rgba(255, 150, 60, 0.07), transparent 25rem),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.18) 0 2px, transparent 2px 120px),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.12) 0 2px, transparent 2px 60px),
+    linear-gradient(180deg, #2a2019 0%, #17110c 60%, #0b0806 100%);
+  background-attachment: fixed;
+}
+
+/* ---------- winding-engine cabinet ---------- */
+
+html[data-theme="brass-colliery"] .cabinet {
+  background:
+    radial-gradient(circle at 12px 12px, #e8c77a 0 3px, #7a5a22 4px, transparent 5px),
+    radial-gradient(circle at calc(100% - 12px) 12px, #e8c77a 0 3px, #7a5a22 4px, transparent 5px),
+    radial-gradient(circle at 12px calc(100% - 12px), #e8c77a 0 3px, #7a5a22 4px, transparent 5px),
+    radial-gradient(circle at calc(100% - 12px) calc(100% - 12px), #e8c77a 0 3px, #7a5a22 4px, transparent 5px),
+    repeating-linear-gradient(180deg, transparent 0 46px, rgba(0, 0, 0, 0.25) 46px 48px, rgba(255, 255, 255, 0.04) 48px 49px),
+    linear-gradient(180deg, #3b332b, #2b241e 40%, #1c1712);
+  border: 7px solid #8a6a2c;
+  border-radius: 6px;
+  box-shadow:
+    0 30px 60px rgba(0, 0, 0, 0.65),
+    0 0 0 2px #3b2a0f,
+    inset 0 0 0 2px #e8c77a,
+    inset 0 0 40px rgba(0, 0, 0, 0.6);
+}
+
+html[data-theme="brass-colliery"] .cabinet::before,
+html[data-theme="brass-colliery"] .cabinet::after {
+  background:
+    repeating-linear-gradient(180deg, #e8c77a 0 6px, #9c7a34 6px 8px, #5e4617 8px 10px);
+  border-radius: 3px;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+  width: 6px;
+}
+
+html[data-theme="brass-colliery"] .marquee {
+  background:
+    linear-gradient(180deg, #f4dc98, #d6ae55 45%, #a47c2e 55%, #e2c171);
+  border: 3px solid #5e4617;
+  border-radius: 3px;
+  box-shadow: 0 3px 0 #2e2208, inset 0 0 0 2px rgba(255, 245, 210, 0.6), 0 0 22px rgba(255, 190, 90, 0.25);
+  color: #2b1d08;
+}
+
+html[data-theme="brass-colliery"] .marquee h1 {
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-shadow: 0 1px 0 rgba(255, 245, 210, 0.7), 0 -1px 0 rgba(60, 40, 5, 0.45);
+  text-transform: uppercase;
+}
+
+html[data-theme="brass-colliery"] .marquee__spark {
+  color: #5e4617;
+  animation: brass-colliery-cog 9s linear infinite;
+}
+
+@keyframes brass-colliery-cog {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Soot-black slate lit by a flickering gas lamp */
+html[data-theme="brass-colliery"] .screen {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255, 196, 110, 0.22), transparent 60%),
+    repeating-linear-gradient(35deg, rgba(255, 255, 255, 0.015) 0 2px, transparent 2px 7px),
+    #1d1813;
+  border: 6px solid #0f0c09;
+  border-radius: 4px;
+  box-shadow:
+    inset 0 0 0 2px #8a6a2c,
+    inset 0 0 50px rgba(0, 0, 0, 0.7),
+    0 0 0 2px #3b2a0f;
+  animation: brass-colliery-gaslight 5s ease-in-out infinite;
+}
+
+@keyframes brass-colliery-gaslight {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  47% {
+    filter: brightness(0.96);
+  }
+  50% {
+    filter: brightness(1.04);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="brass-colliery"] .screen,
+  html[data-theme="brass-colliery"] .marquee__spark {
+    animation: none;
+  }
+}
+
+html[data-theme="brass-colliery"] .meter,
+html[data-theme="brass-colliery"] .record-strip {
+  background: radial-gradient(circle at 50% 30%, #f6ecd2, #d9c9a2);
+  border: 3px solid #a47c2e;
+  border-radius: 50px / 18px;
+  box-shadow: inset 0 0 8px rgba(80, 55, 15, 0.45), 0 2px 0 #3b2a0f;
+  color: #3b2a14;
+}
+
+html[data-theme="brass-colliery"] .meter__label,
+html[data-theme="brass-colliery"] .record-strip {
+  color: #6b4d22;
+  font-family: var(--font-display);
+  font-weight: 800;
+}
+
+html[data-theme="brass-colliery"] .meter__value,
+html[data-theme="brass-colliery"] .record-strip strong {
+  color: #1b1510;
+  font-family: var(--font-body);
+  font-size: 1.2rem;
+}
+
+html[data-theme="brass-colliery"] .record-strip strong {
+  font-size: 0.8rem;
+}
+
+/* Brass steam valve with an enamel core */
+html[data-theme="brass-colliery"] .reset {
+  background:
+    radial-gradient(circle, #b8342c 0 34%, transparent 35%),
+    repeating-conic-gradient(from 0deg, #e8c77a 0 10deg, #9c7a34 10deg 20deg),
+    #c9a24a;
+  border: 3px solid #5e4617;
+  border-bottom: 5px solid #3b2a0f;
+  box-shadow: 0 0 0 2px #e8c77a, 0 6px 14px rgba(0, 0, 0, 0.5);
+  color: #fff1d6;
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-shadow: 0 1px 2px #3a0906;
+}
+
+html[data-theme="brass-colliery"] .status {
+  color: rgba(242, 228, 196, 0.85);
+  font-size: 0.92rem;
+}
+
+html[data-theme="brass-colliery"] .field-value {
+  color: #e2b85c;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+html[data-theme="brass-colliery"] .field-specification-toggle,
+html[data-theme="brass-colliery"] .contract-button,
+html[data-theme="brass-colliery"] .worker-buy,
+html[data-theme="brass-colliery"] .district-toolbar button,
+html[data-theme="brass-colliery"] .parcel-action {
+  background: linear-gradient(180deg, #f4dc98, #c9a24a 55%, #9c7a34);
+  border: 2px solid #5e4617;
+  border-bottom-width: 4px;
+  border-radius: 4px;
+  color: #2b1d08;
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-shadow: 0 1px 0 rgba(255, 245, 210, 0.6);
+}
+
+html[data-theme="brass-colliery"] .worker-buy:disabled {
+  background: #3a3631;
+  border-color: #56504a;
+  color: rgba(242, 228, 196, 0.45);
+  text-shadow: none;
+}
+
+html[data-theme="brass-colliery"] .field-specification-menu,
+html[data-theme="brass-colliery"] .equipment-inventory {
+  background: #1a1511;
+  border: 3px solid #8a6a2c;
+  border-radius: 4px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), inset 0 0 0 1px #e8c77a;
+}
+
+/* ---------- riveted iron plates over limestone ---------- */
+
+html[data-theme="brass-colliery"] .cell {
+  background:
+    radial-gradient(circle at 6px 6px, #8a7b66 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at calc(100% - 6px) 6px, #8a7b66 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 6px calc(100% - 6px), #8a7b66 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at calc(100% - 6px) calc(100% - 6px), #8a7b66 0 1.5px, transparent 2.5px),
+    linear-gradient(145deg, #57504a, var(--cell) 55%, #2a2622);
+  border: 1px solid #1a1612;
+  border-bottom: 4px solid #141110;
+  border-radius: 2px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  color: var(--screen-glow);
+}
+
+html[data-theme="brass-colliery"] .cell:not(.is-open):hover:not(:disabled) {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 196, 110, 0.35), transparent 70%),
+    linear-gradient(145deg, #6a625a, var(--cell-raised) 55%, #332e29);
+}
+
+html[data-theme="brass-colliery"] .cell:focus-visible {
+  outline: 2px solid #e2b85c;
+}
+
+html[data-theme="brass-colliery"] .cell.is-open {
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.25), transparent 40%),
+    repeating-linear-gradient(20deg, rgba(90, 70, 40, 0.06) 0 2px, transparent 2px 6px),
+    var(--cell-open);
+  border: 1px solid #a8987a;
+  border-bottom: 2px solid #938363;
+  box-shadow: inset 0 2px 4px rgba(60, 40, 10, 0.25);
+  color: #1b1510;
+  font-family: var(--font-body);
+  font-size: clamp(1rem, 5.5vw, 1.35rem);
+}
+
+html[data-theme="brass-colliery"] .cell.is-open:nth-child(even) {
+  background-color: var(--cell-open-alt);
+}
+
+html[data-theme="brass-colliery"] .cell.is-open.is-treasure,
+html[data-theme="brass-colliery"] .cell.is-open.is-treasure-gold {
+  background: radial-gradient(circle at 40% 35%, #fff2b8, #e2b85c 45%, #9c7a34);
+  border-color: #5e4617;
+  color: #3b2a0f;
+}
+
+html[data-theme="brass-colliery"] .cell.is-open.is-treasure-bronze {
+  background: radial-gradient(circle at 40% 35%, #f7c9a0, #b8693a 50%, #6e3a17);
+  border-color: #4a260e;
+  color: #2a1204;
+}
+
+html[data-theme="brass-colliery"] .cell.is-open.is-treasure-silver {
+  background: radial-gradient(circle at 40% 35%, #ffffff, #c4c6c2 50%, #7f827e);
+  border-color: #50534f;
+  color: #1f201e;
+}
+
+html[data-theme="brass-colliery"] .cell.is-open.is-curio {
+  background: radial-gradient(circle at 40% 35%, #d9b5e0, #7d4a8c 60%, #3d1f47);
+  color: #fff4d8;
+}
+
+html[data-theme="brass-colliery"] .cell.is-flagged {
+  color: #ffcb5c;
+  text-shadow: 0 0 12px rgba(255, 180, 60, 0.95);
+}
+
+html[data-theme="brass-colliery"] .cell.is-mine {
+  background: radial-gradient(circle, #ffd08a 0 18%, var(--mine) 50%, #4a1a0b);
+  color: #2a0c04;
+  box-shadow: 0 0 18px rgba(230, 110, 40, 0.8);
+}
+
+html[data-theme="brass-colliery"] .cell.is-hinted {
+  box-shadow: inset 0 0 0 2px #f4d34a, 0 0 12px rgba(244, 211, 74, 0.75);
+}
+
+html[data-theme="brass-colliery"] .cell.is-hinted::after {
+  color: #f4d34a;
+  content: "♪";
+  font-size: 0.7rem;
+}
+
+html[data-theme="brass-colliery"] .treasure-popup,
+html[data-theme="brass-colliery"] .treasure-popup--gold,
+html[data-theme="brass-colliery"] .treasure-popup--silver,
+html[data-theme="brass-colliery"] .treasure-popup--bronze {
+  background: #f2e4c4;
+  border: 2px solid #5e4617;
+  border-radius: 2px;
+  color: #2b1d08;
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  box-shadow: 2px 2px 0 #3b2a0f;
+}
+
+html[data-theme="brass-colliery"] .worker-cursor--excavator {
+  background: #c9a24a;
+  color: #2b1d08;
+}
+
+html[data-theme="brass-colliery"] .worker-cursor--flagbearer {
+  background: #d8914a;
+  color: #2b1208;
+}
+
+/* ---------- levers and dials ---------- */
+
+html[data-theme="brass-colliery"] .equipment-toggle {
+  background: repeating-conic-gradient(from 0deg, #e8c77a 0 15deg, #b08c3c 15deg 30deg);
+  border: 3px solid #5e4617;
+  border-radius: 50%;
+  box-shadow: 0 6px 0 #1a1208, inset 0 0 0 6px rgba(0, 0, 0, 0.15);
+  color: #2b1d08;
+}
+
+html[data-theme="brass-colliery"] .equipment-toggle strong {
+  background: #1b1510;
+  color: #e2b85c;
+}
+
+html[data-theme="brass-colliery"] .cabinet-mode-button {
+  background: radial-gradient(circle at 40% 30%, #f4dc98, #b08c3c 70%);
+  border: 3px solid #5e4617;
+  border-radius: 10px 10px 30px 30px;
+  box-shadow: 0 7px 0 #1a1208;
+  color: #2b1d08;
+  font-size: 0.56rem;
+  font-weight: 800;
+}
+
+html[data-theme="brass-colliery"] .cabinet-mode-button--green {
+  background: radial-gradient(circle at 40% 30%, #e8a07a, #9c4a2a 70%);
+  color: #fff1d6;
+}
+
+html[data-theme="brass-colliery"] .cabinet-mode-button.is-active {
+  box-shadow: 0 3px 0 #1a1208, 0 0 14px rgba(255, 190, 90, 0.8);
+}
+
+/* ---------- walnut and brass side panels ---------- */
+
+html[data-theme="brass-colliery"] .settings-panel,
+html[data-theme="brass-colliery"] .curio-panel,
+html[data-theme="brass-colliery"] .contracts-panel,
+html[data-theme="brass-colliery"] .quartermaster-panel,
+html[data-theme="brass-colliery"] .workshop-panel,
+html[data-theme="brass-colliery"] .contract-modal__window {
+  background:
+    repeating-linear-gradient(92deg, rgba(0, 0, 0, 0.12) 0 3px, transparent 3px 11px, rgba(255, 220, 170, 0.03) 11px 13px, transparent 13px 23px),
+    linear-gradient(180deg, #4a3222, #2e1f15 70%, #24170f);
+  border: 5px solid #8a6a2c;
+  border-radius: 4px;
+  box-shadow:
+    0 24px 50px rgba(0, 0, 0, 0.6),
+    inset 0 0 0 2px #e8c77a,
+    inset 0 0 0 6px #2a1c12,
+    inset 0 0 0 7px rgba(232, 199, 122, 0.4);
+}
+
+html[data-theme="brass-colliery"] .panel-header,
+html[data-theme="brass-colliery"] .settings-panel__header {
+  border-bottom: 2px double #c9a24a;
+}
+
+html[data-theme="brass-colliery"] .store h3,
+html[data-theme="brass-colliery"] .settings-panel h2,
+html[data-theme="brass-colliery"] .contract-modal__window h2 {
+  color: #f4dc98;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-shadow: 0 2px 0 #1a1208;
+}
+
+html[data-theme="brass-colliery"] .store__eyebrow,
+html[data-theme="brass-colliery"] .settings-panel__eyebrow {
+  color: #d8914a;
+  font-family: var(--font-display);
+  font-weight: 800;
+}
+
+html[data-theme="brass-colliery"] .coin-display,
+html[data-theme="brass-colliery"] .message-board-status,
+html[data-theme="brass-colliery"] .curio-status,
+html[data-theme="brass-colliery"] .auto-mine-status {
+  background: linear-gradient(180deg, #f2e4c4, #dccaa0);
+  border: 2px solid #8a6a2c;
+  border-radius: 2px;
+  box-shadow: 2px 3px 0 rgba(0, 0, 0, 0.45);
+}
+
+html[data-theme="brass-colliery"] .coin-display__label,
+html[data-theme="brass-colliery"] .message-board-status__label,
+html[data-theme="brass-colliery"] .curio-status__label,
+html[data-theme="brass-colliery"] .auto-mine-status__label {
+  color: #6b4d22;
+  font-family: var(--font-display);
+  font-weight: 800;
+}
+
+html[data-theme="brass-colliery"] .coin-display__value,
+html[data-theme="brass-colliery"] .message-board-status__value,
+html[data-theme="brass-colliery"] .curio-status__value,
+html[data-theme="brass-colliery"] .auto-mine-status__value {
+  color: #1b1510;
+  font-family: var(--font-body);
+  font-size: 1rem;
+}
+
+html[data-theme="brass-colliery"] .resource-card,
+html[data-theme="brass-colliery"] .store-item,
+html[data-theme="brass-colliery"] .message-tile,
+html[data-theme="brass-colliery"] .specialist-card,
+html[data-theme="brass-colliery"] .progress-reset,
+html[data-theme="brass-colliery"] .save-management,
+html[data-theme="brass-colliery"] .equipment-inventory__item,
+html[data-theme="brass-colliery"] .blueprint-card,
+html[data-theme="brass-colliery"] .intervention-entry {
+  background:
+    radial-gradient(circle at 7px 7px, #9c8a6e 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at calc(100% - 7px) 7px, #9c8a6e 0 1.5px, transparent 2.5px),
+    linear-gradient(160deg, #3a332c, #26211c);
+  border: 1px solid #0f0c09;
+  border-radius: 3px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+html[data-theme="brass-colliery"] .blueprint-card,
+html[data-theme="brass-colliery"] .intervention-entry {
+  margin-top: 6px;
+  padding: 8px 10px;
+}
+
+html[data-theme="brass-colliery"] .store-item:hover:not(:disabled) {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255, 196, 110, 0.22), transparent 70%),
+    linear-gradient(160deg, #4a4138, #2e2822);
+  border-color: #c9a24a;
+}
+
+html[data-theme="brass-colliery"] .resource-card__icon {
+  color: #e2b85c;
+}
+
+html[data-theme="brass-colliery"] #hint-resource .resource-card__icon {
+  font-size: 0;
+}
+
+html[data-theme="brass-colliery"] #hint-resource .resource-card__icon::before {
+  content: "♪";
+  font-size: 1.1rem;
+}
+
+html[data-theme="brass-colliery"] .resource-card__value {
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+}
+
+html[data-theme="brass-colliery"] .resource-card__label,
+html[data-theme="brass-colliery"] .store-item__copy strong,
+html[data-theme="brass-colliery"] .specialist-card strong,
+html[data-theme="brass-colliery"] .message-tile__topline strong,
+html[data-theme="brass-colliery"] .progress-reset strong {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+html[data-theme="brass-colliery"] .resource-card__label {
+  font-size: 0.6rem;
+}
+
+html[data-theme="brass-colliery"] .store-item__cost {
+  background: linear-gradient(180deg, #f4dc98, #c9a24a);
+  border: 1px solid #5e4617;
+  border-radius: 2px;
+  color: #2b1d08;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  padding: 3px 7px;
+  box-shadow: 1px 1px 0 #1a1208;
+}
+
+html[data-theme="brass-colliery"] .resource-card::after,
+html[data-theme="brass-colliery"] .quartermaster-tooltip,
+html[data-theme="brass-colliery"] .worker-tooltip {
+  background: #f2e4c4;
+  border: 2px solid #5e4617;
+  border-radius: 2px;
+  color: #2b1d08;
+  font-family: var(--font-body);
+  box-shadow: 3px 4px 0 rgba(0, 0, 0, 0.5);
+}
+
+html[data-theme="brass-colliery"] .worker-tooltip strong,
+html[data-theme="brass-colliery"] .worker-tooltip > span {
+  color: #2b1d08;
+}
+
+html[data-theme="brass-colliery"] .message-tile--contract {
+  border-left: 4px solid #c9a24a;
+}
+
+html[data-theme="brass-colliery"] .message-tile--challenge.is-claimable {
+  box-shadow: 0 0 0 2px #e2b85c, 0 0 18px rgba(255, 190, 90, 0.5);
+}
+
+html[data-theme="brass-colliery"] .dev-button {
+  background: linear-gradient(180deg, #d9a070, #9c5a2e);
+  border-bottom: 3px solid #4a260e;
+  border-radius: 4px;
+  color: #fff1d6;
+  font-family: var(--font-display);
+  font-size: 0.56rem;
+  font-weight: 800;
+}
+
+html[data-theme="brass-colliery"] .progress-reset {
+  border: 1px solid #7a1d18;
+}
+
+html[data-theme="brass-colliery"] .progress-reset__button {
+  background: linear-gradient(180deg, #c8463d, #7a1d18);
+  border-bottom: 3px solid #3a0906;
+  border-radius: 4px;
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+
+html[data-theme="brass-colliery"] select,
+html[data-theme="brass-colliery"] .setting-row input[type="number"] {
+  background: #f2e4c4;
+  border: 2px solid #8a6a2c;
+  border-radius: 2px;
+  color: #1b1510;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+}
+
+html[data-theme="brass-colliery"] .curio-slot {
+  background: #1a1511;
+  border: 2px solid #5e4617;
+  border-radius: 50%;
+  color: rgba(242, 228, 196, 0.3);
+}
+
+html[data-theme="brass-colliery"] .curio-slot.is-found {
+  background: radial-gradient(circle at 40% 35%, #f4dc98, #9c7a34 70%);
+  border-color: #e8c77a;
+  color: #2b1d08;
+  text-shadow: none;
+}
+
+html[data-theme="brass-colliery"] .curio-slot__count {
+  background: #7a1d18;
+  color: #fff1d6;
+}
+
+/* ---------- survey map (district) on drafting linen ---------- */
+
+html[data-theme="brass-colliery"] .district-view {
+  background:
+    repeating-linear-gradient(0deg, rgba(40, 70, 110, 0.1) 0 1px, transparent 1px 14px),
+    repeating-linear-gradient(90deg, rgba(40, 70, 110, 0.1) 0 1px, transparent 1px 14px),
+    #efe6cf;
+  color: #1b1510;
+}
+
+html[data-theme="brass-colliery"] .district-cell {
+  background: #e3d4ae;
+  border: 1px solid #6b4d22;
+  border-radius: 0;
+  color: #1b1510;
+  font-family: var(--font-body);
+}
+
+html[data-theme="brass-colliery"] .district-cell.state-unknown {
+  background: repeating-linear-gradient(45deg, #8c8272 0 4px, #7a7060 4px 8px);
+  color: #f2e4c4;
+}
+
+html[data-theme="brass-colliery"] .district-cell.state-active {
+  background: #e2b85c;
+}
+
+html[data-theme="brass-colliery"] .district-cell.state-secured {
+  background: #9aa86a;
+}
+
+html[data-theme="brass-colliery"] .district-cell.state-caved_in {
+  background: #7a1d18;
+  color: #fff1d6;
+}
+
+html[data-theme="brass-colliery"] .district-cell.is-selected {
+  outline: 3px solid #7a1d18;
+}
+
+html[data-theme="brass-colliery"] .contract-modal {
+  background: rgba(10, 7, 4, 0.8);
+}
+
+html[data-theme="brass-colliery"] .stats-section summary {
+  color: #e2b85c;
+}
+
+html[data-theme="brass-colliery"] .settings-panel,
+html[data-theme="brass-colliery"] .contract-modal__window {
+  scrollbar-color: #c9a24a #1a1511;
+}
