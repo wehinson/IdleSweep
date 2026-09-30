@@ -26,6 +26,22 @@ function loadThemes() {
 
 const kit = loadKit();
 
+// Split a selector list at top-level commas only (not inside :is(), :not(), and similar).
+function splitSelectors(list) {
+  const parts = [];
+  let depth = 0;
+  let current = "";
+  for (const char of list) {
+    if (char === "(") depth += 1;
+    if (char === ")") depth -= 1;
+    if (char === "," && depth === 0) {
+      parts.push(current);
+      current = "";
+    } else current += char;
+  }
+  return [...parts, current];
+}
+
 test("translate keeps word boundaries and letter case", () => {
   const compiled = kit.compilePhrases({ Mines: "Sea Mines", Mine: "Sea Mine", mine: "sea mine", "✹": "✺" });
   assert.equal(kit.translate("Mines: 4", compiled), "Sea Mines: 4");
@@ -62,7 +78,7 @@ test("every theme is valid, unique, and scoped", () => {
       .map((block) => block.split("{")[0].trim())
       .filter(Boolean);
     for (const selector of selectors) {
-      for (const part of selector.split(",")) {
+      for (const part of splitSelectors(selector)) {
         assert.match(part.trim(), new RegExp(`^html\\[data-theme="${theme.id}"\\]`), `${theme.id}: unscoped selector "${part.trim()}"`);
       }
     }
