@@ -1,0 +1,673 @@
+/* Abyssal Salvage (Claude): a submersible console on the dark sea floor.
+   Bioluminescent cyan on deep navy, a sonar-sweep screen, sand revealed under murky water. */
+
+html[data-theme="abyssal-salvage"] {
+  --ink: #02131d;
+  --cabinet: #0b2a3a;
+  --cabinet-edge: #04121b;
+  --red: #ff6b5a;
+  --yellow: #ffcf7a;
+  --yellow-rgb: 255, 207, 122;
+  --cyan: #3ff3e0;
+  --green: #5fd38d;
+  --screen: #03141f;
+  --screen-glow: #bff9f2;
+  --glow-rgb: 63, 243, 224;
+  --cell: #0e3a4f;
+  --cell-raised: #15536d;
+  --cell-open: #d6c393;
+  --cell-open-alt: #cab584;
+  --white: #e6fbf8;
+  --panel-bg: #041c2a;
+  --panel-bg-deep: #020e16;
+  --num-1: #0a6c8f;
+  --num-2: #22703b;
+  --num-3: #b8322a;
+  --num-4: #6b2a8e;
+  --mine: #ff6b5a;
+  --font-display: "Chakra Petch", "Segoe UI", sans-serif;
+  --font-body: "IBM Plex Mono", Consolas, monospace;
+  background: #010a10;
+}
+
+html[data-theme="abyssal-salvage"] body {
+  background:
+    radial-gradient(ellipse at 50% -10%, rgba(63, 243, 224, 0.18), transparent 55%),
+    radial-gradient(circle at 12% 88%, rgba(95, 211, 141, 0.08), transparent 30rem),
+    repeating-linear-gradient(115deg, transparent 0 60px, rgba(63, 243, 224, 0.025) 60px 62px),
+    linear-gradient(180deg, #06263a 0%, #031622 45%, #01080d 100%);
+  background-attachment: fixed;
+}
+
+/* Rising bubbles behind everything */
+html[data-theme="abyssal-salvage"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    radial-gradient(circle, rgba(191, 249, 242, 0.35) 0 2px, transparent 3px),
+    radial-gradient(circle, rgba(191, 249, 242, 0.2) 0 1px, transparent 2px),
+    radial-gradient(circle, rgba(191, 249, 242, 0.25) 0 3px, transparent 4px);
+  background-size: 240px 420px, 170px 300px, 330px 520px;
+  background-position: 30px 0, 110px 60px, 200px 140px;
+  animation: abyssal-salvage-bubbles 28s linear infinite;
+}
+
+html[data-theme="abyssal-salvage"] .app-shell {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes abyssal-salvage-bubbles {
+  to {
+    background-position: 30px -420px, 110px -240px, 200px -380px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="abyssal-salvage"] body::before {
+    animation: none;
+  }
+}
+
+/* ---------- submersible console (cabinet) ---------- */
+
+html[data-theme="abyssal-salvage"] .cabinet {
+  background:
+    radial-gradient(circle at 14px 14px, #2b5b70 0 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 14px) 14px, #2b5b70 0 3px, transparent 4px),
+    radial-gradient(circle at 14px calc(100% - 14px), #2b5b70 0 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 14px) calc(100% - 14px), #2b5b70 0 3px, transparent 4px),
+    linear-gradient(180deg, #14415a, #0b2a3a 30%, #061a26);
+  border: 6px solid #04121b;
+  border-radius: 28px;
+  box-shadow:
+    0 30px 60px rgba(0, 0, 0, 0.6),
+    0 0 0 2px rgba(63, 243, 224, 0.18),
+    inset 0 0 0 3px rgba(63, 243, 224, 0.08),
+    inset 0 18px 40px rgba(63, 243, 224, 0.07);
+}
+
+html[data-theme="abyssal-salvage"] .cabinet::before,
+html[data-theme="abyssal-salvage"] .cabinet::after {
+  background: linear-gradient(180deg, transparent, rgba(63, 243, 224, 0.8) 20%, rgba(63, 243, 224, 0.15) 60%, transparent);
+  border-radius: 999px;
+  box-shadow: 0 0 12px rgba(63, 243, 224, 0.6);
+  height: calc(100% - 60px);
+  top: 30px;
+  width: 3px;
+}
+
+html[data-theme="abyssal-salvage"] .cabinet::before {
+  left: 10px;
+}
+
+html[data-theme="abyssal-salvage"] .cabinet::after {
+  right: 10px;
+}
+
+html[data-theme="abyssal-salvage"] .marquee {
+  background:
+    linear-gradient(180deg, rgba(63, 243, 224, 0.12), transparent),
+    #031621;
+  border: 2px solid rgba(63, 243, 224, 0.55);
+  border-radius: 999px;
+  box-shadow: 0 0 18px rgba(63, 243, 224, 0.25), inset 0 0 14px rgba(63, 243, 224, 0.18);
+  color: var(--cyan);
+}
+
+html[data-theme="abyssal-salvage"] .marquee h1 {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 10px rgba(63, 243, 224, 0.8);
+  text-transform: uppercase;
+}
+
+html[data-theme="abyssal-salvage"] .marquee__spark {
+  color: var(--green);
+  text-shadow: 0 0 8px rgba(95, 211, 141, 0.8);
+}
+
+/* Sonar screen: concentric range rings and a rotating sweep */
+html[data-theme="abyssal-salvage"] .screen {
+  background:
+    repeating-radial-gradient(circle at 50% 58%, transparent 0 46px, rgba(63, 243, 224, 0.07) 47px 48px),
+    radial-gradient(circle at 50% 58%, rgba(63, 243, 224, 0.12), transparent 70%),
+    #03141f;
+  border: 4px solid #020e16;
+  border-radius: 22px;
+  box-shadow:
+    inset 0 0 40px rgba(63, 243, 224, 0.14),
+    0 0 0 2px rgba(63, 243, 224, 0.22);
+  overflow: hidden;
+}
+
+html[data-theme="abyssal-salvage"] .screen::before {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  pointer-events: none;
+  background: conic-gradient(from 0deg at 50% 50%, rgba(63, 243, 224, 0.16), transparent 14%, transparent);
+  animation: abyssal-salvage-sweep 6s linear infinite;
+  z-index: 0;
+}
+
+html[data-theme="abyssal-salvage"] .screen > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes abyssal-salvage-sweep {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="abyssal-salvage"] .screen::before {
+    animation: none;
+  }
+}
+
+html[data-theme="abyssal-salvage"] .meter,
+html[data-theme="abyssal-salvage"] .record-strip {
+  background: rgba(2, 14, 22, 0.85);
+  border: 1px solid rgba(63, 243, 224, 0.35);
+  border-radius: 12px;
+  box-shadow: inset 0 0 12px rgba(63, 243, 224, 0.08);
+}
+
+html[data-theme="abyssal-salvage"] .meter__value,
+html[data-theme="abyssal-salvage"] .record-strip strong {
+  color: var(--cyan);
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-shadow: 0 0 8px rgba(63, 243, 224, 0.6);
+}
+
+html[data-theme="abyssal-salvage"] .record-strip strong {
+  font-size: 0.72rem;
+}
+
+/* Porthole dive button */
+html[data-theme="abyssal-salvage"] .reset {
+  background:
+    radial-gradient(circle at 38% 32%, rgba(255, 255, 255, 0.35), transparent 30%),
+    radial-gradient(circle, #ff8c7d 0 45%, #d8483a 70%);
+  border: 5px solid #8d9ea6;
+  border-bottom: 5px solid #5b6c74;
+  box-shadow: 0 0 0 3px #2d3d45, 0 0 20px rgba(255, 107, 90, 0.45);
+  color: #fff4ec;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-shadow: 0 1px 2px rgba(80, 10, 5, 0.7);
+}
+
+html[data-theme="abyssal-salvage"] .status {
+  color: rgba(191, 249, 242, 0.85);
+}
+
+html[data-theme="abyssal-salvage"] .field-value {
+  color: var(--yellow);
+  font-size: 0.72rem;
+}
+
+html[data-theme="abyssal-salvage"] .field-specification-toggle {
+  background: linear-gradient(#1b6f80, #0f4d5c);
+  border: 1px solid rgba(63, 243, 224, 0.7);
+  border-radius: 12px;
+  color: var(--screen-glow);
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+html[data-theme="abyssal-salvage"] .field-specification-menu {
+  background: #03141f;
+  border: 1px solid rgba(63, 243, 224, 0.6);
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 18px rgba(63, 243, 224, 0.2);
+}
+
+/* ---------- board tiles: murky water over sand ---------- */
+
+html[data-theme="abyssal-salvage"] .board {
+  gap: 4px;
+}
+
+html[data-theme="abyssal-salvage"] .cell {
+  background:
+    radial-gradient(circle at 30% 25%, rgba(63, 243, 224, 0.22), transparent 45%),
+    radial-gradient(circle at 70% 80%, rgba(2, 14, 22, 0.5), transparent 55%),
+    var(--cell);
+  border: 1px solid rgba(63, 243, 224, 0.25);
+  border-bottom: 3px solid #052131;
+  border-radius: 10px;
+  box-shadow: inset 0 0 8px rgba(63, 243, 224, 0.12);
+  color: var(--screen-glow);
+  font-weight: 700;
+}
+
+html[data-theme="abyssal-salvage"] .cell:not(.is-open):hover:not(:disabled) {
+  background:
+    radial-gradient(circle at 30% 25%, rgba(63, 243, 224, 0.4), transparent 50%),
+    var(--cell-raised);
+  box-shadow: 0 0 12px rgba(63, 243, 224, 0.4);
+}
+
+html[data-theme="abyssal-salvage"] .cell:focus-visible {
+  outline: 2px solid var(--cyan);
+}
+
+html[data-theme="abyssal-salvage"] .cell.is-open {
+  background:
+    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.25) 0 1px, transparent 2px),
+    radial-gradient(circle at 70% 65%, rgba(120, 90, 40, 0.2) 0 1px, transparent 2px),
+    var(--cell-open);
+  background-size: 9px 9px, 11px 11px, auto;
+  border: 1px solid #b19c6b;
+  border-bottom: 2px solid #9b875a;
+  box-shadow: inset 0 2px 5px rgba(60, 40, 10, 0.25);
+  color: #1c2a33;
+}
+
+html[data-theme="abyssal-salvage"] .cell.is-open:nth-child(even) {
+  background-color: var(--cell-open-alt);
+}
+
+html[data-theme="abyssal-salvage"] .cell.is-open.is-treasure,
+html[data-theme="abyssal-salvage"] .cell.is-open.is-treasure-gold {
+  background: radial-gradient(circle at 40% 35%, #ffffff, #f4ecd8 35%, #d9c9a8 75%);
+  border-color: #b6a57f;
+  color: #5d4b2a;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.9);
+}
+
+html[data-theme="abyssal-salvage"] .cell.is-open.is-treasure-bronze {
+  background: radial-gradient(circle at 40% 35%, #ffe0cf, #f0b596 45%, #c77c5c);
+  border-color: #8c4f35;
+  color: #4a1e0c;
+}
+
+html[data-theme="abyssal-salvage"] .cell.is-open.is-treasure-silver {
+  background: radial-gradient(circle at 40% 35%, #ffffff, #d8e6ee 45%, #9fb4c2);
+  border-color: #6f8594;
+  color: #1f2f3a;
+}
+
+html[data-theme="abyssal-salvage"] .cell.is-open.is-curio {
+  background: radial-gradient(circle at 50% 50%, #ff9f8f, #e0604f 60%, #a6392e);
+  color: #fff3ee;
+}
+
+html[data-theme="abyssal-salvage"] .cell.is-flagged {
+  color: #ffb347;
+  text-shadow: 0 0 10px rgba(255, 179, 71, 0.9);
+}
+
+html[data-theme="abyssal-salvage"] .cell.is-mine {
+  background: radial-gradient(circle, #ff9a8c 0 25%, var(--mine) 55%, #7a1f18);
+  color: #2a0906;
+  box-shadow: 0 0 16px rgba(255, 107, 90, 0.7);
+}
+
+html[data-theme="abyssal-salvage"] .cell.is-hinted {
+  box-shadow: inset 0 0 0 2px var(--cyan), 0 0 14px rgba(63, 243, 224, 0.8);
+}
+
+html[data-theme="abyssal-salvage"] .cell.is-hinted::after {
+  color: var(--cyan);
+  content: "◎";
+}
+
+html[data-theme="abyssal-salvage"] .treasure-popup,
+html[data-theme="abyssal-salvage"] .treasure-popup--gold,
+html[data-theme="abyssal-salvage"] .treasure-popup--silver,
+html[data-theme="abyssal-salvage"] .treasure-popup--bronze {
+  background: rgba(3, 20, 31, 0.92);
+  border: 1px solid var(--cyan);
+  border-radius: 999px;
+  color: var(--cyan);
+  font-size: 0.7rem;
+  font-weight: 700;
+  box-shadow: 0 0 12px rgba(63, 243, 224, 0.6);
+}
+
+/* ---------- controls ---------- */
+
+html[data-theme="abyssal-salvage"] .equipment-toggle {
+  background: radial-gradient(circle at 40% 30%, #2f8a9a, #135468);
+  border: 3px solid #8d9ea6;
+  border-radius: 50%;
+  box-shadow: 0 6px 0 #02101a, 0 0 14px rgba(63, 243, 224, 0.3);
+  color: var(--screen-glow);
+}
+
+html[data-theme="abyssal-salvage"] .equipment-toggle strong {
+  background: #02101a;
+  color: var(--cyan);
+}
+
+html[data-theme="abyssal-salvage"] .equipment-inventory {
+  background: #03141f;
+  border: 1px solid rgba(63, 243, 224, 0.6);
+  border-radius: 14px;
+}
+
+html[data-theme="abyssal-salvage"] .cabinet-mode-button {
+  background: linear-gradient(#1f6f80, #0f4655);
+  border: 2px solid rgba(63, 243, 224, 0.75);
+  border-radius: 14px;
+  box-shadow: 0 6px 0 #02101a, 0 0 10px rgba(63, 243, 224, 0.25);
+  color: var(--screen-glow);
+  font-size: 0.6rem;
+  font-weight: 700;
+}
+
+html[data-theme="abyssal-salvage"] .cabinet-mode-button--green {
+  background: linear-gradient(#2f9a64, #19663f);
+  border-color: rgba(95, 211, 141, 0.85);
+}
+
+html[data-theme="abyssal-salvage"] .cabinet-mode-button.is-active {
+  box-shadow: 0 3px 0 #02101a, 0 0 16px rgba(63, 243, 224, 0.8);
+}
+
+/* ---------- side panels: pressure-hull modules ---------- */
+
+html[data-theme="abyssal-salvage"] .settings-panel,
+html[data-theme="abyssal-salvage"] .curio-panel,
+html[data-theme="abyssal-salvage"] .contracts-panel,
+html[data-theme="abyssal-salvage"] .quartermaster-panel,
+html[data-theme="abyssal-salvage"] .workshop-panel,
+html[data-theme="abyssal-salvage"] .contract-modal__window {
+  background:
+    linear-gradient(180deg, rgba(63, 243, 224, 0.07), transparent 90px),
+    linear-gradient(180deg, #0a2433, #041621);
+  border: 1px solid rgba(63, 243, 224, 0.35);
+  border-radius: 20px;
+  box-shadow:
+    0 24px 50px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 4px #020e16,
+    inset 0 0 0 5px rgba(63, 243, 224, 0.12);
+}
+
+html[data-theme="abyssal-salvage"] .panel-header,
+html[data-theme="abyssal-salvage"] .settings-panel__header {
+  border-bottom: 1px solid rgba(63, 243, 224, 0.3);
+}
+
+html[data-theme="abyssal-salvage"] .store h3,
+html[data-theme="abyssal-salvage"] .settings-panel h2,
+html[data-theme="abyssal-salvage"] .contract-modal__window h2 {
+  color: var(--cyan);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 10px rgba(63, 243, 224, 0.5);
+}
+
+html[data-theme="abyssal-salvage"] .store__eyebrow,
+html[data-theme="abyssal-salvage"] .settings-panel__eyebrow {
+  color: var(--green);
+}
+
+html[data-theme="abyssal-salvage"] .coin-display,
+html[data-theme="abyssal-salvage"] .message-board-status,
+html[data-theme="abyssal-salvage"] .curio-status,
+html[data-theme="abyssal-salvage"] .auto-mine-status {
+  background: #020e16;
+  border: 1px solid rgba(255, 207, 122, 0.55);
+  border-radius: 999px;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+html[data-theme="abyssal-salvage"] .coin-display__value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-shadow: 0 0 10px rgba(255, 207, 122, 0.5);
+}
+
+html[data-theme="abyssal-salvage"] .resource-card {
+  background: radial-gradient(circle at 50% 0%, rgba(63, 243, 224, 0.14), transparent 70%), #031621;
+  border: 1px solid rgba(63, 243, 224, 0.3);
+  border-radius: 16px;
+}
+
+html[data-theme="abyssal-salvage"] .resource-card__icon {
+  color: var(--cyan);
+  text-shadow: 0 0 8px rgba(63, 243, 224, 0.7);
+}
+
+/* The Hints card uses a literal "?" glyph; replace it with a sonar ring. */
+html[data-theme="abyssal-salvage"] #hint-resource .resource-card__icon {
+  font-size: 0;
+}
+
+html[data-theme="abyssal-salvage"] #hint-resource .resource-card__icon::before {
+  content: "◎";
+  font-size: 1.05rem;
+}
+
+html[data-theme="abyssal-salvage"] .resource-card__value {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+html[data-theme="abyssal-salvage"] .resource-card::after,
+html[data-theme="abyssal-salvage"] .quartermaster-tooltip,
+html[data-theme="abyssal-salvage"] .worker-tooltip {
+  background: #03141f;
+  border: 1px solid var(--cyan);
+  border-radius: 12px;
+  box-shadow: 0 0 18px rgba(63, 243, 224, 0.3);
+}
+
+html[data-theme="abyssal-salvage"] .store-item,
+html[data-theme="abyssal-salvage"] .message-tile,
+html[data-theme="abyssal-salvage"] .specialist-card,
+html[data-theme="abyssal-salvage"] .progress-reset,
+html[data-theme="abyssal-salvage"] .save-management,
+html[data-theme="abyssal-salvage"] .equipment-inventory__item {
+  background: linear-gradient(90deg, rgba(63, 243, 224, 0.06), transparent 40%), #031621;
+  border: 1px solid rgba(63, 243, 224, 0.25);
+  border-radius: 14px;
+}
+
+html[data-theme="abyssal-salvage"] .store-item:hover:not(:disabled) {
+  background: linear-gradient(90deg, rgba(63, 243, 224, 0.16), transparent 60%), #052233;
+  border-color: var(--cyan);
+  box-shadow: 0 0 14px rgba(63, 243, 224, 0.35);
+}
+
+html[data-theme="abyssal-salvage"] .store-item__copy strong,
+html[data-theme="abyssal-salvage"] .specialist-card strong,
+html[data-theme="abyssal-salvage"] .message-tile__topline strong,
+html[data-theme="abyssal-salvage"] .progress-reset strong {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+html[data-theme="abyssal-salvage"] .store-item__cost {
+  background: rgba(255, 207, 122, 0.1);
+  border: 1px solid rgba(255, 207, 122, 0.45);
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 4px 9px;
+}
+
+html[data-theme="abyssal-salvage"] .message-tile--contract {
+  border-color: rgba(95, 211, 141, 0.55);
+}
+
+html[data-theme="abyssal-salvage"] .message-tile--challenge.is-claimable {
+  background: rgba(255, 207, 122, 0.08);
+  border-color: var(--yellow);
+  box-shadow: 0 0 18px rgba(255, 207, 122, 0.35);
+}
+
+html[data-theme="abyssal-salvage"] .contract-button,
+html[data-theme="abyssal-salvage"] .worker-buy,
+html[data-theme="abyssal-salvage"] .district-toolbar button,
+html[data-theme="abyssal-salvage"] .parcel-action {
+  background: linear-gradient(#ffd99a, #e7a94f);
+  border: 0;
+  border-bottom: 3px solid #8a5a1c;
+  border-radius: 999px;
+  color: #2a1804;
+  font-family: var(--font-display);
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+html[data-theme="abyssal-salvage"] .worker-buy:disabled {
+  background: #193442;
+  border-color: #264b5c;
+  color: rgba(191, 249, 242, 0.45);
+}
+
+html[data-theme="abyssal-salvage"] .dev-button {
+  background: linear-gradient(#2c9aa6, #136b78);
+  border-bottom: 3px solid #07404a;
+  border-radius: 999px;
+  color: #e6fbf8;
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+html[data-theme="abyssal-salvage"] .progress-reset {
+  border-color: rgba(255, 107, 90, 0.55);
+}
+
+html[data-theme="abyssal-salvage"] .progress-reset__button {
+  background: linear-gradient(#ff8c7d, #d8483a);
+  border-bottom: 3px solid #7a1f18;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+html[data-theme="abyssal-salvage"] select,
+html[data-theme="abyssal-salvage"] .setting-row input[type="number"] {
+  background: #020e16;
+  border: 1px solid rgba(63, 243, 224, 0.45);
+  border-radius: 12px;
+  color: var(--cyan);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+html[data-theme="abyssal-salvage"] .curio-slot {
+  background: #031621;
+  border: 1px solid rgba(63, 243, 224, 0.2);
+  border-radius: 50%;
+}
+
+html[data-theme="abyssal-salvage"] .curio-slot.is-found {
+  background: radial-gradient(circle, rgba(255, 159, 143, 0.35), #031621 70%);
+  border-color: #ff9f8f;
+  color: #ffc2b8;
+  text-shadow: 0 0 10px rgba(255, 159, 143, 0.8);
+}
+
+html[data-theme="abyssal-salvage"] .curio-slot__count {
+  background: #ff9f8f;
+  color: #2a0906;
+}
+
+/* ---------- seabed chart (district) ---------- */
+
+html[data-theme="abyssal-salvage"] .district-view {
+  background:
+    repeating-radial-gradient(circle at 30% 40%, transparent 0 18px, rgba(63, 243, 224, 0.08) 19px 20px),
+    linear-gradient(160deg, #0b3246, #051a27);
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.55);
+  color: var(--screen-glow);
+}
+
+html[data-theme="abyssal-salvage"] .district-map {
+  background: rgba(2, 14, 22, 0.55);
+  border: 1px solid rgba(63, 243, 224, 0.35);
+}
+
+html[data-theme="abyssal-salvage"] .district-cell {
+  background: #0e3a4f;
+  border: 1px solid rgba(63, 243, 224, 0.3);
+  border-radius: 8px;
+  color: var(--screen-glow);
+}
+
+html[data-theme="abyssal-salvage"] .district-cell.state-unknown {
+  background: #07202d;
+  color: rgba(191, 249, 242, 0.5);
+}
+
+html[data-theme="abyssal-salvage"] .district-cell.state-active {
+  background: #d6c393;
+  color: #1c2a33;
+}
+
+html[data-theme="abyssal-salvage"] .district-cell.state-secured {
+  background: #2f9a64;
+  color: #04160c;
+}
+
+html[data-theme="abyssal-salvage"] .district-cell.state-caved_in {
+  background: #8c2f28;
+}
+
+html[data-theme="abyssal-salvage"] .district-cell.is-selected {
+  outline: 2px solid var(--cyan);
+  box-shadow: 0 0 14px rgba(63, 243, 224, 0.7);
+}
+
+html[data-theme="abyssal-salvage"] .district-locked {
+  background: rgba(2, 14, 22, 0.6);
+  border: 1px dashed rgba(63, 243, 224, 0.5);
+}
+
+html[data-theme="abyssal-salvage"] .parcel-inspector {
+  color: var(--screen-glow);
+}
+
+/* ---------- workers, proofs and blueprints ---------- */
+
+html[data-theme="abyssal-salvage"] .worker-cursor--excavator {
+  background: #ffcf7a;
+  color: #2a1804;
+}
+
+html[data-theme="abyssal-salvage"] .worker-cursor--flagbearer {
+  background: #3ff3e0;
+  color: #02131d;
+}
+
+html[data-theme="abyssal-salvage"] .proof-cell {
+  border-radius: 4px;
+}
+
+html[data-theme="abyssal-salvage"] .blueprint-card,
+html[data-theme="abyssal-salvage"] .intervention-entry {
+  background: #031621;
+  border: 1px solid rgba(63, 243, 224, 0.25);
+  border-radius: 12px;
+  margin-top: 6px;
+  padding: 8px 10px;
+}
+
+html[data-theme="abyssal-salvage"] .contract-modal {
+  background: rgba(1, 10, 16, 0.78);
+}
+
+html[data-theme="abyssal-salvage"] .stats-section summary {
+  color: var(--cyan);
+}
+
+html[data-theme="abyssal-salvage"] .settings-panel,
+html[data-theme="abyssal-salvage"] .contract-modal__window {
+  scrollbar-color: var(--cyan) #020e16;
+}
