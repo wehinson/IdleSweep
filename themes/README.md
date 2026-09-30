@@ -36,3 +36,11 @@ A theme changes only presentation. It never changes engine state, config values,
 - The Original theme must look and read exactly as before.
 - Engine tests must still pass (`npm test`), including `test/themes.test.js`.
 - Text replacements must keep the meaning. The player must still understand each control.
+
+## Theme Lab (one server for both games)
+
+```
+npm run theme-lab
+```
+
+This opens <http://localhost:8090>. The index lists both games and every theme. `/sweep/` serves the IdleSweep redesign worktree, and `/snake/` serves the IdleSnake redesign worktree. They must be sibling folders (`C:\Code\IdleSweep-redesign` and `C:\Code\IdleSnake-redesign`), or you can set `SWEEP_ROOT` and `SNAKE_ROOT`. Each game's own `npm run serve` also works; use the picker there.

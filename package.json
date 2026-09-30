@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "serve": "node scripts/serve.js",
-    "test": "node --test"
+    "test": "node --test",
+    "theme-lab": "node scripts/theme-lab.mjs"
   }
 }
