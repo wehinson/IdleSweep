@@ -26,6 +26,7 @@ A theme changes only presentation. It never changes engine state, config values,
   - `id`, `name`, `author` (`"Claude"` or `"Codex"`), `title` (the document title)
   - `fonts`: a Google Fonts CSS URL
   - `phrases`: `{ "Original text": "Themed text" }`. Matches are whole words and longest first. UPPERCASE and Capitalized variants are added automatically. Glyphs such as `✹` can be keys too.
+  - `labels` (optional): `{ "#css-selector": "inner HTML" }` for fixed elements whose label spans several nodes, such as `Auto<br>Mine`.
   - `canvas` (optional): `{ colors: { "#hex": "#hex" }, fonts: { "Courier New": "Family" } }`
 - `themes/<id>/theme.css`: **every selector must start with `html[data-theme="<id>"]`**. `npm test` checks this. Override the `:root` variables on `html[data-theme="<id>"]`, then restyle any selector in `styles.css`. You can use `::before`/`::after`, backgrounds, SVG data URIs, and keyframes. Name keyframes `<id>-<name>`.
 

@@ -139,6 +139,7 @@
     if (!theme.name) errors.push("name is required");
     if (!theme.author) errors.push("author is required");
     if (theme.phrases && typeof theme.phrases !== "object") errors.push("phrases must be an object");
+    if (theme.labels && typeof theme.labels !== "object") errors.push("labels must be an object");
     for (const [from, to] of Object.entries(theme.phrases || {})) {
       if (typeof to !== "string") errors.push(`phrase "${from}" must map to a string`);
     }
@@ -285,10 +286,32 @@
     }
   }
 
+  // Static elements whose label spans several nodes (e.g. "Auto<br>Mine") get whole-HTML labels.
+  const labelOriginals = new Map();
+
+  function restoreLabels() {
+    for (const [element, record] of labelOriginals) {
+      element.innerHTML = record.html;
+      if (record.skip === null) element.removeAttribute("data-theme-skip");
+    }
+    labelOriginals.clear();
+  }
+
+  function applyLabels(labels) {
+    for (const [selector, html] of Object.entries(labels || {})) {
+      document.querySelectorAll(selector).forEach((element) => {
+        labelOriginals.set(element, { html: element.innerHTML, skip: element.getAttribute("data-theme-skip") });
+        element.setAttribute("data-theme-skip", "");
+        element.innerHTML = html;
+      });
+    }
+  }
+
   function apply(id, { persist = true } = {}) {
     const theme = themes.get(id) || ORIGINAL;
     const previous = active;
     stopObserver();
+    restoreLabels();
     if (document.body) restoreTree(document.body);
     active = theme;
     compiledPhrases = compilePhrases(theme.phrases);
@@ -297,6 +320,7 @@
     setFonts(theme.fonts);
     document.title = theme.title || options.baseTitle;
     if (document.body && compiledPhrases) translateTree(document.body);
+    if (document.body) applyLabels(theme.labels);
     startObserver();
     if (persist) store(theme.id);
     syncPicker();

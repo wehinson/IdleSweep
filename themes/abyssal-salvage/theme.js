@@ -5,6 +5,10 @@ ThemeKit.register({
   author: "Claude",
   title: "Abyssal Salvage Co.",
   fonts: "https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Mono:wght@400;600&display=swap",
+  labels: {
+    "#use-hint": "Sonar<br>Ping",
+    "#auto-miners-button": "Drone<br>Sweep",
+  },
   phrases: {
     // Company and glyphs
     "Sweeper Inc.": "Abyssal Salvage Co.",
