@@ -1,16 +1,18 @@
 # Theme redesigns
 
-This branch (`working-redesign`) holds five full reskins of Sweeper Inc. Use the
+This branch (`working-redesign`) holds five redesigns (round 2) of Sweeper Inc. Use the
 theme picker at the bottom-left of the page to switch between them. You can also
 open `?theme=<id>`. **Original** is the default, and it is unchanged.
 
 | id | Name | Designer |
 | --- | --- | --- |
-| `abyssal-salvage` | Abyssal Salvage | Claude |
-| `brass-colliery` | Brass & Soot Colliery | Claude |
-| `orbital-prospect` | Orbital Prospect | Claude |
-| `tomb-expedition` | Tomb Expedition | Codex |
-| `sugar-works` | Sugar Works | Codex |
+| `survey-ledger` | Survey Ledger | Claude |
+| `field-unit` | Field Unit | Claude |
+| `cabinet-82` | Cabinet '82 | Claude |
+| `site-signage` | Site Signage | Codex |
+| `company-desktop` | Company Desktop | Codex |
+
+Round 2 keeps the game's concept and every word. Each theme is a new art direction and layout. See `DESIGN-BRIEF.md` for the rules and references.
 
 ## How a theme works
 

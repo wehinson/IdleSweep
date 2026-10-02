@@ -85,9 +85,13 @@ test("every theme is valid, unique, and scoped", () => {
   }
 });
 
-test("every theme renames the core game vocabulary", () => {
-  const core = ["Sweeper Inc.", "Mines", "Flags", "Shovels", "Hints", "Quartermaster", "Workshop", "Purse", "Message Board", "Operator Panel", "District", "Auto Mine", "✹", "⚑", "✦"];
+test("every theme keeps the game's words and follows the no-slop rules", () => {
   for (const theme of loadThemes()) {
-    for (const term of core) assert.ok(term in theme.phrases, `${theme.id} is missing a phrase for "${term}"`);
+    const wordKeys = Object.keys(theme.phrases || {}).filter((key) => /[A-Za-z]/.test(key));
+    assert.deepEqual(wordKeys, [], `${theme.id} must not rename game text`);
+    assert.equal(theme.labels, undefined, `${theme.id} must not replace labels`);
+    const css = readFileSync(join(themesDir, theme.id, "theme.css"), "utf8");
+    assert.doesNotMatch(css, /backdrop-filter/, `${theme.id} must not use backdrop-filter`);
+    assert.doesNotMatch(css, /\p{Extended_Pictographic}/u, `${theme.id} must not use emoji`);
   }
 });
