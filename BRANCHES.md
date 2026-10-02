@@ -8,11 +8,11 @@
 - Status: Ready for William to test. Experimental; not for release.
 - Changes:
   - `themes/theme-kit.js` is a presentation-only runtime. It remaps text, glyphs, and fonts at render time, sets `html[data-theme]`, and adds a theme picker at the bottom left. Reads of `textContent`/`getAttribute` return the original text, so saves and game state never hold themed words.
-  - Five full themes: Abyssal Salvage, Brass & Soot Colliery, and Orbital Prospect (Claude); Tomb Expedition and Sugar Works (Codex).
+  - Round 2 (William's feedback: keep the mining company and its words, and make it look better). Five designs that rename nothing and each re-lay out the page to fit 1440x900: Survey Ledger, Field Unit, and Cabinet '82 (Claude); Site Signage and Company Desktop (Codex). `themes/DESIGN-BRIEF.md` holds the references and the rules against slop. The round 1 reskins were removed.
   - `styles.css` lifts fonts, panel colours, number colours, and the mine colour into variables. The defaults are the same values as before.
   - `npm run theme-lab` serves both games' redesigns on port 8090.
 - Tests: `npm test` passed all 109 tests, including `test/themes.test.js` (theme validity, CSS scoping, core vocabulary, colour-key collisions).
-- UI verification: William approved in-app browser checks. Every theme loads with no console errors. A vocabulary scan finds no unthemed core terms. No theme overflows at 375 px width. Original looks as before.
+- UI verification: William approved in-app browser checks. Every theme loads with no console errors. Round 2 was checked at 1440x900, 900x560, and 375 px, on normal and 25x25 boards, and with the contract dialog open. No theme overflows at 375 px width. Original looks as before.
 - Not verified: late-game panels (District map, Auto Mine crew, restructure modal) in every theme.
 - Version impact: none. No save-format change; the theme choice is stored in `idle-sweeper.theme.v1`.
 - Last update: 2026-09-30.

@@ -117,6 +117,13 @@ html[data-theme="cabinet-82"] body {
 
   html[data-theme="cabinet-82"] body.is-contract-running .cabinet {
     position: fixed;
+    top: 50%;
+    left: 50%;
+    width: min(94vw, 640px);
+    max-height: 92vh;
+    overflow-y: auto;
+    transform: translate(-50%, -50%);
+    z-index: 20;
   }
 
 }
