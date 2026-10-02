@@ -314,9 +314,9 @@ html[data-theme="cabinet-82"] .cell {
   border: 0;
   border-radius: 0;
   background:
-    radial-gradient(circle at 25% 30%, rgba(122, 30, 12, 0.9) 0 8%, transparent 9%),
-    radial-gradient(circle at 70% 65%, rgba(122, 30, 12, 0.9) 0 8%, transparent 9%),
-    radial-gradient(circle at 60% 20%, rgba(248, 208, 56, 0.55) 0 6%, transparent 7%),
+    radial-gradient(circle at 3px 4px, rgba(122, 30, 12, 0.9) 0 1.5px, transparent 2px) 0 0 / 12px 12px,
+    radial-gradient(circle at 9px 9px, rgba(122, 30, 12, 0.9) 0 1.5px, transparent 2px) 0 0 / 12px 12px,
+    radial-gradient(circle at 8px 3px, rgba(248, 208, 56, 0.55) 0 1px, transparent 1.5px) 0 0 / 12px 12px,
     var(--cell);
   box-shadow: none;
   color: #ffffff;
@@ -330,9 +330,9 @@ html[data-theme="cabinet-82"] .cell .cell-label {
 
 html[data-theme="cabinet-82"] .cell:not(.is-open):hover:not(:disabled) {
   background:
-    radial-gradient(circle at 25% 30%, rgba(122, 30, 12, 0.9) 0 8%, transparent 9%),
-    radial-gradient(circle at 70% 65%, rgba(122, 30, 12, 0.9) 0 8%, transparent 9%),
-    radial-gradient(circle at 60% 20%, rgba(248, 208, 56, 0.7) 0 6%, transparent 7%),
+    radial-gradient(circle at 3px 4px, rgba(122, 30, 12, 0.9) 0 1.5px, transparent 2px) 0 0 / 12px 12px,
+    radial-gradient(circle at 9px 9px, rgba(122, 30, 12, 0.9) 0 1.5px, transparent 2px) 0 0 / 12px 12px,
+    radial-gradient(circle at 8px 3px, rgba(248, 208, 56, 0.75) 0 1px, transparent 1.5px) 0 0 / 12px 12px,
     var(--cell-raised);
 }
 
