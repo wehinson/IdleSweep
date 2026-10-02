@@ -328,7 +328,7 @@ html[data-theme="field-unit"] .cell {
 }
 
 html[data-theme="field-unit"] .cell .cell-label {
-  font-size: clamp(0.5rem, 60cqi, 1.6rem);
+  font-size: clamp(0.5rem, 50cqi, 2.5rem);
   line-height: 1;
 }
 

@@ -324,7 +324,7 @@ html[data-theme="cabinet-82"] .cell {
 }
 
 html[data-theme="cabinet-82"] .cell .cell-label {
-  font-size: clamp(0.4375rem, 46cqi, 1.125rem);
+  font-size: clamp(0.4375rem, 40cqi, 2rem);
   line-height: 1;
 }
 
