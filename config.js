@@ -4,7 +4,7 @@
 // Edit `name`, `description`, `baseCost`, `growth`, and the messages below to rebalance or
 // rename the game without changing game.js. The message guide describes where each message appears.
 const SWEEPER_INC_CONFIG = {
-  version: "0.2.6",
+  version: "0.2.7",
   currencySymbol: "$",
   startingCoins: 100,
   startingShovels: 10,

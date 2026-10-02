@@ -1,13 +1,13 @@
 # Work log
 
-- Branch: `working`, started from shipped commit `04f4295` on `main`.
+- Release branch: `main`, with the intended changes from `working`.
 - Agent: Codex.
-- Status: Ready to Ship.
+- Status: Shipped as version `0.2.7` on 2026-10-02.
 - Local server: `http://localhost:8080`, run with `node scripts/serve.js`.
 - Verification: 104 engine tests pass. Approved isolated Edge checks pass with no script errors or browser alerts. JavaScript syntax, HTTP, and Git whitespace checks pass.
-- Version impact: Current version is `0.2.6`; bump at ship.
-- Last update: 2026-09-30.
-- Notes: Refresh the local app after file changes. Existing progress keeps its purse; new games and new Runs start with $100. The live app remains on `main`.
+- Version impact: Patch release `0.2.6` to `0.2.7`.
+- Last update: 2026-10-02.
+- Notes: Existing progress keeps its purse; new games and new Runs start with $100. The live app uses `main`. The themes are tests and are excluded from this release. Their branch `working-redesign` and worktree `C:\Code\IdleSweep-redesign` are retained at William's request.
 
 ## Requested changes checked
 
@@ -32,4 +32,4 @@
 - Application files changed: config, game adapter, HTML, CSS; shop, abilities, hold confirmation, catalog, round, and profile engine modules; save validation; hold button UI.
 - Tests changed: shop, hold confirmation, rounds, cross costs, catalog order, and save state.
 - Commands: `npm test`, `node --check`, `git diff --check`, direct HTTP requests, and approved isolated Edge checks.
-- Recommendation: Ready to ship when requested. No release or deployment was performed for this change request.
+- Release: William requested shipping on 2026-10-02. GitHub Pages deploys the integrated `main` branch. The merged `working` branch is removed after release verification; the theme test branch is retained.
