@@ -78,7 +78,7 @@ test("flag placement is rejected when inventory is empty", () => {
 });
 
 test("correct chording reveals neighbors, costs no durability, and can win", () => {
-  const engine = createRoundEngine({ settings: { rows: 3, cols: 3, mines: 1 }, mineIndexes: [0] });
+  const engine = createRoundEngine({ settings: { rows: 3, cols: 3, mines: 1 }, mineIndexes: [0], player: { chordingLevel: 2 } });
   engine.dispatch({ type: "round/open", index: 4 });
   const durabilityAfterOpen = engine.getState().player.shovelUses;
   engine.dispatch({ type: "round/flag", index: 0 });
@@ -90,7 +90,7 @@ test("correct chording reveals neighbors, costs no durability, and can win", () 
 });
 
 test("chording with the wrong flag count is rejected without changing the board", () => {
-  const engine = createRoundEngine({ settings: { rows: 3, cols: 3, mines: 1 }, mineIndexes: [0] });
+  const engine = createRoundEngine({ settings: { rows: 3, cols: 3, mines: 1 }, mineIndexes: [0], player: { chordingLevel: 2 } });
   engine.dispatch({ type: "round/open", index: 4 });
   const result = engine.dispatch({ type: "round/chord", index: 4 });
   assert.equal(result.effects[0].reason, "flagMismatch");
@@ -99,7 +99,7 @@ test("chording with the wrong flag count is rejected without changing the board"
 });
 
 test("chording with the correct count but an incorrect flag triggers a mine", () => {
-  const engine = createRoundEngine({ settings: { rows: 3, cols: 3, mines: 1 }, mineIndexes: [0] });
+  const engine = createRoundEngine({ settings: { rows: 3, cols: 3, mines: 1 }, mineIndexes: [0], player: { chordingLevel: 2 } });
   engine.dispatch({ type: "round/open", index: 4 });
   engine.dispatch({ type: "round/flag", index: 1 });
   engine.dispatch({ type: "round/chord", index: 4 });
@@ -110,7 +110,7 @@ test("chording with the correct count but an incorrect flag triggers a mine", ()
 });
 
 test("victory is detected only after every safe tile is open", () => {
-  const engine = createRoundEngine({ settings: { rows: 2, cols: 2, mines: 1 }, mineIndexes: [0] });
+  const engine = createRoundEngine({ settings: { rows: 2, cols: 2, mines: 1 }, mineIndexes: [0], player: { chordingLevel: 2 } });
   engine.dispatch({ type: "round/open", index: 3 });
   assert.equal(engine.getState().outcome, "playing");
   engine.dispatch({ type: "round/open", index: 1 });
@@ -283,7 +283,7 @@ test("equipment cannot be used before deferred mines are placed", () => {
 });
 
 test("round state can be serialized and restored without a UI", () => {
-  const engine = createRoundEngine({ settings: { rows: 3, cols: 3, mines: 1 }, mineIndexes: [0] });
+  const engine = createRoundEngine({ settings: { rows: 3, cols: 3, mines: 1 }, mineIndexes: [0], player: { chordingLevel: 2 } });
   engine.dispatch({ type: "round/open", index: 4 });
   engine.dispatch({ type: "round/flag", index: 0 });
   assert.equal(engine.getState().outcome, "playing");
@@ -293,7 +293,7 @@ test("round state can be serialized and restored without a UI", () => {
 });
 
 test("actions after resolution cannot mutate rewards or board state", () => {
-  const engine = createRoundEngine({ settings: { rows: 2, cols: 2, mines: 1 }, mineIndexes: [0] });
+  const engine = createRoundEngine({ settings: { rows: 2, cols: 2, mines: 1 }, mineIndexes: [0], player: { chordingLevel: 2 } });
   winTwoByTwo(engine);
   const resolved = JSON.stringify(engine.getState());
   engine.dispatch({ type: "round/open", index: 0 });
@@ -310,4 +310,31 @@ test("opening is rejected cleanly when no durability remains", () => {
   const result = engine.dispatch({ type: "round/open", index: 3 });
   assert.equal(result.effects[0].reason, "noDurability");
   assert.equal(engine.getState().board[3].open, false);
+});
+
+
+for (const level of [1, 2]) {
+  test(`chording level ${level} ${level === 1 ? "stays within touching tiles" : "reveals the full zero cascade"}`, () => {
+    const engine = createRoundEngine({ settings: { rows: 5, cols: 5, mines: 1 }, mineIndexes: [0], player: { chordingLevel: level }, treasures: [{ index: 24, value: 25 }] });
+    engine.dispatch({ type: "round/open", index: 6 });
+    engine.dispatch({ type: "round/flag", index: 0 });
+    const uses = engine.getState().player.shovelUses;
+    engine.dispatch({ type: "round/chord", index: 6 });
+    const state = engine.getState();
+    assert.equal(state.board[12].open, true);
+    assert.equal(state.board[24].open, level === 2);
+    assert.equal(state.outcome, level === 2 ? "won" : "playing");
+    assert.equal(state.player.shovelUses, uses);
+    assert.equal(state.player.stats.treasureCachesFound, level === 2 ? 1 : 0);
+    assert.equal(state.player.stats.safeTilesDug, level === 2 ? 24 : 8);
+  });
+}
+
+test("chording is rejected before its first purchase", () => {
+  const engine = createRoundEngine({ settings: { rows: 3, cols: 3, mines: 1 }, mineIndexes: [0], player: { chordingLevel: 0 } });
+  engine.dispatch({ type: "round/open", index: 4 });
+  engine.dispatch({ type: "round/flag", index: 0 });
+  const result = engine.dispatch({ type: "round/chord", index: 4 });
+  assert.equal(result.effects[0].reason, "chordingLocked");
+  assert.equal(engine.getState().moves, 1);
 });

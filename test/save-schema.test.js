@@ -174,3 +174,20 @@ test("save validation rejects a corrupted District coordinate index", () => {
   parsed.state.run.district.parcelCoordinateIndex["4,8"] = "missing-parcel";
   assert.throws(() => validateSave(parsed), /Duplicate or invalid Parcel coordinate/);
 });
+
+
+test("equipment purchase history and both chording levels survive save reload", () => {
+  const original = gameState();
+  original.player.chordingLevel = 1;
+  original.player.chordingUnlocked = true;
+  original.profile = { equipmentPurchaseIds: ["probeCharge", "controlledBlast"] };
+  const restored = hydrateSave(JSON.parse(serializeSave(original)));
+  assert.equal(restored.player.chordingLevel, 1);
+  assert.deepEqual(restored.profile.equipmentPurchaseIds, ["probeCharge", "controlledBlast"]);
+  const invalid = JSON.parse(serializeSave(original));
+  invalid.state.run.player.chordingLevel = 3;
+  assert.throws(() => validateSave(invalid), /chording level/);
+  invalid.state.run.player.chordingLevel = 2;
+  invalid.state.profile.equipmentPurchaseIds = ["unknown"];
+  assert.throws(() => validateSave(invalid), /purchase history/);
+});

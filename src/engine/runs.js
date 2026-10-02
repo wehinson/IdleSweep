@@ -11,6 +11,7 @@ export function createProfile(options = {}) {
   return {
     hints: Math.max(0, options.hints || 0),
     specialEquipment: clone(options.specialEquipment || {}),
+    equipmentPurchaseIds: [...(options.equipmentPurchaseIds || [])],
     curios: [...(options.curios || [])],
     blueprintLibrary: {
       ownedIds: [...(options.blueprintLibrary?.ownedIds || [])],

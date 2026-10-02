@@ -4,9 +4,9 @@
 // Edit `name`, `description`, `baseCost`, `growth`, and the messages below to rebalance or
 // rename the game without changing game.js. The message guide describes where each message appears.
 const SWEEPER_INC_CONFIG = {
-  version: "0.2.6",
+  version: "0.2.7",
   currencySymbol: "$",
-  startingCoins: 10000,
+  startingCoins: 100,
   startingShovels: 10,
   startingFlags: 15,
   startingHints: 3,
@@ -30,7 +30,7 @@ const SWEEPER_INC_CONFIG = {
       height: { width: 1.01, mines: 1.02, treasure: 1.03 },
       width: { height: 1.01, mines: 1.02, treasure: 1.03 },
       mines: { height: 1.01, width: 1.01, treasure: 1.05 },
-      treasure: { height: 1.01, width: 1.01, mines: 1.04 },
+      treasure: { height: 1.01, width: 1.01, mines: 1.06 },
     },
   },
 
@@ -58,7 +58,7 @@ const SWEEPER_INC_CONFIG = {
   flags: {
     failureRecoveryChance: 0.5,
     regenerationIntervalMs: 30000,
-    replacementBundleSize: 5,
+    replacementFraction: 0.5,
   },
 
   reveal: {
@@ -108,7 +108,7 @@ const SWEEPER_INC_CONFIG = {
   abilities: {
     safetyRadiusCosts: [40],
     safetyRadiusMineCost: 10,
-    chordingMineCost: 3,
+    chordingMineCosts: [3, 8],
   },
 
   mineCollection: {
@@ -268,12 +268,12 @@ const SWEEPER_INC_CONFIG = {
 
   // This is the only reveal order used by the Workshop. Internal ids stay stable.
   progression: {
-    order: ["tallerGrid", "widerGrid", "improveShovel", "addMine", "addTreasure", "mineYield", "treasureValue", "betterFlags"],
+    order: ["tallerGrid", "widerGrid", "improveShovel", "addMine", "addTreasure", "mineYield", "treasureValue", "betterFlags", "shovelCapacity", "flagCapacity"],
     items: {
       tallerGrid: { name: "Taller Grid", description: "Unlock {next} rows for future rounds.", baseCost: 80, growth: 1.5 },
       widerGrid: { name: "Wider Grid", description: "Unlock {next} columns for future rounds.", baseCost: 80, growth: 1.5 },
       addMine: { name: "Add Mine", description: "Unlock {next} mines per board.", baseCost: 90, growth: 1.8 },
-      addTreasure: { name: "Add Treasure", description: "Unlock another chest on an eligible safe tile.", baseCost: 80, growth: 1.75 },
+      addTreasure: { name: "Add Treasure", description: "Unlock another chest on an eligible safe tile.", baseCost: 120, growth: 2.0 },
       improveShovel: { name: "Improve Shovel", description: "Advance from {current} to {next}.", finalDescription: "{current} is the final shovel tier.", baseCost: 60, growth: 2.2 },
       mineYield: { name: "Mine Yield", description: "Increase the end-of-round bonus per extra mine.", baseCost: 180, growth: 1.9 },
       treasureValue: { name: "Richer Caches", description: "Increase the average value of treasure caches.", baseCost: 100, growth: 1.8 },

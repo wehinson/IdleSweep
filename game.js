@@ -1,7 +1,10 @@
+import { chordingLevel, purchaseChording } from "./src/engine/abilities.js";
+import { bindHoldButton } from "./src/ui/hold-button.js";
 import GAME_CONFIG from "./config.js";
 import { createGame } from "./src/engine/game-engine.js";
 import { createBoardCells, createBoardCellsFrom, getNeighbors, hasClearedBoard, updateBoardAdjacency } from "./src/engine/board.js";
 import { availableFlagSatisfiedSafeProofs, availableProofs, refreshProofMetadata, scoreProofCascade } from "./src/engine/proofs.js";
+import { equipmentShopState, purchaseSpecialEquipment, upgradeIsUnlocked, flagReplacementSize } from "./src/engine/shop.js";
 import { performPurchase } from "./src/engine/purchaseables.js";
 import {
   GAME_MODES,
@@ -21,6 +24,7 @@ import {
   calculateRoundPayout,
   consumeShovelState,
   evaluateChord,
+  chordRevealWaves,
   revealWaves as calculateRevealWaves,
   selectMineIndexes,
 } from "./src/engine/round-engine.js";
@@ -439,6 +443,7 @@ function createStartingPlayer() {
     widerGridLevel: 0,
     safetyRadius: 0,
     chordingUnlocked: false,
+    chordingLevel: 0,
     specialEquipmentUnlocked: false,
     specialEquipment: createStartingSpecialEquipment(),
     specialists: createStartingSpecialists(),
@@ -866,12 +871,14 @@ function replaceGameState(savedState) {
     stats: { ...defaults.stats, ...savedState.player.stats },
     messageBoard: JSON.parse(JSON.stringify(savedState.messageBoard)),
   };
+  player.chordingLevel = chordingLevel(savedState.player);
   profile = savedState.profile || createProfile({
     hints: player.hints,
     specialEquipment: player.specialEquipment,
     curios: player.curios,
     lifetimeStats: player.stats,
   });
+  profile.equipmentPurchaseIds = equipmentShopState(player, profile).purchasedIds;
   runMeta = savedState.runMeta || createRun({ ordinal: 1 });
   preferences = savedState.preferences || {
     lastBoardSelection: savedState.settings,
@@ -1677,7 +1684,7 @@ boardInputController.bind(button, {
         text = String(cell.adjacent);
       }
 
-      if (player.chordingUnlocked && cell.adjacent > 0 && !cell.mine) {
+      if (chordingLevel(player) > 0 && cell.adjacent > 0 && !cell.mine) {
         classes.push("is-chordable");
         button.title = formatMessage("chordingReady");
       }
@@ -1898,8 +1905,9 @@ function openCell(index, { automaticOpening = false } = {}) {
   });
 }
 
-function revealGradually(startCell, token, { consumeDurability = false } = {}) {
-  const waves = revealWavesFrom(startCell);
+function revealGradually(startCell, token, { consumeDurability = false, chordLevel = null } = {}) {
+  const waves = chordLevel === null ? revealWavesFrom(startCell)
+    : chordRevealWaves(board, settings, startCell.index, chordLevel).map((wave) => wave.map((index) => board[index]));
 
   return (async () => {
     for (const wave of waves) {
@@ -1932,7 +1940,7 @@ function revealWavesFrom(startCell) {
 
 async function chordCell(index) {
   const cell = board[index];
-  if (gameOver || !cell.open || cell.mine || cell.adjacent <= 0) return;
+  if (gameOver || chordingLevel(player) < 1 || !cell.open || cell.mine || cell.adjacent <= 0) return;
 
   const chord = evaluateChord(board, settings, index);
   if (!chord.allowed) {
@@ -1960,7 +1968,7 @@ async function chordCell(index) {
   const safeCandidates = candidates.filter((candidate) => !candidate.mine);
   for (const candidate of safeCandidates) {
     if (!activeRevealTokens.has(token) || gameOver) return;
-    const revealCompleted = await revealGradually(candidate, token, { consumeDurability: false });
+    const revealCompleted = await revealGradually(candidate, token, { consumeDurability: false, chordLevel: chordingLevel(player) });
     if (!revealCompleted) {
       endReveal(token);
       render();
@@ -2634,7 +2642,7 @@ function purchaseSupply(targetId) {
 
     emergencyHandoutNotice = false;
     player.coins -= cost;
-    const result = repairMissingFlags(flagPool, FLAG_CONFIG.replacementBundleSize, totalDeployedFlags());
+    const result = repairMissingFlags(flagPool, flagReplacementSize(flagCapacity(), FLAG_CONFIG.replacementFraction), totalDeployedFlags());
     flagPool = result.pool;
     syncLegacyFlagStock();
     recordDeveloperEvent(developerTelemetry, { type: "flagsReplaced", count: result.repaired });
@@ -2657,10 +2665,7 @@ function purchaseSupply(targetId) {
 
 function purchaseEquipment(id) {
   const item = SPECIAL_EQUIPMENT_BY_ID[id];
-  if (!item || player.mines < item.cost || !hasSpecialEquipmentAccess()) return false;
-
-  player.mines -= item.cost;
-  player.specialEquipment[id] = (player.specialEquipment[id] || 0) + 1;
+  if (!purchaseSpecialEquipment(player, profile, id)) return false;
   statusElement.textContent = `${item.name} stocked. Open the cabinet inventory during a round to use it.`;
   return true;
 }
@@ -2786,6 +2791,7 @@ function purchaseUpgrade(targetId) {
 }
 
 function purchaseCapacityUpgrade(kind) {
+  if (!isUpgradeUnlocked(kind === "shovel" ? "shovelCapacity" : "flagCapacity")) return false;
   const levels = kind === "shovel" ? BALANCE_CONFIG.capacity.shovel : BALANCE_CONFIG.capacity.flags;
   const levelKey = kind === "shovel" ? "shovelCapacityLevel" : "flagCapacityLevel";
   const costs = kind === "shovel" ? BALANCE_CONFIG.upgrades.shovelCapacityCosts : BALANCE_CONFIG.upgrades.flagCapacityCosts;
@@ -2826,10 +2832,8 @@ function purchaseAbility(id) {
     settings.mines = Math.min(settings.mines, Math.min(maxMineCount(), maxUnlockedMineCount()));
     abilityMessage = formatMessage("safetyInstalled", { value: safetySizeLabel(player.safetyRadius) });
   } else if (id === "chording") {
-    if (player.chordingUnlocked || player.shovelTier < 3 || player.mines < BALANCE_CONFIG.abilities.chordingMineCost) return false;
-    player.mines -= BALANCE_CONFIG.abilities.chordingMineCost;
-    player.chordingUnlocked = true;
-    abilityMessage = formatMessage("chordingUnlocked");
+    if (!purchaseChording(player, BALANCE_CONFIG.abilities.chordingMineCosts)) return false;
+    abilityMessage = chordingLevel(player) === 1 ? "Chording installed: open only touching tiles." : "Cascade chording installed.";
   } else return false;
   if (!roundStarted || gameOver) startGame();
   statusElement.textContent = abilityMessage;
@@ -3924,6 +3928,7 @@ function updateQuartermaster() {
 
   buyShovelCostElement.textContent = formatCurrency(shovelCost);
   buyFlagsCostElement.textContent = formatCurrency(flagsCost);
+  buyFlagsButton.querySelector("small").textContent = `Restores up to ${flagReplacementSize(flagCapacity(), FLAG_CONFIG.replacementFraction)} missing flags`;
   buyHintsCostElement.textContent = formatCurrency(BALANCE_CONFIG.shovel.hintSupplyCost);
   buyShovelDetailElement.textContent = `+1 ${tier.name.toLowerCase()} shovel · ${shovelCapacity()} max`;
   buyShovelButton.disabled = !canPurchase() || player.coins < shovelCost || player.shovels >= shovelCapacity();
@@ -3939,15 +3944,16 @@ function updateSpecialEquipmentUI() {
   const unlocked = hasSpecialEquipmentAccess();
   const total = specialEquipmentTotal();
   specialEquipmentStoreElement.hidden = !unlocked;
+  equipmentToggleButton.hidden = !unlocked;
   equipmentTotalElement.textContent = String(total);
   equipmentToggleButton.disabled = total <= 0;
   equipmentToggleButton.title = total > 0 ? "Special equipment inventory" : "No special equipment stocked";
 
-  specialEquipmentListElement.innerHTML = SPECIAL_EQUIPMENT.map((item) => {
+  specialEquipmentListElement.innerHTML = equipmentShopState(player, profile).items.map((item) => {
     const disabled = !canPurchase() || player.mines < item.cost;
     return `
-      <button class="store-item store-item--compact special-equipment-buy" type="button" data-purchase-id="equipment:${item.id}" ${disabled ? "disabled" : ""}>
-        <span class="store-item__copy"><strong>${item.name}</strong><small>${item.description}</small></span>
+      <button class="store-item special-equipment-buy" type="button" data-purchase-id="equipment:${item.id}" ${disabled ? "disabled" : ""}>
+        <span class="store-item__copy"><strong>${item.name}</strong><small>${item.shortDescription}</small></span>
         <span class="store-item__cost">${item.cost} mine${item.cost === 1 ? "" : "s"}</span>
       </button>
     `;
@@ -3988,7 +3994,7 @@ function activeEquipmentStatus(id) {
 }
 
 function hasSpecialEquipmentAccess() {
-  return player.specialEquipmentUnlocked || player.mines > 0 || specialEquipmentTotal() > 0;
+  return equipmentShopState(player, profile).unlocked;
 }
 
 function specialEquipmentTotal() {
@@ -3996,26 +4002,7 @@ function specialEquipmentTotal() {
 }
 
 function isUpgradeUnlocked(id) {
-  const order = PROGRESSION_CONFIG.order;
-  const index = order.indexOf(id);
-  if (index < 0) return true;
-  if (index === 0) return true;
-
-  const previous = order[index - 1];
-  return isProgressionMilestoneReached(previous);
-}
-
-function isProgressionMilestoneReached(id) {
-  return {
-    tallerGrid: player.tallerGridLevel >= 1,
-    widerGrid: player.widerGridLevel >= 1,
-    improveShovel: player.shovelTier >= 1,
-    addMine: player.mineLevel >= 1,
-    addTreasure: player.treasureLevel >= 1,
-    mineYield: player.mineYieldLevel >= 1,
-    treasureValue: player.treasureValueLevel >= 1,
-    betterFlags: player.betterFlagsLevel >= 1,
-  }[id] || false;
+  return upgradeIsUnlocked(id, player, PROGRESSION_CONFIG.order);
 }
 
 function progressionCost(id, level) {
@@ -4091,12 +4078,12 @@ function updateProgressionUI() {
   const nextTier = BALANCE_CONFIG.shovel.tiers[player.shovelTier + 1];
   const shovelCost = progressionCost("improveShovel", player.shovelTier);
   const contractDigsReserved = Object.values(boardSessions).some((session) => session.digBudget);
-  showProgression(upgradeElements.improveShovel, isUpgradeUnlocked("improveShovel") && Boolean(nextTier), progressionLocked || contractDigsReserved || !nextTier || player.coins < shovelCost);
+  showProgression(upgradeElements.improveShovel, isUpgradeUnlocked("improveShovel"), progressionLocked || contractDigsReserved || !nextTier || player.coins < shovelCost);
   upgradeElements.upgradeTitle.textContent = shovelItem.name;
   upgradeElements.upgradeDetail.textContent = nextTier
     ? formatCopy(shovelItem.description, { current: currentShovel().name, next: nextTier.name })
     : formatCopy(shovelItem.finalDescription, { current: currentShovel().name });
-  upgradeElements.upgradeCost.textContent = nextTier ? formatCurrency(shovelCost) : "MAX";
+  upgradeElements.upgradeCost.textContent = nextTier ? formatCurrency(shovelCost) : "Max";
 
   const mineItem = PROGRESSION_CONFIG.items.addMine;
   const mineCost = progressionCost("addMine", player.mineLevel);
@@ -4133,17 +4120,17 @@ function updateProgressionUI() {
   const shovelCap = shovelCapacity();
   const nextShovelCap = nextCapacity("shovel");
   const shovelCapCost = capacityUpgradeCost("shovel");
-  showProgression(upgradeElements.shovelCap, Boolean(nextShovelCap), progressionLocked || player.coins < shovelCapCost);
+  showProgression(upgradeElements.shovelCap, isUpgradeUnlocked("shovelCapacity"), progressionLocked || !nextShovelCap || player.coins < shovelCapCost);
   upgradeElements.shovelCapTitle.textContent = COPY_CONFIG.upgradeLabels.shovelLocker;
-  upgradeElements.shovelCapCost.textContent = nextShovelCap ? formatCurrency(shovelCapCost) : "MAX";
+  upgradeElements.shovelCapCost.textContent = nextShovelCap ? formatCurrency(shovelCapCost) : "Max";
   upgradeElements.shovelCapDetail.textContent = nextShovelCap ? `${shovelCap} → ${nextShovelCap} shovels` : "50 shovel maximum reached";
 
   const flagCap = flagCapacity();
   const nextFlagCap = nextCapacity("flags");
   const flagCapCost = capacityUpgradeCost("flags");
-  showProgression(upgradeElements.flagCap, Boolean(nextFlagCap), progressionLocked || player.coins < flagCapCost);
+  showProgression(upgradeElements.flagCap, isUpgradeUnlocked("flagCapacity"), progressionLocked || !nextFlagCap || player.coins < flagCapCost);
   upgradeElements.flagCapTitle.textContent = COPY_CONFIG.upgradeLabels.flagLocker;
-  upgradeElements.flagCapCost.textContent = nextFlagCap ? formatCurrency(flagCapCost) : "MAX";
+  upgradeElements.flagCapCost.textContent = nextFlagCap ? formatCurrency(flagCapCost) : "Max";
   upgradeElements.flagCapDetail.textContent = nextFlagCap
     ? `${flagCap} → ${nextFlagCap} reusable flags. Upgrading completely repairs and refills the pool.`
     : "Maximum reusable flag capacity reached";
@@ -4164,7 +4151,7 @@ function updateProgressionUI() {
     progressionLocked || safetyMaxed || safetyLocked || !safetyAffordable,
   );
   abilityElements.safetyRadiusCost.textContent = safetyMaxed
-    ? "MAX"
+    ? "Max"
     : safetyNextCostsMines
       ? `${safetyCost} mines`
       : formatCurrency(safetyCost);
@@ -4174,15 +4161,19 @@ function updateProgressionUI() {
       ? "Unlock: expand the board to 4×4."
       : `${safetySizeLabel(player.safetyRadius)} → ${safetySizeLabel(player.safetyRadius + 1)}; no mine near first click`;
 
-  const chordingVisible = player.shovelTier >= 3;
-  showProgression(abilityElements.chording, true, progressionLocked || !chordingVisible || (!player.chordingUnlocked && player.mines < BALANCE_CONFIG.abilities.chordingMineCost));
-  abilityElements.chordingTitle.textContent = player.chordingUnlocked ? "Chording ready" : "Unlock Chording";
-  abilityElements.chordingDetail.textContent = player.chordingUnlocked
-    ? formatMessage("chordingReady")
-    : !chordingVisible
-      ? "Unlock: upgrade to a Steel Shovel."
-      : formatMessage("chordingDescription");
-  abilityElements.chordingCost.textContent = player.chordingUnlocked ? "READY" : `${BALANCE_CONFIG.abilities.chordingMineCost} mines`;
+  const chordLevel = chordingLevel(player);
+  const chordMaxed = chordLevel >= 2;
+  const chordCost = BALANCE_CONFIG.abilities.chordingMineCosts[chordLevel];
+  showProgression(abilityElements.chording, player.safetyRadius > 0 || chordLevel > 0,
+    progressionLocked || chordMaxed || player.shovelTier < 3 || player.mines < chordCost);
+  abilityElements.chordingTitle.textContent = chordLevel > 0 ? "Cascade Chording" : "Chording";
+  abilityElements.chordingDetail.textContent = chordMaxed
+    ? "Full cascade chording installed."
+    : player.shovelTier < 3 ? "Unlock: upgrade to a Steel Shovel."
+    : chordLevel === 0 ? "Open only tiles touching the clicked number."
+    : "Open touching tiles and their full zero cascade.";
+  abilityElements.chordingCost.textContent = chordMaxed ? "Max" : `${chordCost} mines`;
+
 }
 
 function updateStatsUI() {
@@ -5010,7 +5001,7 @@ function clamp(value, min, max) {
 function activateBoardCell(index) {
   const cell = board[index];
   if (!cell) return;
-  if (cell.open && cell.adjacent > 0 && player.chordingUnlocked) {
+  if (cell.open && cell.adjacent > 0 && chordingLevel(player) > 0) {
     chordCell(index);
     return;
   }
@@ -5239,9 +5230,7 @@ boardElement.addEventListener("click", (event) => {
   const recover = event.target.closest("[data-recover-parcel]");
   if (recover) return startParcelRecovery(recover.dataset.recoverParcel, Number(recover.dataset.workerCount));
 });
-resetProgressButton.addEventListener("click", () => {
-  if (window.confirm("Delete all progress, permanent collections, and records? This cannot be undone.")) dispatchGameAction("progress/reset");
-});
+const cancelProgressHold = bindHoldButton(resetProgressButton, () => dispatchGameAction("progress/reset"));
 boardElement.addEventListener("scroll", () => {
   if (!boardElement.classList.contains("is-virtual") || virtualScrollFrame) return;
   virtualScrollFrame = window.requestAnimationFrame(() => {
@@ -5262,10 +5251,20 @@ manualFlagReserveElement.addEventListener("input", () => {
 });
 manualFlagReserveElement.addEventListener("change", () => dispatchGameAction("autoMiners/manualFlagReserve", { value: Number(manualFlagReserveElement.value) }));
 window.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && !fieldSpecificationMenuElement.hidden) {
+  if (event.key === "Escape") {
+    event.preventDefault();
+    restructureModalElement.hidden = true;
+    fieldClearModalElement.hidden = true;
+    if (!contractModalElement.hidden) closeContractBriefing();
+    contractModalElement.hidden = true;
     fieldSpecificationMenuElement.hidden = true;
     fieldSpecificationToggleButton.setAttribute("aria-expanded", "false");
-    fieldSpecificationToggleButton.focus();
+    equipmentInventoryElement.hidden = true;
+    equipmentToggleButton.setAttribute("aria-expanded", "false");
+    selectedEquipmentId = null;
+    hideQuartermasterTooltip();
+    hideWorkerTooltip();
+    cancelProgressHold();
     return;
   }
   if (event.shiftKey && event.key.toLowerCase() === "g") {
