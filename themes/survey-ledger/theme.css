@@ -1,1 +1,927 @@
-/* Survey Ledger (Claude): placeholder. */
+/* Survey Ledger (Claude)
+   Reference: a 1960s mining company's printed paperwork. Survey plates on engineering
+   graph paper, ruled ledger forms, typewritten entries, and one red rubber stamp.
+   Palette: paper #f7f4ec, manila desk #d8d1c0, ink #1d1c1a, grey #5d5a53,
+   graph ruling #bfd2cf, stamp red #a8261c (danger and mines only), highlighter #f3e6a6
+   (hover only).
+   Type: IBM Plex Serif for titles, IBM Plex Sans Condensed for text, IBM Plex Mono for figures.
+   Spacing: 4/8/12/16/24/32. Radii: 0 for paper, 50% for the stamp. Rules: 1px and 2px ink. */
+
+html[data-theme="survey-ledger"] {
+  color-scheme: light;
+  --ink: #1d1c1a;
+  --cabinet: #f7f4ec;
+  --cabinet-edge: #1d1c1a;
+  --red: #a8261c;
+  --yellow: #1d1c1a;
+  --yellow-rgb: 29, 28, 26;
+  --cyan: #1f4e8c;
+  --green: #2e6b3a;
+  --screen: #fbf9f3;
+  --screen-glow: #1d1c1a;
+  --glow-rgb: 29, 28, 26;
+  --cell: #e6e0d2;
+  --cell-raised: #ddd6c5;
+  --cell-open: #fbf9f3;
+  --cell-open-alt: #fbf9f3;
+  --white: #1d1c1a;
+  --panel-bg: #f7f4ec;
+  --panel-bg-deep: #1d1c1a;
+  --num-1: #1f4e8c;
+  --num-2: #2e6b3a;
+  --num-3: #a8261c;
+  --num-4: #4b2c6f;
+  --mine: #a8261c;
+  --font-display: "IBM Plex Serif", Georgia, serif;
+  --font-body: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+  --sl-mono: "IBM Plex Mono", Consolas, monospace;
+  --sl-paper: #f7f4ec;
+  --sl-grey: #5d5a53;
+  --sl-hair: #cfc8b8;
+  --sl-graph: #c6d8d4;
+  --sl-stamp: #a8261c;
+  --sl-highlight: #f3e6a6;
+  background: #d8d1c0;
+}
+
+html[data-theme="survey-ledger"] body {
+  background: #d8d1c0;
+  color: var(--ink);
+  font-feature-settings: "tnum" 1;
+}
+
+/* ---------- layout: a desk with the plate and the forms laid out in columns ---------- */
+
+@media (min-width: 1121px) {
+  html[data-theme="survey-ledger"] body {
+    height: auto;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 32px;
+  }
+
+  html[data-theme="survey-ledger"] .app-shell {
+    display: grid;
+    grid-template-columns: minmax(380px, 440px) minmax(280px, 1fr) minmax(280px, 1fr);
+    grid-template-rows: auto auto auto auto 1fr;
+    gap: 24px;
+    align-items: start;
+    width: min(100%, 1400px);
+    min-width: 0;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  html[data-theme="survey-ledger"] .cabinet {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    position: sticky;
+    top: 32px;
+  }
+
+  html[data-theme="survey-ledger"] #quartermaster-panel {
+    grid-column: 2;
+    grid-row: 1 / -1;
+  }
+
+  html[data-theme="survey-ledger"] #workshop-panel {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  html[data-theme="survey-ledger"] .contracts-panel {
+    grid-column: 3;
+    grid-row: 2;
+  }
+
+  html[data-theme="survey-ledger"] .curio-panel {
+    grid-column: 3;
+    grid-row: 3;
+  }
+
+  html[data-theme="survey-ledger"] .settings-panel {
+    grid-column: 3;
+    grid-row: 4;
+  }
+
+  html[data-theme="survey-ledger"] :is(.cabinet, .quartermaster-panel, .workshop-panel, .contracts-panel, .curio-panel, .settings-panel) {
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    max-height: none;
+    overflow: visible;
+  }
+
+  html[data-theme="survey-ledger"] body.is-contract-running .cabinet {
+    position: fixed;
+  }
+}
+
+/* ---------- the sheets ---------- */
+
+html[data-theme="survey-ledger"] :is(.cabinet, .settings-panel, .curio-panel, .contracts-panel, .quartermaster-panel, .workshop-panel, .contract-modal__window) {
+  padding: 24px;
+  border: 0;
+  border-radius: 0;
+  background: var(--sl-paper);
+  box-shadow: 0 1px 1px rgba(60, 50, 30, 0.2), 0 8px 24px rgba(60, 50, 30, 0.14);
+  color: var(--ink);
+}
+
+html[data-theme="survey-ledger"] .cabinet::before,
+html[data-theme="survey-ledger"] .cabinet::after {
+  content: none;
+}
+
+/* Form header: the company name over a double rule */
+html[data-theme="survey-ledger"] .marquee {
+  justify-content: space-between;
+  min-height: 0;
+  margin: 0 0 16px;
+  padding: 0 0 12px;
+  border: 0;
+  border-bottom: 3px double var(--ink);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--ink);
+}
+
+html[data-theme="survey-ledger"] .marquee h1 {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-align: left;
+  text-shadow: none;
+  order: -1;
+}
+
+html[data-theme="survey-ledger"] .marquee__spark {
+  color: var(--sl-grey);
+  font-size: 0.75rem;
+}
+
+html[data-theme="survey-ledger"] .marquee__spark:first-child {
+  display: none;
+}
+
+/* The plate */
+html[data-theme="survey-ledger"] .screen {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+html[data-theme="survey-ledger"] .hud {
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+html[data-theme="survey-ledger"] .meter,
+html[data-theme="survey-ledger"] .record-strip {
+  padding: 8px 12px;
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+}
+
+html[data-theme="survey-ledger"] .meter__label,
+html[data-theme="survey-ledger"] .record-strip {
+  color: var(--sl-grey);
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+html[data-theme="survey-ledger"] .meter__value,
+html[data-theme="survey-ledger"] .record-strip strong {
+  margin-top: 4px;
+  color: var(--ink);
+  font-family: var(--sl-mono);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+html[data-theme="survey-ledger"] .record-strip strong {
+  font-size: 0.9375rem;
+}
+
+/* The reset control is a red rubber stamp */
+html[data-theme="survey-ledger"] .reset {
+  width: 72px;
+  height: 72px;
+  border: 3px solid var(--sl-stamp);
+  border-bottom: 3px solid var(--sl-stamp);
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: inset 0 0 0 3px var(--sl-paper), inset 0 0 0 4px var(--sl-stamp);
+  color: var(--sl-stamp);
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-shadow: none;
+  transform: rotate(-8deg);
+}
+
+html[data-theme="survey-ledger"] .reset:hover {
+  background: rgba(168, 38, 28, 0.06);
+}
+
+html[data-theme="survey-ledger"] .reset:active {
+  border-bottom-width: 3px;
+  transform: rotate(-8deg) scale(0.96);
+}
+
+html[data-theme="survey-ledger"] .status {
+  margin: 0 0 8px;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  text-align: left;
+}
+
+html[data-theme="survey-ledger"] .field-value {
+  margin: 0 0 12px;
+  color: var(--sl-grey);
+  font-family: var(--sl-mono);
+  font-size: 0.8125rem;
+  text-align: left;
+  text-shadow: none;
+}
+
+html[data-theme="survey-ledger"] .record-controls {
+  margin-bottom: 16px;
+}
+
+html[data-theme="survey-ledger"] .field-specification-toggle {
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: var(--ink);
+  color: var(--sl-paper);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+html[data-theme="survey-ledger"] .field-specification-toggle:active,
+html[data-theme="survey-ledger"] .field-specification-toggle[aria-expanded="true"] {
+  border-bottom-width: 1px;
+  transform: none;
+  background: var(--sl-grey);
+}
+
+html[data-theme="survey-ledger"] :is(.field-specification-menu, .equipment-inventory) {
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: var(--sl-paper);
+  box-shadow: 4px 4px 0 rgba(29, 28, 26, 0.15);
+  color: var(--ink);
+}
+
+html[data-theme="survey-ledger"] :is(.field-specification-menu__header strong, .equipment-inventory__header strong) {
+  color: var(--ink);
+  font-family: var(--font-display);
+}
+
+/* ---------- the survey grid ---------- */
+
+html[data-theme="survey-ledger"] .board {
+  gap: 0;
+  padding: 0;
+  border: 2px solid var(--ink);
+  background: var(--ink);
+}
+
+html[data-theme="survey-ledger"] .board:not(.district-view) {
+  gap: 1px;
+  max-width: 100%;
+  max-height: min(64vh, 600px);
+}
+
+/* Figures scale with the tile, so every board size stays legible */
+html[data-theme="survey-ledger"] .cell {
+  container-type: inline-size;
+}
+
+html[data-theme="survey-ledger"] .cell .cell-label {
+  font-size: clamp(0.5rem, 62cqi, 1.5rem);
+  line-height: 1;
+}
+
+html[data-theme="survey-ledger"] .cell {
+  border: 0;
+  border-radius: 0;
+  background:
+    repeating-linear-gradient(135deg, transparent 0 5px, rgba(29, 28, 26, 0.07) 5px 6px),
+    var(--cell);
+  box-shadow: none;
+  color: var(--ink);
+  font-family: var(--sl-mono);
+  font-weight: 600;
+}
+
+html[data-theme="survey-ledger"] .cell:not(.is-open):hover:not(:disabled) {
+  background:
+    repeating-linear-gradient(135deg, transparent 0 5px, rgba(29, 28, 26, 0.1) 5px 6px),
+    var(--sl-highlight);
+}
+
+html[data-theme="survey-ledger"] .cell:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: -2px;
+}
+
+html[data-theme="survey-ledger"] .cell.is-open,
+html[data-theme="survey-ledger"] .cell.is-open:nth-child(even) {
+  background:
+    linear-gradient(var(--sl-graph) 1px, transparent 1px) 0 0 / 25% 25%,
+    linear-gradient(90deg, var(--sl-graph) 1px, transparent 1px) 0 0 / 25% 25%,
+    var(--cell-open);
+  border: 0;
+  box-shadow: none;
+  color: var(--ink);
+}
+
+html[data-theme="survey-ledger"] .cell[data-adjacent="1"] {
+  color: var(--num-1);
+}
+
+html[data-theme="survey-ledger"] .cell[data-adjacent="2"] {
+  color: var(--num-2);
+}
+
+html[data-theme="survey-ledger"] .cell[data-adjacent="3"] {
+  color: var(--num-3);
+}
+
+html[data-theme="survey-ledger"] .cell[data-adjacent="4"],
+html[data-theme="survey-ledger"] .cell[data-adjacent="5"],
+html[data-theme="survey-ledger"] .cell[data-adjacent="6"],
+html[data-theme="survey-ledger"] .cell[data-adjacent="7"],
+html[data-theme="survey-ledger"] .cell[data-adjacent="8"] {
+  color: var(--num-4);
+}
+
+/* Treasure is marked with coloured pencil; tiers differ by tint and an underline weight */
+html[data-theme="survey-ledger"] .cell.is-open.is-treasure,
+html[data-theme="survey-ledger"] .cell.is-open.is-treasure-gold {
+  background: #efdb94;
+  border: 0;
+  color: #5a4306;
+  text-shadow: none;
+  box-shadow: inset 0 -4px 0 #b8901f;
+}
+
+html[data-theme="survey-ledger"] .cell.is-open.is-treasure-silver {
+  background: #e3e4e1;
+  border: 0;
+  color: #3a3c3a;
+  text-shadow: none;
+  box-shadow: inset 0 -3px 0 #8d908c;
+}
+
+html[data-theme="survey-ledger"] .cell.is-open.is-treasure-bronze {
+  background: #ecd2b8;
+  border: 0;
+  color: #5c3415;
+  text-shadow: none;
+  box-shadow: inset 0 -2px 0 #a8683a;
+}
+
+html[data-theme="survey-ledger"] .cell.is-open.is-curio {
+  background: #dfe6ef;
+  color: var(--cyan);
+  box-shadow: inset 0 0 0 2px var(--cyan);
+}
+
+html[data-theme="survey-ledger"] .cell.is-flagged {
+  color: var(--sl-stamp);
+  text-shadow: none;
+}
+
+html[data-theme="survey-ledger"] .cell.is-mine {
+  background: var(--sl-stamp);
+  color: var(--sl-paper);
+  box-shadow: none;
+}
+
+html[data-theme="survey-ledger"] .cell.is-hinted {
+  box-shadow: inset 0 0 0 2px var(--cyan);
+}
+
+html[data-theme="survey-ledger"] .cell.is-hinted::after {
+  color: var(--cyan);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+html[data-theme="survey-ledger"] .cell.is-equipment-target {
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+html[data-theme="survey-ledger"] .treasure-popup,
+html[data-theme="survey-ledger"] .treasure-popup--gold,
+html[data-theme="survey-ledger"] .treasure-popup--silver,
+html[data-theme="survey-ledger"] .treasure-popup--bronze {
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: var(--sl-paper);
+  color: var(--ink);
+  font-family: var(--sl-mono);
+  font-size: 0.75rem;
+}
+
+html[data-theme="survey-ledger"] .worker-cursor--excavator {
+  background: var(--ink);
+  color: var(--sl-paper);
+}
+
+html[data-theme="survey-ledger"] .worker-cursor--flagbearer {
+  background: var(--sl-stamp);
+  color: var(--sl-paper);
+}
+
+/* ---------- controls: typed buttons on the form ---------- */
+
+html[data-theme="survey-ledger"] .controls {
+  margin-top: 16px;
+}
+
+html[data-theme="survey-ledger"] .equipment-toggle {
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: var(--sl-paper);
+  box-shadow: 3px 3px 0 var(--ink);
+  color: var(--ink);
+}
+
+html[data-theme="survey-ledger"] .equipment-toggle strong {
+  border-radius: 0;
+  background: var(--ink);
+  color: var(--sl-paper);
+  font-family: var(--sl-mono);
+}
+
+html[data-theme="survey-ledger"] .equipment-toggle:not(:disabled):active,
+html[data-theme="survey-ledger"] .equipment-toggle[aria-expanded="true"] {
+  box-shadow: none;
+  transform: translate(3px, 3px);
+}
+
+html[data-theme="survey-ledger"] .cabinet-mode-button {
+  width: auto;
+  min-width: 72px;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: var(--sl-paper);
+  box-shadow: 3px 3px 0 var(--ink);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+html[data-theme="survey-ledger"] .cabinet-mode-button--green {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--sl-paper);
+}
+
+html[data-theme="survey-ledger"] .cabinet-mode-button.is-active,
+html[data-theme="survey-ledger"] .cabinet-mode-button:active {
+  box-shadow: none;
+  transform: translate(3px, 3px);
+}
+
+/* ---------- forms and ledgers ---------- */
+
+html[data-theme="survey-ledger"] :is(.panel-header, .settings-panel__header) {
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--ink);
+}
+
+html[data-theme="survey-ledger"] :is(.store h3, .settings-panel h2, .contract-modal__window h2, .panel-header h2) {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+
+html[data-theme="survey-ledger"] :is(.store__eyebrow, .settings-panel__eyebrow, .store__subheader) {
+  color: var(--sl-grey);
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+html[data-theme="survey-ledger"] :is(.coin-display, .message-board-status, .curio-status, .auto-mine-status) {
+  padding: 8px 0;
+  border: 0;
+  border-top: 1px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+  border-radius: 0;
+  background: transparent;
+}
+
+html[data-theme="survey-ledger"] :is(.coin-display__label, .message-board-status__label, .curio-status__label, .auto-mine-status__label) {
+  color: var(--sl-grey);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+html[data-theme="survey-ledger"] :is(.coin-display__value, .message-board-status__value, .curio-status__value, .auto-mine-status__value) {
+  color: var(--ink);
+  font-family: var(--sl-mono);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+html[data-theme="survey-ledger"] .resource-grid {
+  gap: 0;
+  border: 1px solid var(--ink);
+}
+
+html[data-theme="survey-ledger"] .resource-card {
+  padding: 12px 4px;
+  border: 0;
+  border-right: 1px solid var(--sl-hair);
+  border-bottom: 1px solid var(--sl-hair);
+  border-radius: 0;
+  background: transparent;
+}
+
+html[data-theme="survey-ledger"] .resource-card__icon {
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+html[data-theme="survey-ledger"] .resource-card__label {
+  color: var(--sl-grey);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+html[data-theme="survey-ledger"] .resource-card__value {
+  color: var(--ink);
+  font-family: var(--sl-mono);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+html[data-theme="survey-ledger"] .resource-card__detail {
+  color: var(--sl-grey);
+  font-size: 0.6875rem;
+}
+
+/* Store lines read like a price list: name, description, and a figure on the right */
+html[data-theme="survey-ledger"] .store-item {
+  min-height: 0;
+  margin-top: 0;
+  padding: 12px 0;
+  border: 0;
+  border-bottom: 1px solid var(--sl-hair);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+}
+
+html[data-theme="survey-ledger"] .store-item:hover:not(:disabled) {
+  border-color: var(--sl-hair);
+  background: var(--sl-highlight);
+  transform: none;
+}
+
+html[data-theme="survey-ledger"] .store-item:disabled {
+  opacity: 0.5;
+}
+
+html[data-theme="survey-ledger"] .store-item:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 0;
+}
+
+html[data-theme="survey-ledger"] .store-item__copy strong {
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  text-transform: none;
+}
+
+html[data-theme="survey-ledger"] .store-item__copy small {
+  color: var(--sl-grey);
+  font-size: 0.8125rem;
+}
+
+html[data-theme="survey-ledger"] .store-item__cost {
+  color: var(--ink);
+  font-family: var(--sl-mono);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+html[data-theme="survey-ledger"] .store-note,
+html[data-theme="survey-ledger"] .settings-note,
+html[data-theme="survey-ledger"] .curio-note {
+  color: var(--sl-grey);
+  font-size: 0.8125rem;
+}
+
+html[data-theme="survey-ledger"] :is(.resource-card::after, .quartermaster-tooltip, .worker-tooltip) {
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: var(--sl-paper);
+  box-shadow: 4px 4px 0 rgba(29, 28, 26, 0.15);
+  color: var(--ink);
+}
+
+html[data-theme="survey-ledger"] .worker-tooltip :is(strong, span) {
+  color: var(--ink);
+}
+
+/* Message board: memos */
+html[data-theme="survey-ledger"] .message-tile {
+  padding: 12px 0;
+  border: 0;
+  border-bottom: 1px solid var(--sl-hair);
+  border-radius: 0;
+  background: transparent;
+}
+
+html[data-theme="survey-ledger"] .message-tile--contract {
+  border-left: 3px solid var(--ink);
+  padding-left: 12px;
+}
+
+html[data-theme="survey-ledger"] .message-tile--challenge.is-claimable {
+  background: var(--sl-highlight);
+  box-shadow: none;
+}
+
+html[data-theme="survey-ledger"] :is(.message-tile__topline strong, .message-tile__kind) {
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+
+html[data-theme="survey-ledger"] .message-tile p {
+  color: var(--sl-grey);
+}
+
+html[data-theme="survey-ledger"] .message-tile__properties span {
+  border: 1px solid var(--sl-hair);
+  border-radius: 0;
+  background: transparent;
+  color: var(--sl-grey);
+}
+
+html[data-theme="survey-ledger"] .message-tile__properties span.is-met {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+html[data-theme="survey-ledger"] :is(.contract-button, .worker-buy, .dev-button, .district-toolbar button, .parcel-action) {
+  min-height: 36px;
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: var(--ink);
+  box-shadow: none;
+  color: var(--sl-paper);
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+html[data-theme="survey-ledger"] :is(.contract-button, .worker-buy, .dev-button):not(:disabled):active {
+  border-bottom-width: 1px;
+  transform: translateY(1px);
+}
+
+html[data-theme="survey-ledger"] :is(.contract-button, .worker-buy):disabled {
+  background: transparent;
+  color: var(--sl-grey);
+  filter: none;
+}
+
+html[data-theme="survey-ledger"] .dev-button {
+  background: var(--sl-paper);
+  color: var(--ink);
+}
+
+html[data-theme="survey-ledger"] .progress-reset {
+  padding: 12px 0;
+  border: 0;
+  border-top: 1px solid var(--ink);
+  border-radius: 0;
+  background: transparent;
+}
+
+html[data-theme="survey-ledger"] .progress-reset strong {
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+}
+
+html[data-theme="survey-ledger"] .progress-reset span {
+  color: var(--sl-grey);
+}
+
+html[data-theme="survey-ledger"] .progress-reset__button {
+  min-height: 36px;
+  border: 2px solid var(--sl-stamp);
+  border-radius: 0;
+  background: transparent;
+  color: var(--sl-stamp);
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-shadow: none;
+}
+
+html[data-theme="survey-ledger"] #reset-progress.is-armed {
+  background: rgba(168, 38, 28, 0.08);
+}
+
+html[data-theme="survey-ledger"] :is(select, .setting-row input[type="number"]) {
+  min-height: 36px;
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: #ffffff;
+  color: var(--ink);
+  font-family: var(--sl-mono);
+  font-size: 0.875rem;
+  text-align: left;
+}
+
+html[data-theme="survey-ledger"] :is(.setting-group legend, .stats-section summary, .stats-label) {
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-weight: 700;
+}
+
+html[data-theme="survey-ledger"] .setting-group + .setting-group {
+  border-top: 1px solid var(--sl-hair);
+}
+
+html[data-theme="survey-ledger"] :is(.stats-grid dt, .fastest-list li span) {
+  color: var(--sl-grey);
+}
+
+html[data-theme="survey-ledger"] :is(.stats-grid dd, .fastest-list li strong) {
+  color: var(--ink);
+  font-family: var(--sl-mono);
+}
+
+html[data-theme="survey-ledger"] .fastest-list li {
+  border-bottom: 1px dotted var(--sl-hair);
+  background: transparent;
+}
+
+html[data-theme="survey-ledger"] .save-management {
+  border: 0;
+  border-top: 1px solid var(--ink);
+  border-radius: 0;
+  background: transparent;
+}
+
+/* Specialists, blueprints, and interventions are ledger rows too */
+html[data-theme="survey-ledger"] :is(.specialist-card, .blueprint-card, .intervention-entry, .equipment-inventory__item) {
+  padding: 12px 0;
+  border: 0;
+  border-bottom: 1px solid var(--sl-hair);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+}
+
+html[data-theme="survey-ledger"] .specialist-card.is-active {
+  border-left: 3px solid var(--green);
+  padding-left: 12px;
+}
+
+html[data-theme="survey-ledger"] :is(.specialist-card strong, .equipment-inventory__item strong) {
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+}
+
+html[data-theme="survey-ledger"] .specialist-card b {
+  color: var(--ink);
+  font-family: var(--sl-mono);
+}
+
+html[data-theme="survey-ledger"] .specialist-card p {
+  color: var(--sl-grey);
+}
+
+html[data-theme="survey-ledger"] .equipment-inventory__item.is-selected {
+  background: var(--sl-highlight);
+}
+
+/* Curio slots are a specimen tray */
+html[data-theme="survey-ledger"] .curio-grid {
+  gap: 0;
+  border: 1px solid var(--ink);
+}
+
+html[data-theme="survey-ledger"] .curio-slot {
+  border: 0;
+  border-right: 1px solid var(--sl-hair);
+  border-bottom: 1px solid var(--sl-hair);
+  border-radius: 0;
+  background: transparent;
+  color: var(--sl-hair);
+  font-family: var(--sl-mono);
+}
+
+html[data-theme="survey-ledger"] .curio-slot.is-found {
+  background: #dfe6ef;
+  color: var(--cyan);
+  text-shadow: none;
+}
+
+html[data-theme="survey-ledger"] .curio-slot__count {
+  border-radius: 0;
+  background: var(--cyan);
+  color: #ffffff;
+}
+
+/* ---------- the district: a survey map on the same paper ---------- */
+
+html[data-theme="survey-ledger"] .district-view {
+  background:
+    linear-gradient(var(--sl-graph) 1px, transparent 1px) 0 0 / 16px 16px,
+    linear-gradient(90deg, var(--sl-graph) 1px, transparent 1px) 0 0 / 16px 16px,
+    #fbf9f3;
+  box-shadow: none;
+  color: var(--ink);
+}
+
+html[data-theme="survey-ledger"] .district-map {
+  border: 1px solid var(--ink);
+  background: transparent;
+}
+
+html[data-theme="survey-ledger"] .district-cell {
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: #fbf9f3;
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+
+html[data-theme="survey-ledger"] .district-cell.state-unknown {
+  background: repeating-linear-gradient(135deg, #fbf9f3 0 4px, #e6e0d2 4px 5px);
+  color: var(--sl-grey);
+}
+
+html[data-theme="survey-ledger"] .district-cell.state-active {
+  background: var(--sl-highlight);
+}
+
+html[data-theme="survey-ledger"] .district-cell.state-secured {
+  background: #d9e6d6;
+}
+
+html[data-theme="survey-ledger"] .district-cell.state-caved_in {
+  background: var(--sl-stamp);
+  color: var(--sl-paper);
+}
+
+html[data-theme="survey-ledger"] .district-cell.is-selected {
+  outline: 2px solid var(--cyan);
+}
+
+html[data-theme="survey-ledger"] .district-locked {
+  border: 1px dashed var(--ink);
+  background: var(--sl-paper);
+}
+
+html[data-theme="survey-ledger"] .contract-modal {
+  background: rgba(40, 34, 22, 0.55);
+}
+
+html[data-theme="survey-ledger"] :is(.settings-panel, .contract-modal__window) {
+  scrollbar-color: var(--sl-grey) var(--sl-paper);
+}
