@@ -1,22 +1,3 @@
-# Branch status
-
-## working-redesign — Five theme redesigns
-
-- Category: display.
-- Agent: Claude, with Codex as a collaborator.
-- Base: `f3c5156` on `working`, in the worktree `C:\Code\IdleSweep-redesign`. The active `working` checkout is unchanged.
-- Status: Ready for William to test. Experimental; not for release.
-- Changes:
-  - `themes/theme-kit.js` is a presentation-only runtime. It remaps text, glyphs, and fonts at render time, sets `html[data-theme]`, and adds a theme picker at the bottom left. Reads of `textContent`/`getAttribute` return the original text, so saves and game state never hold themed words.
-  - Five full themes: Abyssal Salvage, Brass & Soot Colliery, and Orbital Prospect (Claude); Tomb Expedition and Sugar Works (Codex).
-  - `styles.css` lifts fonts, panel colours, number colours, and the mine colour into variables. The defaults are the same values as before.
-  - `npm run theme-lab` serves both games' redesigns on port 8090.
-- Tests: `npm test` passed all 109 tests, including `test/themes.test.js` (theme validity, CSS scoping, core vocabulary, colour-key collisions).
-- UI verification: William approved in-app browser checks. Every theme loads with no console errors. A vocabulary scan finds no unthemed core terms. No theme overflows at 375 px width. Original looks as before.
-- Not verified: late-game panels (District map, Auto Mine crew, restructure modal) in every theme.
-- Version impact: none. No save-format change; the theme choice is stored in `idle-sweeper.theme.v1`.
-- Last update: 2026-09-30.
-
 # Work log
 
 - Branch: `working`, started from shipped commit `04f4295` on `main`.
