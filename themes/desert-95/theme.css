@@ -1,0 +1,1117 @@
+/* Desert (Claude)
+   Reference: the Windows 95 "Desert" colour scheme: tan window faces, warm bevels, and a
+   terracotta title bar. Opened tiles are sand: a fine, fixed-size grain drawn with an SVG
+   noise filter, so the texture stays even at every board size (unlike the Cabinet '82 dots).
+   The desktop is a dune of the same grain at a coarser scale. */
+
+html[data-theme="desert-95"] {
+  --w-scheme: light;
+  --w-desktop: #c6aa7c;
+  --w-desktop-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.42 0 0 0 0 0.3 0 0 0 0 0.14 0 0 0 0.3 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --w-face: #d5ccbb;
+  --w-light: #f6f1e7;
+  --w-hilite: #e7e0d2;
+  --w-shadow: #9c907a;
+  --w-dark: #3f382c;
+  --w-ink: #1f1a12;
+  --w-muted: #5b5143;
+  --w-title-bg: linear-gradient(90deg, #7a4320, #b06d36);
+  --w-title-ink: #fff8ee;
+  --w-field: #fbf8f1;
+  --w-field-ink: #1f1a12;
+  --w-field-muted: #665b4a;
+  --w-field-rule: #ebe3d3;
+  --w-field-disabled: #a2977f;
+  --w-select: #8a4a22;
+  --w-select-ink: #ffffff;
+  --w-tooltip-bg: #fff6dc;
+  --w-tooltip-ink: #1f1a12;
+  --w-led-bg: #1f1a12;
+  --w-led-ink: #ff6a2a;
+  --w-button: #d5ccbb;
+  --w-button-hover: #ddd5c6;
+  --w-disabled-ink: #9c907a;
+  --w-disabled-shadow: #f6f1e7;
+  --w-tile: #d5ccbb;
+  --w-tile-hover: #ddd5c6;
+  --w-tile-light: #f6f1e7;
+  --w-tile-dark: #9c907a;
+  --w-tile-open: #e6d4ab;
+  --w-tile-open-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.32 0 0 0 0 0.14 0 0 0 0.42 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --w-tile-grid: #c0a983;
+  --w-n1: #1c48b8;
+  --w-n2: #2a7a2a;
+  --w-n3: #c3261b;
+  --w-n4: #262a7e;
+  --w-n5: #7e1e1e;
+  --w-n6: #1a6e6e;
+  --w-n7: #1f1a12;
+  --w-n8: #6b604f;
+  --w-gold: #f2cf4a;
+  --w-gold-edge: #9a7a10;
+  --w-gold-ink: #2a2000;
+  --w-silver: #e6e2da;
+  --w-silver-edge: #9c907a;
+  --w-silver-ink: #1f1a12;
+  --w-bronze: #d8a06a;
+  --w-bronze-edge: #8a5a2a;
+  --w-bronze-ink: #2a1406;
+  --w-mine: #d0281e;
+  --w-mine-ink: #ffffff;
+  --w-flag: #c3261b;
+  --w-radius: 0px;
+  --w-window-shadow: 2px 2px 0 rgba(63, 56, 44, 0.25);
+  --w-font: Tahoma, Verdana, "Segoe UI", sans-serif;
+  --w-font-num: Tahoma, Verdana, "Segoe UI", sans-serif;
+  --w-font-led: "Share Tech Mono", "Courier New", monospace;
+  --w-caption-buttons: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='52' height='14' viewBox='0 0 52 14'%3E%3Crect x='0' y='0' width='16' height='14' fill='%233f382c'/%3E%3Crect x='0' y='0' width='15' height='13' fill='%23f6f1e7'/%3E%3Crect x='1' y='1' width='14' height='12' fill='%239c907a'/%3E%3Crect x='1' y='1' width='13' height='11' fill='%23e7e0d2'/%3E%3Crect x='2' y='2' width='12' height='10' fill='%23d5ccbb'/%3E%3Crect x='4' y='9' width='6' height='2' fill='%231f1a12'/%3E%3Crect x='16' y='0' width='16' height='14' fill='%233f382c'/%3E%3Crect x='16' y='0' width='15' height='13' fill='%23f6f1e7'/%3E%3Crect x='17' y='1' width='14' height='12' fill='%239c907a'/%3E%3Crect x='17' y='1' width='13' height='11' fill='%23e7e0d2'/%3E%3Crect x='18' y='2' width='12' height='10' fill='%23d5ccbb'/%3E%3Crect x='19' y='3' width='9' height='8' fill='none' stroke='%231f1a12' stroke-width='1'/%3E%3Crect x='19' y='3' width='9' height='2' fill='%231f1a12'/%3E%3Crect x='36' y='0' width='16' height='14' fill='%233f382c'/%3E%3Crect x='36' y='0' width='15' height='13' fill='%23f6f1e7'/%3E%3Crect x='37' y='1' width='14' height='12' fill='%239c907a'/%3E%3Crect x='37' y='1' width='13' height='11' fill='%23e7e0d2'/%3E%3Crect x='38' y='2' width='12' height='10' fill='%23d5ccbb'/%3E%3Cpath d='M40 4l7 7M47 4l-7 7' stroke='%231f1a12' stroke-width='1.6'/%3E%3C/svg%3E");
+  --w-smiley: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Ccircle cx='15' cy='15' r='13' fill='%23ffd23f' stroke='%231f1a12' stroke-width='2'/%3E%3Crect x='9' y='9' width='3' height='4' fill='%231f1a12'/%3E%3Crect x='18' y='9' width='3' height='4' fill='%231f1a12'/%3E%3Cpath d='M8 17q7 8 14 0' fill='none' stroke='%231f1a12' stroke-width='2'/%3E%3C/svg%3E");
+}
+
+/* ---------- shared window system (round 3) ----------
+   Board in the middle, the Quartermaster on the left, the other windows stacked on the
+   right. Classic two-step bevels, title bars, list views with selection highlight, and
+   ledger-style rows sized for reading (14px text, tabular figures). */
+
+html[data-theme="desert-95"] {
+  --ink: var(--w-ink);
+  --white: var(--w-ink);
+  --screen-glow: var(--w-ink);
+  --yellow: var(--w-ink);
+  --cyan: var(--w-select);
+  --panel-bg: var(--w-face);
+  --panel-bg-deep: var(--w-dark);
+  --cell: var(--w-tile);
+  --cell-raised: var(--w-tile-hover);
+  --cell-open: var(--w-tile-open);
+  --cell-open-alt: var(--w-tile-open);
+  --mine: var(--w-mine);
+  --font-display: var(--w-font);
+  --font-body: var(--w-font);
+  --w-raised-border: var(--w-light) var(--w-dark) var(--w-dark) var(--w-light);
+  --w-raised-inset: inset 1px 1px var(--w-hilite), inset -1px -1px var(--w-shadow);
+  --w-sunken-border: var(--w-shadow) var(--w-light) var(--w-light) var(--w-shadow);
+  --w-sunken-inset: inset 1px 1px var(--w-dark), inset -1px -1px var(--w-hilite);
+  background: var(--w-desktop);
+  color-scheme: var(--w-scheme);
+}
+
+html[data-theme="desert-95"] body {
+  background: var(--w-desktop-image, none), var(--w-desktop);
+  background-attachment: fixed;
+  color: var(--w-ink);
+  font-family: var(--w-font);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- layout ---------- */
+
+@media (min-width: 1121px) {
+  html[data-theme="desert-95"] body {
+    height: auto;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 24px 24px 48px;
+  }
+
+  html[data-theme="desert-95"] .app-shell {
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) minmax(440px, 540px) minmax(280px, 1fr);
+    grid-template-rows: auto auto auto auto 1fr;
+    gap: 20px;
+    align-items: start;
+    width: min(100%, 1520px);
+    min-width: 0;
+    max-width: 1520px;
+    margin: 0 auto;
+  }
+
+  html[data-theme="desert-95"] .cabinet {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    position: sticky;
+    top: 24px;
+  }
+
+  html[data-theme="desert-95"] #quartermaster-panel {
+    grid-column: 1;
+    grid-row: 1 / -1;
+  }
+
+  html[data-theme="desert-95"] #workshop-panel {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  html[data-theme="desert-95"] .contracts-panel {
+    grid-column: 3;
+    grid-row: 2;
+  }
+
+  html[data-theme="desert-95"] .curio-panel {
+    grid-column: 3;
+    grid-row: 3;
+  }
+
+  html[data-theme="desert-95"] .settings-panel {
+    grid-column: 3;
+    grid-row: 4;
+  }
+}
+
+@media (min-width: 701px) and (max-width: 1120px) {
+  html[data-theme="desert-95"] body {
+    height: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  html[data-theme="desert-95"] .app-shell {
+    display: grid;
+    grid-template-columns: minmax(380px, 1fr) minmax(280px, 1fr);
+    grid-template-rows: auto auto auto auto auto 1fr;
+    gap: 16px;
+    align-items: start;
+    width: 100%;
+    min-width: 0;
+  }
+
+  html[data-theme="desert-95"] .cabinet {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    position: sticky;
+    top: 16px;
+  }
+
+  html[data-theme="desert-95"] :is(#quartermaster-panel, #workshop-panel, .contracts-panel, .curio-panel, .settings-panel) {
+    grid-column: 2;
+  }
+}
+
+@media (min-width: 701px) {
+  html[data-theme="desert-95"] :is(.cabinet, .quartermaster-panel, .workshop-panel, .contracts-panel, .curio-panel, .settings-panel) {
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    max-height: none;
+    overflow: visible;
+  }
+
+  html[data-theme="desert-95"] body.is-contract-running .cabinet {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: min(94vw, 600px);
+    max-height: 92vh;
+    overflow-y: auto;
+    transform: translate(-50%, -50%);
+    z-index: 20;
+  }
+}
+
+/* ---------- windows ---------- */
+
+html[data-theme="desert-95"] :is(.cabinet, .settings-panel, .curio-panel, .contracts-panel, .quartermaster-panel, .workshop-panel, .contract-modal__window) {
+  padding: 3px 12px 12px;
+  border: 1px solid;
+  border-color: var(--w-raised-border);
+  border-radius: var(--w-radius);
+  background: var(--w-face);
+  box-shadow: var(--w-raised-inset), var(--w-window-shadow);
+  color: var(--w-ink);
+}
+
+html[data-theme="desert-95"] .cabinet::before,
+html[data-theme="desert-95"] .cabinet::after {
+  content: none;
+}
+
+/* Title bars: the first header of each window */
+html[data-theme="desert-95"] :is(.quartermaster-panel, .workshop-panel, .contracts-panel, .curio-panel) > .panel-header,
+html[data-theme="desert-95"] .settings-panel > .settings-panel__header,
+html[data-theme="desert-95"] .cabinet > .marquee {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 0;
+  margin: 0 -9px 12px;
+  padding: 4px 4px 4px 8px;
+  border: 0;
+  border-radius: calc(var(--w-radius) - 1px) calc(var(--w-radius) - 1px) 0 0;
+  background: var(--w-title-bg);
+  box-shadow: none;
+  color: var(--w-title-ink);
+}
+
+html[data-theme="desert-95"] :is(.quartermaster-panel, .workshop-panel, .contracts-panel, .curio-panel) > .panel-header::after,
+html[data-theme="desert-95"] .settings-panel > .settings-panel__header::after,
+html[data-theme="desert-95"] .cabinet > .marquee::after {
+  content: "";
+  flex: 0 0 auto;
+  width: 52px;
+  height: 14px;
+  margin-left: auto;
+  background: var(--w-caption-buttons) right center / auto 100% no-repeat;
+}
+
+html[data-theme="desert-95"] :is(.panel-header h2, .settings-panel__header h2, .marquee h1) {
+  margin: 0;
+  color: var(--w-title-ink);
+  font-family: var(--w-font);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 18px;
+  text-align: left;
+  text-shadow: none;
+  text-transform: none;
+}
+
+html[data-theme="desert-95"] :is(.panel-header__eyebrow, .settings-panel__eyebrow) {
+  color: var(--w-title-ink);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  opacity: 0.8;
+  text-transform: none;
+}
+
+html[data-theme="desert-95"] :is(.panel-header__eyebrow, .settings-panel__eyebrow)::after {
+  content: " -";
+}
+
+html[data-theme="desert-95"] .marquee__spark {
+  display: none;
+}
+
+/* A nested header (District Crew) is a group label, not a title bar */
+html[data-theme="desert-95"] .specialists-panel .panel-header {
+  margin: 0 0 12px;
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--w-shadow);
+  background: none;
+}
+
+html[data-theme="desert-95"] .specialists-panel .panel-header :is(h2, .panel-header__eyebrow) {
+  color: var(--w-ink);
+}
+
+/* Section headings inside windows */
+html[data-theme="desert-95"] :is(.store h3, .stats-section summary h3, .save-management h3, .restructure-summary h3, .contract-modal__window h2) {
+  margin: 0;
+  color: var(--w-ink);
+  font-family: var(--w-font);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-shadow: none;
+  text-transform: none;
+}
+
+html[data-theme="desert-95"] :is(.store__eyebrow, .store__subheader, .settings-note, .store-note, .curio-note, .field-specification-note) {
+  color: var(--w-muted);
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+html[data-theme="desert-95"] .store {
+  margin-top: 16px;
+}
+
+/* ---------- the game window ---------- */
+
+html[data-theme="desert-95"] .screen {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+/* The status bar: two LED counters and the face button in a sunken strip */
+html[data-theme="desert-95"] .hud {
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 6px 8px;
+  border: 2px solid;
+  border-color: var(--w-sunken-border);
+  background: var(--w-face);
+}
+
+html[data-theme="desert-95"] .meter {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--w-ink);
+}
+
+html[data-theme="desert-95"] .meter__label {
+  color: var(--w-muted);
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+html[data-theme="desert-95"] .meter__value {
+  display: inline-block;
+  min-width: 72px;
+  margin-top: 4px;
+  padding: 2px 6px;
+  border: 1px solid;
+  border-color: var(--w-shadow) var(--w-light) var(--w-light) var(--w-shadow);
+  background: var(--w-led-bg);
+  color: var(--w-led-ink);
+  font-family: var(--w-font-led);
+  font-size: 32px;
+  font-weight: 400;
+  letter-spacing: 2px;
+  line-height: 1;
+  text-align: right;
+  text-shadow: none;
+}
+
+html[data-theme="desert-95"] .reset {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 64px;
+  height: 64px;
+  padding: 4px;
+  border: 1px solid;
+  border-color: var(--w-raised-border);
+  border-radius: var(--w-radius);
+  background: var(--w-face);
+  box-shadow: var(--w-raised-inset);
+  color: var(--w-ink);
+  font-family: var(--w-font);
+  font-size: 10px;
+  font-weight: 700;
+  text-shadow: none;
+}
+
+html[data-theme="desert-95"] .reset::before {
+  content: "";
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  background: var(--w-smiley) center / 30px 30px no-repeat;
+}
+
+html[data-theme="desert-95"] .reset:active {
+  border-color: var(--w-shadow);
+  border-bottom-width: 1px;
+  box-shadow: none;
+  transform: none;
+}
+
+html[data-theme="desert-95"] .status {
+  min-height: 2.8em;
+  margin: 0 0 8px;
+  color: var(--w-ink);
+  font-size: 14px;
+  line-height: 1.4;
+  text-align: left;
+}
+
+html[data-theme="desert-95"] .field-value {
+  margin: 0 0 12px;
+  color: var(--w-ink);
+  font-family: var(--w-font);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+  text-shadow: none;
+}
+
+html[data-theme="desert-95"] .record-controls {
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+html[data-theme="desert-95"] .record-strip {
+  padding: 6px 8px;
+  border: 1px solid;
+  border-color: var(--w-sunken-border);
+  border-radius: 0;
+  background: var(--w-field);
+  color: var(--w-muted);
+  font-size: 12px;
+  text-transform: none;
+}
+
+html[data-theme="desert-95"] .record-strip strong {
+  margin-top: 2px;
+  color: var(--w-field-ink);
+  font-family: var(--w-font);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* ---------- the minefield ---------- */
+
+html[data-theme="desert-95"] .board:not(.district-view) {
+  gap: 0;
+  max-width: 100%;
+  max-height: min(52vh, 560px);
+  padding: 0;
+  border: 3px solid;
+  border-color: var(--w-sunken-border);
+  background: var(--w-tile-grid);
+}
+
+html[data-theme="desert-95"] .board:not(.district-view) .cell {
+  aspect-ratio: 1;
+  container-type: inline-size;
+}
+
+html[data-theme="desert-95"] .board:not(.district-view) .cell .cell-label {
+  font-size: clamp(0.5rem, 52cqi, 2.25rem);
+  line-height: 1;
+}
+
+html[data-theme="desert-95"] .cell {
+  border: 3px solid;
+  border-color: var(--w-tile-light) var(--w-tile-dark) var(--w-tile-dark) var(--w-tile-light);
+  border-radius: 0;
+  background: var(--w-tile);
+  box-shadow: none;
+  color: var(--w-ink);
+  font-family: var(--w-font-num);
+  font-weight: 700;
+  text-shadow: none;
+}
+
+html[data-theme="desert-95"] .board.is-virtual .cell {
+  border-width: 2px;
+}
+
+html[data-theme="desert-95"] .cell:not(.is-open):hover:not(:disabled) {
+  background: var(--w-tile-hover);
+}
+
+html[data-theme="desert-95"] .cell:not(.is-open):active:not(:disabled) {
+  border-color: var(--w-tile-grid);
+  border-width: 1px 0 0 1px;
+  background: var(--w-tile-open);
+}
+
+html[data-theme="desert-95"] .cell:focus-visible {
+  outline: 2px dotted var(--w-ink);
+  outline-offset: -4px;
+}
+
+html[data-theme="desert-95"] :is(.cell.is-open, .cell.is-open:nth-child(even), .cell.is-open.is-treasure, .cell.is-open.is-treasure-bronze, .cell.is-open.is-treasure-silver, .cell.is-open.is-treasure-gold, .cell.is-open.is-curio, .cell.is-mine) {
+  border: 0;
+  border-right: 1px solid var(--w-tile-grid);
+  border-bottom: 1px solid var(--w-tile-grid);
+  background: var(--w-tile-open-image, none), var(--w-tile-open);
+  box-shadow: none;
+  text-shadow: none;
+}
+
+html[data-theme="desert-95"] .cell[data-adjacent="1"] { color: var(--w-n1); }
+html[data-theme="desert-95"] .cell[data-adjacent="2"] { color: var(--w-n2); }
+html[data-theme="desert-95"] .cell[data-adjacent="3"] { color: var(--w-n3); }
+html[data-theme="desert-95"] .cell[data-adjacent="4"] { color: var(--w-n4); }
+html[data-theme="desert-95"] .cell[data-adjacent="5"] { color: var(--w-n5); }
+html[data-theme="desert-95"] .cell[data-adjacent="6"] { color: var(--w-n6); }
+html[data-theme="desert-95"] .cell[data-adjacent="7"] { color: var(--w-n7); }
+html[data-theme="desert-95"] .cell[data-adjacent="8"] { color: var(--w-n8); }
+
+html[data-theme="desert-95"] :is(.cell.is-open.is-treasure, .cell.is-open.is-treasure-gold) {
+  background: var(--w-gold);
+  box-shadow: inset 0 -3px 0 var(--w-gold-edge);
+  color: var(--w-gold-ink);
+}
+
+html[data-theme="desert-95"] .cell.is-open.is-treasure-silver {
+  background: var(--w-silver);
+  box-shadow: inset 0 -3px 0 var(--w-silver-edge);
+  color: var(--w-silver-ink);
+}
+
+html[data-theme="desert-95"] .cell.is-open.is-treasure-bronze {
+  background: var(--w-bronze);
+  box-shadow: inset 0 -3px 0 var(--w-bronze-edge);
+  color: var(--w-bronze-ink);
+}
+
+html[data-theme="desert-95"] .cell.is-open.is-curio {
+  box-shadow: inset 0 0 0 2px var(--w-select);
+  color: var(--w-select);
+}
+
+html[data-theme="desert-95"] .cell.is-flagged {
+  color: var(--w-flag);
+}
+
+html[data-theme="desert-95"] .cell.is-mine {
+  background: var(--w-mine);
+  color: var(--w-mine-ink);
+}
+
+html[data-theme="desert-95"] .cell.is-hinted {
+  box-shadow: inset 0 0 0 2px var(--w-select);
+}
+
+html[data-theme="desert-95"] .cell.is-hinted::after {
+  top: 1px;
+  right: 2px;
+  color: var(--w-select);
+  font-family: var(--w-font);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+html[data-theme="desert-95"] .cell.is-equipment-target {
+  box-shadow: inset 0 0 0 2px var(--w-select);
+}
+
+html[data-theme="desert-95"] :is(.treasure-popup, .treasure-popup--gold, .treasure-popup--silver, .treasure-popup--bronze) {
+  border: 1px solid var(--w-dark);
+  border-radius: 0;
+  background: var(--w-tooltip-bg);
+  color: var(--w-tooltip-ink);
+  font-family: var(--w-font);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+html[data-theme="desert-95"] .worker-cursor--excavator {
+  background: var(--w-select);
+  color: var(--w-select-ink);
+}
+
+html[data-theme="desert-95"] .worker-cursor--flagbearer {
+  background: var(--w-flag);
+  color: #ffffff;
+}
+
+/* ---------- push buttons ---------- */
+
+html[data-theme="desert-95"] :is(.field-specification-toggle, .equipment-toggle, .cabinet-mode-button, .contract-button, .worker-buy, .dev-button, .parcel-action, .district-toolbar button, .progress-reset__button) {
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid;
+  border-color: var(--w-raised-border);
+  border-radius: var(--w-radius);
+  background: var(--w-button);
+  box-shadow: var(--w-raised-inset);
+  color: var(--w-ink);
+  font-family: var(--w-font);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-shadow: none;
+  text-transform: none;
+  transform: none;
+  filter: none;
+}
+
+html[data-theme="desert-95"] :is(.field-specification-toggle, .equipment-toggle, .cabinet-mode-button, .contract-button, .worker-buy, .dev-button, .parcel-action, .district-toolbar button, .progress-reset__button):hover:not(:disabled) {
+  background: var(--w-button-hover);
+}
+
+html[data-theme="desert-95"] :is(.field-specification-toggle, .equipment-toggle, .cabinet-mode-button, .contract-button, .worker-buy, .dev-button, .parcel-action, .district-toolbar button, .progress-reset__button):active:not(:disabled),
+html[data-theme="desert-95"] :is(.field-specification-toggle[aria-expanded="true"], .equipment-toggle[aria-expanded="true"], .cabinet-mode-button.is-active) {
+  border-color: var(--w-sunken-border);
+  border-bottom-width: 1px;
+  box-shadow: var(--w-sunken-inset);
+  transform: none;
+}
+
+html[data-theme="desert-95"] :is(.field-specification-toggle, .equipment-toggle, .cabinet-mode-button, .contract-button, .worker-buy, .dev-button, .parcel-action, .district-toolbar button, .progress-reset__button):disabled {
+  background: var(--w-button);
+  color: var(--w-disabled-ink);
+  opacity: 1;
+  text-shadow: 1px 1px 0 var(--w-disabled-shadow);
+  cursor: not-allowed;
+}
+
+html[data-theme="desert-95"] :is(.field-specification-toggle, .equipment-toggle, .cabinet-mode-button, .contract-button, .worker-buy, .dev-button, .parcel-action, .district-toolbar button, .progress-reset__button):focus-visible {
+  outline: 1px dotted var(--w-ink);
+  outline-offset: -5px;
+}
+
+/* The default button of a dialog carries an extra dark outline */
+html[data-theme="desert-95"] :is(.contract-button, .worker-buy) {
+  outline: 1px solid var(--w-dark);
+  font-weight: 700;
+}
+
+html[data-theme="desert-95"] .controls {
+  margin-top: 12px;
+}
+
+html[data-theme="desert-95"] .cabinet-mode-button {
+  width: auto;
+  min-width: 84px;
+  min-height: 40px;
+}
+
+html[data-theme="desert-95"] .equipment-toggle {
+  width: 56px;
+  height: 56px;
+  padding: 4px;
+}
+
+html[data-theme="desert-95"] .equipment-toggle strong {
+  border-radius: 0;
+  background: var(--w-led-bg);
+  color: var(--w-led-ink);
+  font-family: var(--w-font-led);
+  font-size: 14px;
+}
+
+html[data-theme="desert-95"] .field-specification-toggle {
+  flex-basis: 96px;
+  font-weight: 700;
+}
+
+/* Popups are small windows */
+html[data-theme="desert-95"] :is(.field-specification-menu, .equipment-inventory) {
+  border: 1px solid;
+  border-color: var(--w-raised-border);
+  border-radius: var(--w-radius);
+  background: var(--w-face);
+  box-shadow: var(--w-raised-inset), 4px 4px 0 rgba(0, 0, 0, 0.35);
+  color: var(--w-ink);
+}
+
+html[data-theme="desert-95"] :is(.field-specification-menu__header strong, .equipment-inventory__header strong) {
+  color: var(--w-ink);
+  font-family: var(--w-font);
+  font-size: 14px;
+}
+
+/* ---------- list views and ledger rows ---------- */
+
+/* Readouts: a sunken field with the label left and the figure right */
+html[data-theme="desert-95"] :is(.coin-display, .message-board-status, .curio-status, .auto-mine-status) {
+  padding: 8px 12px;
+  border: 2px solid;
+  border-color: var(--w-sunken-border);
+  border-radius: 0;
+  background: var(--w-field);
+}
+
+html[data-theme="desert-95"] :is(.coin-display__label, .message-board-status__label, .curio-status__label, .auto-mine-status__label) {
+  color: var(--w-field-muted);
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+html[data-theme="desert-95"] :is(.coin-display__value, .message-board-status__value, .curio-status__value, .auto-mine-status__value) {
+  color: var(--w-field-ink);
+  font-family: var(--w-font);
+  font-size: 22px;
+  font-weight: 700;
+  text-shadow: none;
+}
+
+/* Resources: an icon view in a sunken well */
+html[data-theme="desert-95"] .resource-grid {
+  gap: 0;
+  padding: 0;
+  border: 2px solid;
+  border-color: var(--w-sunken-border);
+  background: var(--w-field);
+}
+
+html[data-theme="desert-95"] .resource-card {
+  padding: 12px 4px;
+  border: 0;
+  border-right: 1px solid var(--w-field-rule);
+  border-bottom: 1px solid var(--w-field-rule);
+  border-radius: 0;
+  background: transparent;
+  color: var(--w-field-ink);
+}
+
+html[data-theme="desert-95"] .resource-card__icon {
+  color: var(--w-field-ink);
+}
+
+html[data-theme="desert-95"] .resource-card__label {
+  color: var(--w-field-muted);
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+html[data-theme="desert-95"] .resource-card__value {
+  color: var(--w-field-ink);
+  font-family: var(--w-font);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+html[data-theme="desert-95"] .resource-card__detail {
+  color: var(--w-field-muted);
+  font-size: 11px;
+}
+
+/* Store lines sit in a list view: hover uses the selection colour, costs align right */
+html[data-theme="desert-95"] :is(.store-list, #special-equipment-store) {
+  gap: 0;
+  border: 2px solid;
+  border-color: var(--w-sunken-border);
+  background: var(--w-field);
+}
+
+html[data-theme="desert-95"] .store-item {
+  min-height: 0;
+  min-width: 0;
+  margin-top: 0;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--w-field-rule);
+  border-radius: 0;
+  background: var(--w-field);
+  box-shadow: none;
+  color: var(--w-field-ink);
+}
+
+html[data-theme="desert-95"] .store-item:hover:not(:disabled) {
+  border-color: var(--w-field-rule);
+  background: var(--w-select);
+  color: var(--w-select-ink);
+  transform: none;
+}
+
+html[data-theme="desert-95"] .store-item:hover:not(:disabled) :is(.store-item__copy strong, .store-item__copy small, .store-item__cost) {
+  color: var(--w-select-ink);
+}
+
+html[data-theme="desert-95"] .store-item:active:not(:disabled) {
+  transform: none;
+}
+
+html[data-theme="desert-95"] .store-item:disabled {
+  background: var(--w-field);
+  opacity: 1;
+}
+
+html[data-theme="desert-95"] .store-item:disabled :is(.store-item__copy strong, .store-item__copy small, .store-item__cost) {
+  color: var(--w-field-disabled);
+}
+
+html[data-theme="desert-95"] .store-item:focus-visible {
+  outline: 1px dotted var(--w-field-ink);
+  outline-offset: -3px;
+}
+
+html[data-theme="desert-95"] .store-item__copy strong {
+  color: var(--w-field-ink);
+  font-family: var(--w-font);
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: none;
+}
+
+html[data-theme="desert-95"] .store-item__copy small {
+  color: var(--w-field-muted);
+  font-size: 13px;
+}
+
+html[data-theme="desert-95"] .store-item__cost {
+  color: var(--w-field-ink);
+  font-family: var(--w-font);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+html[data-theme="desert-95"] :is(.resource-card::after, .quartermaster-tooltip, .worker-tooltip) {
+  border: 1px solid var(--w-dark);
+  border-radius: 0;
+  background: var(--w-tooltip-bg);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3);
+  color: var(--w-tooltip-ink);
+  font-family: var(--w-font);
+  font-size: 12px;
+}
+
+html[data-theme="desert-95"] .worker-tooltip :is(strong, span) {
+  color: var(--w-tooltip-ink);
+}
+
+/* Message board rows */
+html[data-theme="desert-95"] .message-board-list {
+  gap: 0;
+}
+
+html[data-theme="desert-95"] .message-tile {
+  padding: 12px;
+  border: 0;
+  border-bottom: 1px solid var(--w-field-rule);
+  border-radius: 0;
+  background: var(--w-field);
+  color: var(--w-field-ink);
+}
+
+html[data-theme="desert-95"] .message-tile--contract {
+  box-shadow: inset 3px 0 0 var(--w-select);
+}
+
+html[data-theme="desert-95"] .message-tile--challenge.is-claimable {
+  box-shadow: inset 3px 0 0 var(--w-n2);
+}
+
+html[data-theme="desert-95"] :is(.message-tile__topline strong, .message-tile__kind) {
+  color: var(--w-field-ink);
+  font-family: var(--w-font);
+}
+
+html[data-theme="desert-95"] .message-tile p {
+  color: var(--w-field-muted);
+  font-size: 13px;
+}
+
+html[data-theme="desert-95"] .message-tile__properties span {
+  border: 1px solid var(--w-field-rule);
+  border-radius: 0;
+  background: transparent;
+  color: var(--w-field-muted);
+}
+
+html[data-theme="desert-95"] .message-tile__properties span.is-met {
+  border-color: var(--w-n2);
+  color: var(--w-n2);
+}
+
+html[data-theme="desert-95"] .message-tile__properties span.is-met strong {
+  color: var(--w-n2);
+}
+
+/* Specialist, blueprint, intervention, and inventory rows */
+html[data-theme="desert-95"] :is(.specialist-card, .blueprint-card, .intervention-entry, .equipment-inventory__item) {
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--w-field-rule);
+  border-radius: 0;
+  background: var(--w-field);
+  box-shadow: none;
+  color: var(--w-field-ink);
+}
+
+html[data-theme="desert-95"] :is(.blueprint-card, .intervention-entry) {
+  margin-top: 0;
+}
+
+html[data-theme="desert-95"] .specialist-card.is-active {
+  box-shadow: inset 3px 0 0 var(--w-n2);
+}
+
+html[data-theme="desert-95"] :is(.specialist-card strong, .equipment-inventory__item strong) {
+  color: var(--w-field-ink);
+  font-family: var(--w-font);
+  font-size: 14px;
+  text-transform: none;
+}
+
+html[data-theme="desert-95"] .specialist-card b {
+  color: var(--w-field-ink);
+  font-family: var(--w-font);
+}
+
+html[data-theme="desert-95"] :is(.specialist-card p, .equipment-inventory__item small) {
+  color: var(--w-field-muted);
+}
+
+html[data-theme="desert-95"] .equipment-inventory__item.is-selected,
+html[data-theme="desert-95"] .equipment-inventory__item:hover:not(:disabled) {
+  background: var(--w-select);
+  color: var(--w-select-ink);
+}
+
+html[data-theme="desert-95"] :is(.equipment-inventory__item.is-selected, .equipment-inventory__item:hover:not(:disabled)) :is(strong, small, b) {
+  color: var(--w-select-ink);
+}
+
+/* Settings: group boxes and fields */
+html[data-theme="desert-95"] .setting-group {
+  padding: 12px;
+  border: 1px solid;
+  border-color: var(--w-shadow) var(--w-light) var(--w-light) var(--w-shadow);
+}
+
+html[data-theme="desert-95"] .setting-group + .setting-group {
+  margin-top: 12px;
+}
+
+html[data-theme="desert-95"] :is(.setting-group legend, .stats-section summary, .stats-label) {
+  padding: 0 4px;
+  color: var(--w-ink);
+  font-family: var(--w-font);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+html[data-theme="desert-95"] :is(.setting-row label, .stats-grid dt, .fastest-list li span) {
+  color: var(--w-muted);
+  font-size: 13px;
+}
+
+html[data-theme="desert-95"] :is(.stats-grid dd, .fastest-list li strong) {
+  color: var(--w-ink);
+  font-family: var(--w-font);
+  font-size: 13px;
+}
+
+html[data-theme="desert-95"] .fastest-list li {
+  border-bottom: 1px solid var(--w-shadow);
+  background: transparent;
+}
+
+html[data-theme="desert-95"] :is(select, .setting-row input[type="number"]) {
+  min-height: 32px;
+  border: 2px solid;
+  border-color: var(--w-sunken-border);
+  border-radius: 0;
+  background: var(--w-field);
+  color: var(--w-field-ink);
+  font-family: var(--w-font);
+  font-size: 13px;
+  text-align: left;
+}
+
+html[data-theme="desert-95"] .progress-reset {
+  padding: 12px 0 0;
+  border: 0;
+  border-top: 1px solid var(--w-shadow);
+  border-radius: 0;
+  background: transparent;
+}
+
+html[data-theme="desert-95"] .progress-reset strong {
+  color: var(--w-ink);
+  font-family: var(--w-font);
+  font-size: 14px;
+  text-transform: none;
+}
+
+html[data-theme="desert-95"] .progress-reset span {
+  color: var(--w-muted);
+  font-size: 13px;
+}
+
+html[data-theme="desert-95"] #reset-progress.is-armed {
+  background: var(--w-mine);
+  color: #ffffff;
+}
+
+html[data-theme="desert-95"] .save-management {
+  border: 0;
+  border-top: 1px solid var(--w-shadow);
+  border-radius: 0;
+  background: transparent;
+}
+
+/* Curio slots: a sunken tray */
+html[data-theme="desert-95"] .curio-grid {
+  gap: 4px;
+  padding: 4px;
+  border: 2px solid;
+  border-color: var(--w-sunken-border);
+  background: var(--w-field);
+}
+
+html[data-theme="desert-95"] .curio-slot {
+  border: 1px solid var(--w-field-rule);
+  border-radius: 0;
+  background: transparent;
+  color: var(--w-field-disabled);
+  font-family: var(--w-font);
+  font-size: 13px;
+}
+
+html[data-theme="desert-95"] .curio-slot.is-found {
+  border: 1px solid;
+  border-color: var(--w-raised-border);
+  background: var(--w-face);
+  box-shadow: var(--w-raised-inset);
+  color: var(--w-select);
+  text-shadow: none;
+}
+
+html[data-theme="desert-95"] .curio-slot__count {
+  border-radius: 0;
+  background: var(--w-select);
+  color: var(--w-select-ink);
+}
+
+/* ---------- the district map ---------- */
+
+html[data-theme="desert-95"] .district-view {
+  border: 3px solid;
+  border-color: var(--w-sunken-border);
+  background: var(--w-field);
+  box-shadow: none;
+  color: var(--w-field-ink);
+}
+
+html[data-theme="desert-95"] .district-map {
+  border: 0;
+  background: transparent;
+}
+
+html[data-theme="desert-95"] .district-cell {
+  border: 2px solid;
+  border-color: var(--w-tile-light) var(--w-tile-dark) var(--w-tile-dark) var(--w-tile-light);
+  border-radius: 0;
+  background: var(--w-tile);
+  color: var(--w-ink);
+  font-family: var(--w-font);
+}
+
+html[data-theme="desert-95"] .district-cell.state-unknown {
+  background: repeating-linear-gradient(45deg, var(--w-tile) 0 4px, var(--w-tile-hover) 4px 8px);
+  color: var(--w-muted);
+}
+
+html[data-theme="desert-95"] .district-cell.state-active {
+  background: var(--w-select);
+  color: var(--w-select-ink);
+}
+
+html[data-theme="desert-95"] .district-cell.state-secured {
+  border: 1px solid var(--w-tile-grid);
+  background: var(--w-tile-open-image, none), var(--w-tile-open);
+}
+
+html[data-theme="desert-95"] .district-cell.state-caved_in {
+  background: var(--w-mine);
+  color: var(--w-mine-ink);
+}
+
+html[data-theme="desert-95"] .district-cell.is-selected {
+  outline: 2px dotted var(--w-ink);
+  outline-offset: -5px;
+}
+
+html[data-theme="desert-95"] .district-locked {
+  border: 1px dashed var(--w-shadow);
+  background: var(--w-face);
+}
+
+html[data-theme="desert-95"] .parcel-inspector {
+  color: var(--w-field-ink);
+}
+
+html[data-theme="desert-95"] .contract-modal {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+html[data-theme="desert-95"] :is(.settings-panel, .contract-modal__window) {
+  scrollbar-color: var(--w-shadow) var(--w-face);
+}
