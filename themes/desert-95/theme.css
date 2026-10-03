@@ -656,6 +656,18 @@ html[data-theme="desert-95"] .cabinet-mode-button {
   min-height: 40px;
 }
 
+@media (max-width: 520px) {
+  html[data-theme="desert-95"] .cabinet-mode-button {
+    min-width: 0;
+    padding: 6px 8px;
+  }
+
+  html[data-theme="desert-95"] .buttons {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
 html[data-theme="desert-95"] .equipment-toggle {
   width: 56px;
   height: 56px;

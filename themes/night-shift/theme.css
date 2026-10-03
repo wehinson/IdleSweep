@@ -655,6 +655,18 @@ html[data-theme="night-shift"] .cabinet-mode-button {
   min-height: 40px;
 }
 
+@media (max-width: 520px) {
+  html[data-theme="night-shift"] .cabinet-mode-button {
+    min-width: 0;
+    padding: 6px 8px;
+  }
+
+  html[data-theme="night-shift"] .buttons {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
 html[data-theme="night-shift"] .equipment-toggle {
   width: 56px;
   height: 56px;
