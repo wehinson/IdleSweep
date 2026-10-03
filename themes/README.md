@@ -1,18 +1,18 @@
 # Theme redesigns
 
-This branch (`working-redesign`) holds five redesigns (round 2) of Sweeper Inc. Use the
+This branch (`working-redesign`) holds five redesigns (round 3) of Sweeper Inc. Use the
 theme picker at the bottom-left of the page to switch between them. You can also
 open `?theme=<id>`. **Original** is the default, and it is unchanged.
 
 | id | Name | Designer |
 | --- | --- | --- |
-| `survey-ledger` | Survey Ledger | Claude |
-| `field-unit` | Field Unit | Claude |
-| `cabinet-82` | Cabinet '82 | Claude |
-| `site-signage` | Site Signage | Codex |
-| `company-desktop` | Company Desktop | Codex |
+| `classic-95` | Classic 95 | Claude |
+| `night-shift` | Night Shift | Claude |
+| `desert-95` | Desert | Claude |
+| `program-manager` | Program Manager | Codex |
+| `luna-xp` | Luna | Codex |
 
-Round 2 keeps the game's concept and every word. Each theme is a new art direction and layout. See `DESIGN-BRIEF.md` for the rules and references.
+Round 3 (William's feedback: Company Desktop was the clear favourite). Five versions of the classic Windows Minesweeper look, with the board in the middle, Survey Ledger-level readability, a dark version (Night Shift), and a sand texture (Desert): Classic 95, Night Shift, and Desert (Claude); Program Manager and Luna (Codex). Claude's three come from one window system in `themes/_build`. The round 2 designs were removed. Every design keeps the game's words. See `DESIGN-BRIEF.md` for the rules against slop.
 
 ## How a theme works
 

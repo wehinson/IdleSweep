@@ -8,7 +8,7 @@
 - Status: Ready for William to test. Experimental; not for release.
 - Changes:
   - `themes/theme-kit.js` is a presentation-only runtime. It remaps text, glyphs, and fonts at render time, sets `html[data-theme]`, and adds a theme picker at the bottom left. Reads of `textContent`/`getAttribute` return the original text, so saves and game state never hold themed words.
-  - Round 2 (William's feedback: keep the mining company and its words, and make it look better). Five designs that rename nothing and each re-lay out the page to fit 1440x900: Survey Ledger, Field Unit, and Cabinet '82 (Claude); Site Signage and Company Desktop (Codex). `themes/DESIGN-BRIEF.md` holds the references and the rules against slop. The round 1 reskins were removed.
+  - Round 3 (William's feedback: Company Desktop was the clear favourite). Five versions of the classic Windows Minesweeper look, with the board in the middle, Survey Ledger-level readability, a dark version (Night Shift), and a sand texture (Desert): Classic 95, Night Shift, and Desert (Claude); Program Manager and Luna (Codex). Claude's three come from one window system in `themes/_build`. The round 2 designs were removed.
   - `styles.css` lifts fonts, panel colours, number colours, and the mine colour into variables. The defaults are the same values as before.
   - `npm run theme-lab` serves both games' redesigns on port 8090.
 - Tests: `npm test` passed all 109 tests, including `test/themes.test.js` (theme validity, CSS scoping, core vocabulary, colour-key collisions).
