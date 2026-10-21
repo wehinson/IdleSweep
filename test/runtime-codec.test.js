@@ -44,3 +44,13 @@ test("compact Board encoding restores sparse finds and worker flags", () => {
   assert.equal(restored.board[3].flaggedByWorker, true);
   assert.equal(restored.board[3].blueprintId, "pattern1221");
 });
+
+
+test("compact decoder rejects malformed payloads consistently across runtimes", () => {
+  const encoded = encodeModeState({
+    board: [{ index: 0 }], settings: { rows: 1, cols: 1, mines: 0 },
+  }, 0);
+  for (const cells of ["", "AAA", "AAAA!", "____", "AAA=", "AAAAAAAA"]) {
+    assert.throws(() => decodeModeState({ ...encoded, board: { ...encoded.board, cells } }, 0), /compact Board data/);
+  }
+});
