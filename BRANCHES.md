@@ -52,3 +52,18 @@
 - Tests changed: shop, hold confirmation, rounds, cross costs, catalog order, and save state.
 - Commands: `npm test`, `node --check`, `git diff --check`, direct HTTP requests, and approved isolated Edge checks.
 - Recommendation: Ready to ship when requested. No release or deployment was performed for this change request.
+
+
+## codex/idea001-safe-save-import — Validate compact saves before replacement
+
+- Reference: HOME-PROJECT-IDEAS-20261021-001-IDLESWEEP-20261021-A.
+- Agent: Codex; single cloud investigator, implementer and integration owner.
+- Base/PR target: `working-redesign`, `fccb7d02900e30493b442ade3ae462edc2588922`.
+- Status: Implemented; unmerged PR for review.
+- Scope: Reject truncated, oversized and invalid-alphabet encoding-2 Board payloads during save validation, before import returns replacement state. Share the same check with runtime decoding.
+- Evidence: The new import regression failed on the base because an empty payload passed validation; runtime decoding then threw after the application had assigned player/profile state.
+- Owned files: persistence runtime codec and save schema; their two direct test files; this log.
+- Checks: `npm test` (111 passed); focused persistence suite (14 passed); changed JavaScript syntax checks and `git diff --check` passed.
+- Review limits: No browser automation, visual checks, server, deployment or merge. Direct tests cover legacy fieldQueue and retained Board sessions, valid round trips, and malformed payload rejection. This bounded fix does not make all state replacement transactional or validate every possible malformed save field.
+- Version impact: None; no release bump or save-format change. Current exports use three bytes/four standard Base64 characters per cell without padding.
+- Last update: 2026-10-21.

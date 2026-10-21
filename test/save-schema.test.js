@@ -4,6 +4,7 @@ import { hydrateSave, serializeSave, validateSave } from "../src/persistence/sav
 import { parseImportedSave } from "../src/persistence/storage.js";
 import { createDeveloperTelemetry, restartDeveloperRun } from "../src/engine/developer-telemetry.js";
 import config from "../config.js";
+import { encodeModeState, decodeModeState } from "../src/persistence/runtime-codec.js";
 import { createDistrict } from "../src/engine/district.js";
 
 function modeState(rows = 3, cols = 3) {
@@ -190,4 +191,31 @@ test("equipment purchase history and both chording levels survive save reload", 
   invalid.state.run.player.chordingLevel = 2;
   invalid.state.profile.equipmentPurchaseIds = ["unknown"];
   assert.throws(() => validateSave(invalid), /purchase history/);
+});
+
+
+test("import rejects corrupt compact board payloads before returning replacement state", () => {
+  const original = gameState();
+  original.fieldQueue = encodeModeState({
+    ...modeState(), recentlyRevealed: new Set([1]), treasurePopups: new Map([[2, 10]]),
+  }, 0);
+  original.boardSessions = {
+    retained: {
+      id: "retained", category: "STANDARD", owner: { type: "main", id: "main" },
+      settings: original.settings, status: "PREVIEW", initialMineCount: null,
+      automation: {}, modeState: original.fieldQueue,
+    },
+  };
+  const valid = JSON.parse(serializeSave(original));
+  for (const cells of ["", "AAAA", "!".repeat(36), "_".repeat(36), valid.state.run.fieldQueue.board.cells + "AAAA"]) {
+    const corrupted = structuredClone(valid);
+    corrupted.state.run.fieldQueue.board.cells = cells;
+    assert.throws(() => parseImportedSave(JSON.stringify(corrupted)), /compact Board data/, cells);
+    corrupted.state.run.fieldQueue = null;
+    corrupted.state.run.boardSessions.retained.modeState.board.cells = cells;
+    assert.throws(() => parseImportedSave(JSON.stringify(corrupted)), /compact Board data/, cells);
+  }
+  const restored = parseImportedSave(JSON.stringify(valid));
+  assert.equal(decodeModeState(restored.fieldQueue, 0).board.length, 9);
+  assert.equal(decodeModeState(restored.boardSessions.retained.modeState, 0).board.length, 9);
 });

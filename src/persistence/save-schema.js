@@ -1,3 +1,4 @@
+import { validateCompactBoard } from "./runtime-codec.js";
 import config from "../../config.js";
 import { SPECIAL_EQUIPMENT, SPECIALISTS } from "../engine/catalogs.js";
 import { createCampProgression } from "../engine/camp-progression.js";
@@ -54,7 +55,6 @@ export function validateSave(input) {
   assertPlainObject(state.messageBoard, "state.messageBoard");
   assertPlainObject(state.timers, "state.timers");
   if (state.developerTelemetry !== undefined) validateDeveloperTelemetry(state.developerTelemetry);
-  validateFlagPoolState(state.flagPool, state.boardSessions || {}, state.player);
   if (!new Set(["board", "district"]).has(state.currentMode)) throw new Error("The save contains an invalid game mode.");
   validateSettings(state.settings, "state.settings");
   if (state.fieldQueue !== null) validateModeState(state.fieldQueue, "state.fieldQueue");
@@ -66,6 +66,7 @@ export function validateSave(input) {
   if (state.workerState !== undefined) validateWorkerState(state.workerState);
   if (state.district !== undefined && state.district !== null) validateDistrict(state.district);
   if (state.boardSessions !== undefined) validateBoardSessions(state.boardSessions);
+  validateFlagPoolState(state.flagPool, state.boardSessions || {}, state.player);
   if (state.contractInstances !== undefined) validateContractInstances(state.contractInstances, state.boardSessions || {});
   assertFiniteNonNegative(state.messageBoard.nextChallengeInMs, "next challenge timer");
   assertJsonValue(state, "state");
@@ -495,6 +496,7 @@ function validateModeState(mode, path) {
     if (mode.board.length !== mode.settings.rows * mode.settings.cols || typeof mode.board.cells !== "string") {
       throw new Error(`${path} has an invalid board size.`);
     }
+    validateCompactBoard(mode.board, mode.settings);
     for (const key of ["treasures", "curios", "blueprints"]) {
       if (!Array.isArray(mode.board[key])) throw new Error(`${path}.board.${key} is invalid.`);
     }

@@ -58,11 +58,20 @@ function encodeBoard(board) {
   return { length: board.length, cells: bytesToBase64(bytes), treasures, curios, blueprints };
 }
 
-function decodeBoard(encoded, settings) {
-  const bytes = base64ToBytes(encoded.cells);
-  if (encoded.length !== settings.rows * settings.cols || bytes.length !== encoded.length * 3) {
+export function validateCompactBoard(encoded, settings) {
+  // Each cell occupies three bytes, so exports use four Base64 characters
+  // per cell with no padding. Validate before decoding (Buffer is permissive).
+  if (encoded.length !== settings.rows * settings.cols
+    || typeof encoded.cells !== "string"
+    || encoded.cells.length !== encoded.length * 4
+    || /[^A-Za-z0-9+/]/.test(encoded.cells)) {
     throw new Error("The compact Board data has an invalid size.");
   }
+}
+
+function decodeBoard(encoded, settings) {
+  validateCompactBoard(encoded, settings);
+  const bytes = base64ToBytes(encoded.cells);
   const treasures = new Map(encoded.treasures || []);
   const curios = new Map(encoded.curios || []);
   const blueprints = new Map(encoded.blueprints || []);
